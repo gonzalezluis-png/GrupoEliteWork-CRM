@@ -42,8 +42,14 @@
     padding: 20px 18px 14px;
     border-bottom: 1px solid var(--border);
   }
-  .sidebar-logo h1 { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: .5px; line-height: 1.3; }
-  .sidebar-logo span { font-size: 11px; color: var(--text2); font-weight: 400; }
+  .sidebar-logo h1 { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: .5px; line-height: 1.3; margin: 0; display: flex; align-items: center; gap: 6px; }
+  .sidebar-logo-subtitle { font-size: 10px; color: var(--text2); font-weight: 400; font-style: italic; display: block; margin-top: 2px; }
+  .sidebar-logo-bottom { font-size: 11px; color: var(--text2); font-weight: 400; margin-top: 3px; display: block; }
+  #btn-edit-appname { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 12px; padding: 0; line-height: 1; display: none; }
+  #btn-edit-appname:hover { color: #fff; }
+  #appname-edit-wrap { display: none; margin-top: 6px; gap: 4px; }
+  #appname-edit-wrap input { flex: 1; background: var(--card2); border: 1px solid var(--border); color: #fff; font-size: 12px; padding: 4px 7px; border-radius: 5px; font-family: var(--font); }
+  #appname-edit-wrap button { background: var(--accent); border: none; color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-family: var(--font); }
 
   .sidebar-label {
     padding: 14px 18px 6px;
@@ -714,8 +720,13 @@
   <!-- SIDEBAR -->
   <nav id="sidebar">
     <div class="sidebar-logo">
-      <h1>GRUPO ELITE WORK</h1>
-      <span>CRM · Gestión de Leads</span>
+      <h1><span id="appname-display">GRUPO ELITE WORK</span><button id="btn-edit-appname" title="Cambiar nombre" onclick="toggleAppNameEdit()">✏️</button></h1>
+      <span class="sidebar-logo-subtitle">Grupo Elite Development</span>
+      <div id="appname-edit-wrap" style="display:none">
+        <input id="appname-input" type="text" maxlength="40" placeholder="Nombre de la app" />
+        <button onclick="saveAppName()">OK</button>
+      </div>
+      <span class="sidebar-logo-bottom">CRM · Gestión de Leads</span>
     </div>
     <div class="sidebar-label">Boards</div>
     <div id="board-list"></div>
@@ -2324,13 +2335,38 @@ function initApp(user) {
   renderSidebar();
   populateAgentFilter();
   renderTopbarUser(user);
+  applyAppName();
   if (user.role === 'admin' || user.role === 'master') {
     document.getElementById('sidebar-admin').style.display = 'block';
-  }
-  if (user.role === 'admin' || user.role === 'master') {
+    document.getElementById('btn-edit-appname').style.display = 'inline';
     document.getElementById('assign-strip').classList.remove('hidden');
   }
   selectBoard('dallas');
+}
+
+function loadAppName() {
+  return localStorage.getItem('gew_appname') || 'GRUPO ELITE WORK';
+}
+function applyAppName() {
+  document.getElementById('appname-display').textContent = loadAppName();
+}
+function toggleAppNameEdit() {
+  const wrap = document.getElementById('appname-edit-wrap');
+  const visible = wrap.style.display === 'flex';
+  if (!visible) {
+    document.getElementById('appname-input').value = loadAppName();
+    wrap.style.display = 'flex';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+function saveAppName() {
+  const val = document.getElementById('appname-input').value.trim();
+  if (val) {
+    localStorage.setItem('gew_appname', val);
+    document.getElementById('appname-display').textContent = val;
+  }
+  document.getElementById('appname-edit-wrap').style.display = 'none';
 }
 
 function renderTopbarUser(user) {
