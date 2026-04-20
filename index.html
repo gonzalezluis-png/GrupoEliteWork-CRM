@@ -996,7 +996,10 @@
         </div>
         <div class="field">
           <label>Contraseña *</label>
-          <input type="password" id="u-pass" placeholder="Mínimo 6 caracteres" />
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="password" id="u-pass" placeholder="Mínimo 6 caracteres" style="flex:1" />
+            <button type="button" style="background:var(--border);border:none;color:var(--text2);padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px" onmousedown="document.getElementById('u-pass').type='text'" onmouseup="document.getElementById('u-pass').type='password'" onmouseleave="document.getElementById('u-pass').type='password'" title="Mantén presionado para ver">👁</button>
+          </div>
         </div>
         <div class="field" id="u-rol-wrap">
           <label>Rol</label>
@@ -2532,11 +2535,25 @@ function doLogin() {
     user = users.find(u => u.email.toLowerCase() === email && u.password === pass);
   }
 
-  if (!user) { err.textContent = 'Email o contraseña incorrectos.'; return; }
+  if (!user) {
+    const allUsers = loadUsers();
+    const emailExists = email === MASTER_USER.email.toLowerCase() ||
+                        allUsers.some(u => u.email.toLowerCase() === email);
+    err.textContent = emailExists
+      ? 'Contraseña incorrecta.'
+      : 'No existe ninguna cuenta con ese email.';
+    return;
+  }
   err.textContent = '';
   setSession(user);
   document.getElementById('login-screen').classList.add('hidden');
-  initApp(user);
+  try {
+    initApp(user);
+  } catch(e) {
+    console.error('initApp error:', e);
+    document.getElementById('login-screen').classList.remove('hidden');
+    err.textContent = 'Error al cargar la app. Contacta al administrador.';
+  }
 }
 
 function doLogout() {
@@ -2747,7 +2764,7 @@ function openUserModal(userId, presetOrgId, presetRole) {
   const rolWrap = document.getElementById('u-rol-wrap');
   const orgWrap = document.getElementById('u-org-wrap');
 
-  if (session.role === 'master') {
+  if (session && session.role === 'master') {
     rolWrap.style.display = '';
     const role = u ? u.role : (presetRole || 'agent');
     document.getElementById('u-rol').value = role;
@@ -2777,6 +2794,8 @@ function saveUser() {
   const email   = document.getElementById('u-email').value.trim().toLowerCase();
   const pass    = document.getElementById('u-pass').value;
   const session = getSession();
+
+  if (!session) { showToast('Sesión expirada. Por favor inicia sesión de nuevo.', 'error'); return; }
 
   let role = 'agent';
   let orgAdminId = null;
