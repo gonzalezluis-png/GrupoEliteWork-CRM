@@ -631,6 +631,48 @@
   }
   .sidebar-item:hover { background: rgba(255,255,255,.05); color: var(--text); }
   .sidebar-item.active { color: var(--accent); background: rgba(0,115,234,.1); }
+
+  /* ── SETTINGS PAGE ── */
+  #settings-page { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  #settings-page.visible { display: flex; }
+  .settings-wrap { padding: 28px; overflow-y: auto; flex: 1; max-width: 700px; }
+  .settings-wrap h2 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 22px; }
+  .settings-section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 18px; }
+  .settings-section h3 { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .settings-section p  { font-size: 11px; color: var(--text2); margin-bottom: 16px; }
+
+  /* toggle switch */
+  .col-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .col-toggle-row:last-child { border-bottom: none; }
+  .col-toggle-info { display: flex; flex-direction: column; gap: 2px; }
+  .col-toggle-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .col-toggle-desc { font-size: 10px; color: var(--text2); }
+  .toggle-sw { position: relative; width: 38px; height: 20px; flex-shrink: 0; }
+  .toggle-sw input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: var(--border);
+    border-radius: 20px; cursor: pointer; transition: background .2s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute;
+    width: 14px; height: 14px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%; transition: transform .2s;
+  }
+  .toggle-sw input:checked + .toggle-slider { background: var(--accent); }
+  .toggle-sw input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  /* custom column builder */
+  .custom-col-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 14px; }
+  .custom-col-form .field { margin: 0; }
+  .custom-col-form .field input, .custom-col-form .field select { padding: 7px 10px; }
+  .custom-cols-list { display: flex; flex-direction: column; gap: 6px; }
+  .custom-col-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--card2); border-radius: 7px; border: 1px solid var(--border); }
+  .custom-col-item-left { display: flex; align-items: center; gap: 10px; }
+  .custom-col-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; background: rgba(0,115,234,.15); color: var(--accent); text-transform: uppercase; }
+  .custom-col-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .custom-col-del { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 14px; transition: color .15s; }
+  .custom-col-del:hover { color: var(--red); }
+  .options-input { width: 100%; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -665,9 +707,8 @@
     <div class="sidebar-label">Boards</div>
     <div id="board-list"></div>
     <div class="sidebar-admin" id="sidebar-admin" style="display:none">
-      <div class="sidebar-item" id="nav-users" onclick="showUsersPage()">
-        👥 <span>Usuarios</span>
-      </div>
+      <div class="sidebar-item" id="nav-users" onclick="showUsersPage()">👥 <span>Usuarios</span></div>
+      <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span></div>
     </div>
   </nav>
 
@@ -758,6 +799,46 @@
         <span class="emoji">📋</span>
         <p>No hay leads en este board todavía.</p>
         <button class="btn btn-primary" onclick="openModal()">＋ Agregar primer lead</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="settings-page">
+      <div class="settings-wrap">
+        <h2>⚙️ Configuración de Boards</h2>
+
+        <div class="settings-section">
+          <h3>Columnas visibles</h3>
+          <p>Activa o desactiva columnas en todos los boards. Las columnas fijas no se pueden quitar.</p>
+          <div id="col-toggles"></div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Columnas personalizadas</h3>
+          <p>Agrega columnas nuevas a todos los boards.</p>
+          <div class="custom-col-form">
+            <div class="field">
+              <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Nombre</label>
+              <input type="text" id="cc-nombre" placeholder="Ej: ESTADO MIGRATORIO" style="width:200px" />
+            </div>
+            <div class="field">
+              <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Tipo</label>
+              <select id="cc-tipo" onchange="toggleOptionsInput()" style="width:130px">
+                <option value="text">Texto</option>
+                <option value="number">Número</option>
+                <option value="dropdown">Dropdown</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="addCustomCol()" style="margin-bottom:1px">＋ Agregar</button>
+          </div>
+          <div id="cc-options-wrap" style="display:none;margin-bottom:14px">
+            <div class="field">
+              <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Opciones <span style="font-weight:400;text-transform:none">(separadas por coma)</span></label>
+              <input type="text" id="cc-options" class="options-input" placeholder="Ej: Opción 1, Opción 2, Opción 3" />
+            </div>
+          </div>
+          <div class="custom-cols-list" id="custom-cols-list"></div>
+        </div>
       </div>
     </div>
 
@@ -1033,22 +1114,7 @@ function selectBoard(id) {
 //  TABLE
 // ════════════════════════════════════════════
 function getColumns(board) {
-  const cols = [
-    { key: '_check',       label: '' },
-    { key: 'nombre',       label: 'NOMBRE' },
-    { key: 'lead',         label: 'LEAD' },
-    { key: 'creacion',     label: 'REGISTRO CREACIÓN' },
-    { key: 'hijos',        label: 'HIJOS MENORES' },
-    { key: 'email',        label: 'EMAIL' },
-    { key: 'telefono',     label: 'TELÉFONO' },
-    { key: 'direccion',    label: 'DIRECCIÓN' },
-    { key: 'ubicacion',    label: 'UBICACIÓN' },
-    { key: 'asignado',     label: 'ASIGNADO A' },
-  ];
-  cols.push({ key: 'resultado', label: 'RESULTADO' });
-  cols.push({ key: 'notas', label: 'NOTAS' });
-  cols.push({ key: '_actions', label: '' });
-  return cols;
+  return getActiveColumns(board);
 }
 
 function renderTable() {
@@ -1177,6 +1243,14 @@ function renderRows(board, leads) {
         </td>`;
       }
       if (c.key === 'notas') return `<td class="td-notes"><span title="${esc(l.notas||'')}">${esc(l.notas||'')}</span></td>`;
+      // custom column
+      if (c.customDef) {
+        const def = c.customDef;
+        if (def.type === 'dropdown') {
+          return inlineDrop(c.key, def.options, def.label, null, l, id, board);
+        }
+        return inlineText(c.key, def.type === 'number' ? 'number' : 'text', def.label, l, id);
+      }
       return `<td>${esc(l[c.key]||'')}</td>`;
     }).join('');
     return `<tr class="${rowClass}">${cells}</tr>`;
@@ -1928,6 +2002,150 @@ document.addEventListener('keydown', e => {
 });
 
 // ════════════════════════════════════════════
+//  COLUMN CONFIG
+// ════════════════════════════════════════════
+const COL_CONFIG_KEY = 'gew_col_config';
+
+const OPTIONAL_COLS = [
+  { key: 'lead',      label: 'LEAD',              desc: 'Tipo de lead (Guía Médico, CSKID, etc.)' },
+  { key: 'hijos',     label: 'HIJOS MENORES',      desc: 'Cantidad de hijos menores de edad' },
+  { key: 'asignado',  label: 'ASIGNADO A',         desc: 'Agente responsable del lead' },
+  { key: 'resultado', label: 'RESULTADO',           desc: 'Estado de la llamada/contacto' },
+  { key: 'notas',     label: 'NOTAS',              desc: 'Comentarios adicionales' },
+];
+
+function loadColConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(COL_CONFIG_KEY));
+    if (saved) return saved;
+  } catch {}
+  // defaults: all optional cols visible, no custom cols
+  const def = { custom: [] };
+  OPTIONAL_COLS.forEach(c => def[c.key] = true);
+  return def;
+}
+function saveColConfig(cfg) { localStorage.setItem(COL_CONFIG_KEY, JSON.stringify(cfg)); }
+
+function getActiveColumns(board) {
+  const cfg = loadColConfig();
+  const fixed = ['_check','nombre','creacion','email','telefono','direccion','ubicacion'];
+  const cols = [
+    { key: '_check',    label: '' },
+    { key: 'nombre',    label: 'NOMBRE' },
+    { key: 'creacion',  label: 'REGISTRO CREACIÓN' },
+    { key: 'email',     label: 'EMAIL' },
+    { key: 'telefono',  label: 'TELÉFONO' },
+    { key: 'direccion', label: 'DIRECCIÓN' },
+    { key: 'ubicacion', label: 'UBICACIÓN' },
+  ];
+  OPTIONAL_COLS.forEach(c => { if (cfg[c.key]) cols.push({ key: c.key, label: c.label }); });
+  (cfg.custom || []).forEach(c => cols.push({ key: c.key, label: c.label.toUpperCase(), customDef: c }));
+  cols.push({ key: '_actions', label: '' });
+  return cols;
+}
+
+// settings page
+function showSettingsPage() {
+  showBoardView();
+  document.getElementById('table-wrap').style.display    = 'none';
+  document.getElementById('toolbar').style.display       = 'none';
+  document.getElementById('bulk-bar').classList.remove('visible');
+  document.getElementById('btn-new-lead').style.display  = 'none';
+  document.getElementById('btn-export').style.display    = 'none';
+  document.getElementById('settings-page').classList.add('visible');
+  document.getElementById('board-title').textContent     = 'Configuración';
+  document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
+  const ns = document.getElementById('nav-settings');
+  if (ns) ns.classList.add('active');
+  currentBoardId = null;
+  renderColToggles();
+  renderCustomColsList();
+}
+
+function renderColToggles() {
+  const cfg = loadColConfig();
+  document.getElementById('col-toggles').innerHTML = OPTIONAL_COLS.map(c => `
+    <div class="col-toggle-row">
+      <div class="col-toggle-info">
+        <span class="col-toggle-name">${c.label}</span>
+        <span class="col-toggle-desc">${c.desc}</span>
+      </div>
+      <label class="toggle-sw">
+        <input type="checkbox" ${cfg[c.key] ? 'checked' : ''} onchange="toggleCol('${c.key}',this.checked)" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  `).join('');
+}
+
+function toggleCol(key, val) {
+  const cfg = loadColConfig();
+  cfg[key] = val;
+  saveColConfig(cfg);
+  showToast('Columna ' + (val ? 'activada' : 'desactivada') + ' ✓', 'success');
+}
+
+function toggleOptionsInput() {
+  const tipo = document.getElementById('cc-tipo').value;
+  document.getElementById('cc-options-wrap').style.display = tipo === 'dropdown' ? 'block' : 'none';
+}
+
+function addCustomCol() {
+  const nombre = document.getElementById('cc-nombre').value.trim().toUpperCase();
+  const tipo   = document.getElementById('cc-tipo').value;
+  const optsRaw= document.getElementById('cc-options') ? document.getElementById('cc-options').value : '';
+
+  if (!nombre) { showToast('El nombre es requerido', 'error'); return; }
+
+  const cfg = loadColConfig();
+  const key = 'custom_' + nombre.toLowerCase().replace(/[^a-z0-9]/g,'_') + '_' + Date.now().toString(36);
+  const options = tipo === 'dropdown' ? optsRaw.split(',').map(o => o.trim()).filter(Boolean) : [];
+
+  cfg.custom = cfg.custom || [];
+  if (cfg.custom.find(c => c.label.toUpperCase() === nombre)) { showToast('Ya existe una columna con ese nombre', 'error'); return; }
+  cfg.custom.push({ key, label: nombre, type: tipo, options });
+  saveColConfig(cfg);
+
+  document.getElementById('cc-nombre').value = '';
+  document.getElementById('cc-options').value = '';
+  document.getElementById('cc-options-wrap').style.display = 'none';
+  document.getElementById('cc-tipo').value = 'text';
+
+  renderCustomColsList();
+  showToast(`Columna "${nombre}" agregada ✓`, 'success');
+}
+
+function removeCustomCol(key) {
+  const cfg = loadColConfig();
+  cfg.custom = (cfg.custom || []).filter(c => c.key !== key);
+  saveColConfig(cfg);
+  renderCustomColsList();
+  showToast('Columna eliminada', 'error');
+}
+
+function renderCustomColsList() {
+  const cfg  = loadColConfig();
+  const list = document.getElementById('custom-cols-list');
+  if (!list) return;
+  const customs = cfg.custom || [];
+  if (customs.length === 0) {
+    list.innerHTML = `<p style="font-size:12px;color:var(--text2);text-align:center;padding:16px">No hay columnas personalizadas todavía.</p>`;
+    return;
+  }
+  const typeLabel = { text:'Texto', number:'Número', dropdown:'Dropdown' };
+  list.innerHTML = customs.map(c => `
+    <div class="custom-col-item">
+      <div class="custom-col-item-left">
+        <span class="custom-col-badge">${typeLabel[c.type]||c.type}</span>
+        <span class="custom-col-name">${esc(c.label)}</span>
+        ${c.options && c.options.length ? `<span style="font-size:10px;color:var(--text2)">${c.options.join(', ')}</span>` : ''}
+      </div>
+      <button class="custom-col-del" onclick="removeCustomCol('${c.key}')" title="Eliminar">🗑</button>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════
 //  BOARD MANAGEMENT
 // ════════════════════════════════════════════
 const CUSTOM_BOARDS_KEY = 'gew_custom_boards';
@@ -2122,12 +2340,15 @@ function showUsersPage() {
 
 function showBoardView() {
   document.getElementById('users-page').classList.remove('visible');
+  document.getElementById('settings-page').classList.remove('visible');
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
   document.getElementById('btn-new-lead').style.display = '';
   document.getElementById('btn-export').style.display   = '';
   const navUsers = document.getElementById('nav-users');
   if (navUsers) navUsers.classList.remove('active');
+  const navSet = document.getElementById('nav-settings');
+  if (navSet) navSet.classList.remove('active');
 }
 
 function renderUsersGrid() {
