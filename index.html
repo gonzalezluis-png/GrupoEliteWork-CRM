@@ -732,7 +732,6 @@
     <div class="sidebar-label">Boards</div>
     <div id="board-list"></div>
     <div class="sidebar-admin" id="sidebar-admin" style="display:none">
-      <div class="sidebar-item" id="nav-users" onclick="showUsersPage()">👥 <span>Usuarios</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span></div>
     </div>
     <div id="sidebar-master" style="display:none">
@@ -831,11 +830,22 @@
         <h2>⚙️ Configuración de Boards</h2>
 
         <div class="settings-section">
-          <h3>Nombre de la aplicación</h3>
-          <p>Este nombre aparece en la parte superior del menú lateral.</p>
-          <div id="appname-settings-wrap">
-            <input type="text" id="appname-settings-input" maxlength="40" placeholder="Ej: GRUPO ELITE WORK" />
-            <button class="btn btn-primary btn-sm" onclick="saveAppName()">Guardar</button>
+          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleOrgNameSection()">
+            <div>
+              <h3 style="margin:0">🏢 Nombre de la organización</h3>
+              <p style="margin:4px 0 0;font-size:11px;color:var(--text2)">El nombre que aparece en la parte superior del menú lateral.</p>
+            </div>
+            <span id="orgname-lock-icon" style="font-size:18px;color:var(--text2)" title="Haz clic para editar">🔒</span>
+          </div>
+          <div id="orgname-edit-section" style="display:none;margin-top:14px">
+            <div style="background:rgba(226,68,92,.08);border:1px solid rgba(226,68,92,.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e2445c">
+              ⚠️ Estás a punto de cambiar el nombre visible de la organización para todos los usuarios.
+            </div>
+            <div id="appname-settings-wrap">
+              <input type="text" id="appname-settings-input" maxlength="40" placeholder="Ej: GRUPO ELITE WORK" />
+              <button class="btn btn-primary btn-sm" onclick="saveAppName()">Guardar</button>
+              <button class="btn btn-secondary btn-sm" onclick="toggleOrgNameSection()">Cancelar</button>
+            </div>
           </div>
         </div>
 
@@ -897,19 +907,22 @@
           <div id="lead-types-list"></div>
         </div>
 
+        <div class="settings-section" id="settings-users-section">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div>
+              <h3 style="margin:0">👥 Usuarios</h3>
+              <p style="margin:4px 0 0;font-size:11px;color:var(--text2)">Gestiona los usuarios y sus roles dentro de la organización.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openUserModal()">＋ Nuevo Usuario</button>
+          </div>
+          <div class="users-grid" id="users-grid"></div>
+        </div>
+
       </div>
     </div>
 
-    <!-- USERS PAGE -->
-    <div id="users-page">
-      <div class="users-wrap">
-        <div class="users-header">
-          <h2>👥 Gestión de Usuarios</h2>
-          <button class="btn btn-primary" onclick="openUserModal()">＋ Nuevo Usuario</button>
-        </div>
-        <div class="users-grid" id="users-grid"></div>
-      </div>
-    </div>
+    <!-- USERS PAGE (kept for compatibility but hidden) -->
+    <div id="users-page" style="display:none"></div>
   </div>
 </div>
 
@@ -2278,9 +2291,9 @@ function showSettingsPage() {
   document.getElementById('btn-export').style.display    = 'none';
   document.getElementById('settings-page').classList.add('visible');
   document.getElementById('board-title').textContent     = 'Configuración';
-  document.getElementById('appname-settings-input').value = loadAppName();
   populateUbicacionesBoardSel();
   renderLeadTypesList();
+  renderUsersGrid();
   document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
   const ns = document.getElementById('nav-settings');
   if (ns) ns.classList.add('active');
@@ -2556,12 +2569,27 @@ function loadAppName() {
 function applyAppName() {
   document.getElementById('appname-display').textContent = loadAppName();
 }
+function toggleOrgNameSection() {
+  const section = document.getElementById('orgname-edit-section');
+  const icon    = document.getElementById('orgname-lock-icon');
+  const open    = section.style.display === 'none' || section.style.display === '';
+  if (open) {
+    document.getElementById('appname-settings-input').value = loadAppName();
+    section.style.display = 'block';
+    icon.textContent = '🔓';
+  } else {
+    section.style.display = 'none';
+    icon.textContent = '🔒';
+  }
+}
 function saveAppName() {
   const val = document.getElementById('appname-settings-input').value.trim();
   if (val) {
     localStorage.setItem('gew_appname', val);
     document.getElementById('appname-display').textContent = val;
-    showToast('Nombre actualizado');
+    showToast('Nombre actualizado ✓', 'success');
+    document.getElementById('orgname-edit-section').style.display = 'none';
+    document.getElementById('orgname-lock-icon').textContent = '🔒';
   }
 }
 
@@ -2582,29 +2610,19 @@ function renderTopbarUser(user) {
 let editingUserId = null;
 
 function showUsersPage() {
-  document.getElementById('assign-strip').classList.add('hidden');
-  document.getElementById('table-wrap').style.display   = 'none';
-  document.getElementById('bulk-bar').classList.remove('visible');
-  document.getElementById('toolbar').style.display      = 'none';
-  document.getElementById('users-page').classList.add('visible');
-  document.getElementById('board-title').textContent    = 'Gestión de Usuarios';
-  document.getElementById('btn-new-lead').style.display = 'none';
-  document.getElementById('btn-export').style.display   = 'none';
-  document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('nav-users').classList.add('active');
-  currentBoardId = null;
-  renderUsersGrid();
+  showSettingsPage();
+  setTimeout(() => {
+    const el = document.getElementById('settings-users-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }, 50);
 }
 
 function showBoardView() {
-  document.getElementById('users-page').classList.remove('visible');
   document.getElementById('settings-page').classList.remove('visible');
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
   document.getElementById('btn-new-lead').style.display = '';
   document.getElementById('btn-export').style.display   = '';
-  const navUsers = document.getElementById('nav-users');
-  if (navUsers) navUsers.classList.remove('active');
   const navSet = document.getElementById('nav-settings');
   if (navSet) navSet.classList.remove('active');
   const navImp = document.getElementById('nav-import');
