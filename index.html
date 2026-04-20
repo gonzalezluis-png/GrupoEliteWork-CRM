@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Grupo Elite Work — CRM</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1c1f3b;
+    --sidebar: #111827;
+    --card: #252836;
+    --card2: #1e2130;
+    --border: #2e3250;
+    --accent: #0073ea;
+    --green: #00c875;
+    --red: #e2445c;
+    --yellow: #fdab3d;
+    --purple: #784bd1;
+    --gray: #676879;
+    --text: #e0e2f0;
+    --text2: #9ea6c4;
+    --font: 'Inter', system-ui, sans-serif;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); font-size: 13px; }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: 240px; min-width: 240px; background: var(--sidebar);
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+  }
+  .sidebar-logo {
+    padding: 20px 18px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo h1 { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: .5px; line-height: 1.3; }
+  .sidebar-logo span { font-size: 11px; color: var(--text2); font-weight: 400; }
+
+  .sidebar-label {
+    padding: 14px 18px 6px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    color: var(--text2); text-transform: uppercase;
+  }
+
+  .board-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 18px;
+    cursor: pointer; border-radius: 0;
+    transition: background .15s;
+    user-select: none;
+  }
+  .board-item:hover { background: rgba(255,255,255,.05); }
+  .board-item.active { background: rgba(0,115,234,.18); border-left: 3px solid var(--accent); }
+  .board-item .board-icon { font-size: 14px; }
+  .board-item .board-name { flex: 1; font-size: 12px; font-weight: 500; color: var(--text); }
+  .board-item .board-count {
+    background: var(--border); color: var(--text2);
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: 10px;
+    min-width: 22px; text-align: center;
+  }
+  .board-item.active .board-count { background: var(--accent); color: #fff; }
+
+  /* ── MAIN ── */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* header */
+  #topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card2);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  #board-title { font-size: 18px; font-weight: 700; color: #fff; margin-right: auto; white-space: nowrap; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 6px; border: none;
+    font-family: var(--font); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: opacity .15s, transform .1s;
+  }
+  .btn:hover { opacity: .88; }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--border); color: var(--text); }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+
+  /* toolbar */
+  #toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card2);
+    flex-wrap: wrap;
+  }
+
+  .search-wrap { position: relative; }
+  .search-wrap input {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px;
+    padding: 6px 10px 6px 30px;
+    font-family: var(--font); font-size: 12px; width: 200px;
+    outline: none;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap .ico { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text2); font-size: 13px; }
+
+  select.filter-select {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px;
+    padding: 6px 10px; font-family: var(--font); font-size: 12px;
+    outline: none; cursor: pointer;
+  }
+  select.filter-select:focus { border-color: var(--accent); }
+
+  .toolbar-count { margin-left: auto; font-size: 11px; color: var(--text2); white-space: nowrap; }
+
+  .date-filter-wrap { display: flex; align-items: center; gap: 6px; }
+  .date-filter-label { font-size: 11px; color: var(--text2); white-space: nowrap; }
+  .filter-date {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px;
+    padding: 5px 8px; font-family: var(--font); font-size: 12px;
+    outline: none; cursor: pointer; width: 130px;
+    color-scheme: dark;
+  }
+  .filter-date:focus { border-color: var(--accent); }
+  .date-filter-clear {
+    background: none; border: none; color: var(--text2);
+    font-size: 13px; cursor: pointer; padding: 2px 4px;
+    border-radius: 4px; line-height: 1;
+    transition: color .15s, background .15s;
+    display: none;
+  }
+  .date-filter-clear.visible { display: block; }
+  .date-filter-clear:hover { color: var(--red); background: rgba(226,68,92,.1); }
+
+  /* assign tabs */
+  .assign-tabs { display: flex; gap: 4px; }
+  .assign-tab {
+    padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text2);
+    font-family: var(--font); font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .assign-tab:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .assign-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .assign-tab.tab-unassigned.active { background: var(--yellow); border-color: var(--yellow); color: #1a1a1a; }
+
+  /* ── CHECKBOX ── */
+  .td-check { width: 36px; padding: 0 0 0 12px !important; }
+  .th-check { width: 36px; padding: 0 0 0 12px !important; }
+  .row-checkbox, .header-checkbox {
+    width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent);
+    border-radius: 4px;
+  }
+  tbody tr.selected-row { background: rgba(0,115,234,.12) !important; }
+  tbody tr.selected-row td:first-child { border-left: 3px solid var(--accent); }
+  tbody tr.unassigned-row.selected-row td:first-child { border-left: 3px solid var(--accent); }
+
+  /* ── BULK BAR ── */
+  #bulk-bar {
+    display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 24px;
+    background: #0d1f3c;
+    border-bottom: 2px solid var(--accent);
+    animation: slideDown .2s ease;
+  }
+  #bulk-bar.visible { display: flex; }
+  @keyframes slideDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+  .bulk-count {
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    white-space: nowrap; margin-right: 4px;
+  }
+  .bulk-sep { width: 1px; height: 22px; background: var(--border); }
+  .bulk-label { font-size: 11px; color: var(--text2); font-weight: 600; white-space: nowrap; }
+  .bulk-select {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px;
+    padding: 5px 10px; font-family: var(--font); font-size: 12px;
+    outline: none; cursor: pointer; min-width: 150px;
+  }
+  .bulk-select:focus { border-color: var(--accent); }
+  .bulk-apply {
+    padding: 5px 12px; border-radius: 6px; border: none;
+    background: var(--accent); color: #fff;
+    font-family: var(--font); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .bulk-apply:hover { opacity: .85; }
+  .bulk-apply.danger { background: var(--red); }
+  .bulk-clear { margin-left: auto; font-size: 11px; color: var(--text2); cursor: pointer; }
+  .bulk-clear:hover { color: var(--text); }
+
+  /* unassigned row highlight */
+  tbody tr.unassigned-row td:first-child { border-left: 3px solid var(--yellow); padding-left: 17px; }
+  tbody tr.unassigned-row .td-name span { color: var(--yellow); }
+
+  /* inline dropdown cell */
+  .td-inline { position: relative; overflow: visible !important; }
+  .inline-display {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px 3px 8px; border-radius: 6px;
+    font-size: 12px; font-weight: 500; color: var(--text);
+    background: rgba(255,255,255,.05); border: 1px solid transparent;
+    cursor: pointer; transition: background .15s, border-color .15s;
+    white-space: nowrap; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .inline-display:hover { background: rgba(255,255,255,.1); border-color: var(--border); }
+  .inline-display .caret { font-size: 9px; color: var(--text2); flex-shrink: 0; }
+  .inline-display.empty-val { color: var(--text2); font-style: italic; }
+
+  .inline-select {
+    position: absolute; top: 0; left: 0; z-index: 50;
+    background: #1e2130; border: 1px solid var(--accent);
+    color: var(--text); border-radius: 7px;
+    font-family: var(--font); font-size: 12px;
+    padding: 5px 8px; outline: none; cursor: pointer;
+    min-width: 160px; max-width: 220px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.5);
+  }
+  .inline-select option { background: #1e2130; }
+
+
+  /* ── TABLE AREA ── */
+  #table-wrap { flex: 1; overflow: auto; padding: 0; }
+
+  table { width: 100%; border-collapse: collapse; min-width: 1400px; table-layout: fixed; }
+
+  /* column resize handle */
+  th { position: relative; }
+  .col-resizer {
+    position: absolute; right: 0; top: 0; bottom: 0;
+    width: 6px; cursor: col-resize;
+    user-select: none;
+    z-index: 2;
+  }
+  .col-resizer::after {
+    content: ''; position: absolute;
+    right: 2px; top: 20%; bottom: 20%;
+    width: 2px; border-radius: 2px;
+    background: var(--border);
+    transition: background .15s;
+  }
+  .col-resizer:hover::after,
+  .col-resizer.dragging::after { background: var(--accent); }
+  thead { position: sticky; top: 0; z-index: 10; }
+  thead tr { background: var(--card2); }
+  th {
+    padding: 10px 20px 10px 12px;
+    text-align: left; font-size: 11px; font-weight: 700;
+    color: var(--text2); letter-spacing: .5px; text-transform: uppercase;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  th:first-child { padding-left: 20px; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+    cursor: pointer;
+  }
+  tbody tr:hover { background: rgba(255,255,255,.04); }
+
+  td {
+    padding: 9px 12px; vertical-align: middle;
+    font-size: 12px; color: var(--text);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 0;
+  }
+  td:first-child { padding-left: 20px; }
+
+  .td-name { font-weight: 600; color: #fff; max-width: 160px; }
+  .td-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .td-notes { max-width: 160px; color: var(--text2); }
+  .td-notes span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* pills */
+  .pill {
+    display: inline-flex; align-items: center;
+    padding: 3px 9px; border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pill-green  { background: rgba(0,200,117,.18); color: #00c875; }
+  .pill-red    { background: rgba(226,68,92,.18);  color: #e2445c; }
+  .pill-yellow { background: rgba(253,171,61,.18); color: #fdab3d; }
+  .pill-gray   { background: rgba(103,104,121,.25);color: #9ea6c4; }
+  .pill-blue   { background: rgba(0,115,234,.2);   color: #4da8ff; }
+  .pill-purple { background: rgba(120,75,209,.2);  color: #a97ff2; }
+  .pill-teal   { background: rgba(0,189,165,.18);  color: #00bda5; }
+
+  .pill-lead   { background: rgba(0,115,234,.15); color: #4da8ff; font-size: 10px; }
+
+  /* row actions */
+  .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
+  tr:hover .row-actions { opacity: 1; }
+  .row-btn {
+    background: var(--border); border: none; color: var(--text2);
+    width: 26px; height: 26px; border-radius: 5px; cursor: pointer;
+    font-size: 12px; display: flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s;
+  }
+  .row-btn:hover { background: var(--accent); color: #fff; }
+  .row-btn.del:hover { background: var(--red); color: #fff; }
+
+  /* empty */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 80px 20px; color: var(--text2); gap: 10px;
+  }
+  .empty-state .emoji { font-size: 40px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── MODAL ── */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+    z-index: 1000; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; width: 100%; max-width: 680px;
+    max-height: 90vh; display: flex; flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+    transform: translateY(20px); transition: transform .2s;
+  }
+  .overlay.open .modal { transform: translateY(0); }
+
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 { font-size: 15px; font-weight: 700; color: #fff; }
+  .modal-close {
+    background: none; border: none; color: var(--text2);
+    font-size: 20px; cursor: pointer; line-height: 1;
+    width: 30px; height: 30px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s;
+  }
+  .modal-close:hover { background: var(--border); color: var(--text); }
+
+  .modal-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-full { grid-column: 1 / -1; }
+
+  .field label {
+    display: block; margin-bottom: 5px;
+    font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: .4px; text-transform: uppercase;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 7px;
+    padding: 8px 10px; font-family: var(--font); font-size: 12px;
+    outline: none; transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field select option { background: #1e2130; }
+
+  .modal-footer {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── CONFIRM DIALOG ── */
+  .confirm-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 24px;
+    width: 360px; text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,.6);
+    transform: scale(.95); transition: transform .2s;
+  }
+  .overlay.open .confirm-box { transform: scale(1); }
+  .confirm-box h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .confirm-box p { color: var(--text2); font-size: 13px; margin-bottom: 20px; }
+  .confirm-btns { display: flex; gap: 10px; justify-content: center; }
+
+  /* ── IMPORT PANEL ── */
+  #import-panel {
+    padding: 30px 30px;
+    display: none;
+  }
+  #import-panel.visible { display: block; }
+  .import-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 24px; max-width: 600px;
+  }
+  .import-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .import-card p { color: var(--text2); font-size: 12px; margin-bottom: 16px; }
+  .import-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .drop-zone {
+    border: 2px dashed var(--border); border-radius: 8px;
+    padding: 30px 20px; text-align: center; color: var(--text2);
+    cursor: pointer; transition: border-color .15s, background .15s;
+    margin-bottom: 14px;
+  }
+  .drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: rgba(0,115,234,.06); }
+  .drop-zone .icon { font-size: 28px; margin-bottom: 6px; }
+  #csv-file-input { display: none; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gray); }
+
+  /* toast */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #2d3250; border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 18px;
+    font-size: 13px; color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    z-index: 9999;
+    transform: translateY(80px); opacity: 0;
+    transition: transform .3s, opacity .3s;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--green); }
+  #toast.error   { border-color: var(--red); }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <h1>GRUPO ELITE WORK</h1>
+      <span>CRM · Gestión de Leads</span>
+    </div>
+    <div class="sidebar-label">Boards</div>
+    <div id="board-list"></div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <span id="board-title">Selecciona un board</span>
+      <button class="btn btn-primary" id="btn-new-lead" onclick="openModal()">＋ Nuevo Lead</button>
+      <button class="btn btn-secondary" id="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
+      <button class="btn btn-success" id="btn-import-csv" style="display:none" onclick="showImportPanel()">⬆ Importar CSV</button>
+    </div>
+
+    <!-- BULK ACTION BAR -->
+    <div id="bulk-bar">
+      <span class="bulk-count" id="bulk-count">0 seleccionados</span>
+      <div class="bulk-sep"></div>
+      <span class="bulk-label">Asignado A:</span>
+      <select class="bulk-select" id="bulk-asignado">
+        <option value="">— Sin cambio —</option>
+      </select>
+      <div class="bulk-sep"></div>
+      <span class="bulk-label">Ubicación:</span>
+      <select class="bulk-select" id="bulk-ubicacion">
+        <option value="">— Sin cambio —</option>
+      </select>
+      <div class="bulk-sep"></div>
+      <span class="bulk-label">Resultado:</span>
+      <select class="bulk-select" id="bulk-resultado">
+        <option value="">— Sin cambio —</option>
+        <option>INTERESADO</option><option>NO INTERESADO</option>
+        <option>NO CONTESTA</option><option>NÚMERO EQUIVOCADO</option>
+        <option>BUZÓN DE VOZ</option><option>CITA AGENDADA</option>
+        <option>CLIENTE ACTIVO</option><option>PENDIENTE</option>
+        <option>SIN RESULTADO</option>
+      </select>
+      <button class="bulk-apply" onclick="applyBulkEdit()">✓ Aplicar</button>
+      <button class="bulk-apply danger" onclick="bulkDelete()">🗑 Eliminar</button>
+      <span class="bulk-clear" onclick="clearSelection()">✕ Deseleccionar todo</span>
+    </div>
+
+    <div id="toolbar">
+      <div class="search-wrap">
+        <span class="ico">🔍</span>
+        <input type="text" id="search-input" placeholder="Buscar nombre, email, teléfono…" oninput="applyFilters()" />
+      </div>
+      <select class="filter-select" id="f-asignado" onchange="applyFilters()">
+        <option value="">Asignado: Todos</option>
+      </select>
+      <select class="filter-select" id="f-lead" onchange="applyFilters()">
+        <option value="">Lead: Todos</option>
+        <option>BIENES DE DISTRIBUCIÓN</option>
+        <option>GUÍA DE INFORMACIÓN</option>
+        <option>GUÍA MÉDICO</option>
+        <option>GUÍA MÉDICO RESGUARDAR</option>
+        <option>CSKID</option>
+      </select>
+      <select class="filter-select" id="f-resultado" onchange="applyFilters()">
+        <option value="">Resultado: Todos</option>
+        <option>INTERESADO</option><option>NO INTERESADO</option>
+        <option>NO CONTESTA</option><option>NÚMERO EQUIVOCADO</option>
+        <option>BUZÓN DE VOZ</option><option>CITA AGENDADA</option>
+        <option>CLIENTE ACTIVO</option><option>PENDIENTE</option>
+        <option>SIN RESULTADO</option>
+      </select>
+      <div class="assign-tabs">
+        <button class="assign-tab active" data-assign="all"        onclick="setAssignTab(this,'all')">Todos</button>
+        <button class="assign-tab"        data-assign="assigned"   onclick="setAssignTab(this,'assigned')">Asignados</button>
+        <button class="assign-tab tab-unassigned" data-assign="unassigned" onclick="setAssignTab(this,'unassigned')">Sin asignar</button>
+      </div>
+      <div class="date-filter-wrap">
+        <span class="date-filter-label">📅 Desde</span>
+        <input type="date" class="filter-date" id="f-fecha-desde" onchange="applyFilters()" />
+        <span class="date-filter-label">Hasta</span>
+        <input type="date" class="filter-date" id="f-fecha-hasta" onchange="applyFilters()" />
+        <button class="date-filter-clear" id="btn-clear-dates" onclick="clearDateFilter()" title="Limpiar fechas">✕</button>
+      </div>
+      <span class="toolbar-count" id="toolbar-count"></span>
+    </div>
+
+    <div id="table-wrap">
+      <div id="import-panel"></div>
+      <table id="leads-table">
+        <thead><tr id="thead-row"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none">
+        <span class="emoji">📋</span>
+        <p>No hay leads en este board todavía.</p>
+        <button class="btn btn-primary" onclick="openModal()">＋ Agregar primer lead</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ADD/EDIT -->
+<div class="overlay" id="modal-overlay" onclick="overlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Nuevo Lead</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" id="form-grid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveLead()">Guardar Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="overlay" id="confirm-overlay" onclick="confirmOverlayClick(event)">
+  <div class="confirm-box">
+    <h3>¿Eliminar este lead?</h3>
+    <p>Esta acción no se puede deshacer.</p>
+    <div class="confirm-btns">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════
+const AGENTS = [
+  'LINDA CASTILLO','DIANA VARGAS','MARCO CASTILLO','YURI CASTILLO',
+  'MARILYN ALVARADO','ALEJANDRA OSEGUEDA','JOCELYN AGUIRRE',
+  'KARLA SALAZAR','PERLA BARRIOS','VALERIA MENDEZ','Sin asignar'
+];
+const CALLERS = [
+  'LINDA CASTILLO','DIANA VARGAS','MARCO CASTILLO','YURI CASTILLO',
+  'MARILYN ALVARADO','ALEJANDRA OSEGUEDA','JOCELYN AGUIRRE',
+  'KARLA SALAZAR','PERLA BARRIOS','VALERIA MENDEZ'
+];
+const LEAD_TYPES = [
+  'BIENES DE DISTRIBUCIÓN','GUÍA DE INFORMACIÓN','GUÍA MÉDICO',
+  'GUÍA MÉDICO RESGUARDAR','CSKID'
+];
+const ESTADOS = ['ACTIVO','INACTIVO','EN PROCESO','CERRADO','NUEVO'];
+const RESULTADOS = [
+  'INTERESADO','NO INTERESADO','NO CONTESTA','NÚMERO EQUIVOCADO',
+  'BUZÓN DE VOZ','CITA AGENDADA','CLIENTE ACTIVO','PENDIENTE','SIN RESULTADO'
+];
+
+const BOARDS = [
+  { id: 'dallas',     name: 'LEAD DALLAS',              icon: '🏙️',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Dallas'] },
+  { id: 'austin',     name: 'LEAD AUSTIN - SAN ANTONIO', icon: '🤠',  hasCaller: true,  hasSolicitudes: true,  ubicaciones: ['Austin','San Antonio'] },
+  { id: 'connecticut',name: 'LEAD CONNECTICUT',          icon: '🏛️',  hasCaller: false, hasSolicitudes: false, ubicaciones: ['Connecticut'] },
+  { id: 'florida',    name: 'LEAD FLORIDA',              icon: '🌴',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Miami','Orlando','Tampa','Jacksonville','Fort Lauderdale'] },
+  { id: 'georgia',    name: 'LEAD GEORGIA',              icon: '🍑',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Atlanta','Savannah','Augusta','Columbus'] },
+  { id: 'virginia',   name: 'LEAD VIRGINIA',             icon: '🌿',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Virginia'] },
+  { id: 'washington', name: 'LEAD WASHINGTON',           icon: '🌲',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Washington'] },
+  { id: 'importar',   name: 'PARA IMPORTAR',             icon: '📥',  hasCaller: false, hasSolicitudes: false, ubicaciones: [] },
+];
+
+const STATE_PILL = {
+  'ACTIVO':     'pill-green',
+  'INACTIVO':   'pill-red',
+  'EN PROCESO': 'pill-yellow',
+  'CERRADO':    'pill-gray',
+  'NUEVO':      'pill-blue',
+};
+const RESULT_PILL = {
+  'INTERESADO':       'pill-green',
+  'CITA AGENDADA':    'pill-teal',
+  'CLIENTE ACTIVO':   'pill-purple',
+  'NO INTERESADO':    'pill-red',
+  'NO CONTESTA':      'pill-gray',
+  'NÚMERO EQUIVOCADO':'pill-gray',
+  'BUZÓN DE VOZ':     'pill-yellow',
+  'PENDIENTE':        'pill-yellow',
+  'SIN RESULTADO':    'pill-gray',
+};
+
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let currentBoardId = null;
+let editingLeadId   = null;
+let deleteLeadId    = null;
+let filteredLeads   = [];
+let assignFilter    = 'all';
+let selectedIds     = new Set();
+let COL_WIDTHS      = {
+  nombre: 160, lead: 130, creacion: 120, hijos: 80,
+  email: 160, telefono: 120, direccion: 160, ubicacion: 120,
+  asignado: 150, estado: 110, caller: 140, resultado: 130,
+  solicitudes: 90, notas: 160, _actions: 60
+};
+
+function getBoard(id) { return BOARDS.find(b => b.id === id); }
+
+// ── localStorage ──
+function loadLeads(boardId) {
+  try { return JSON.parse(localStorage.getItem('gew_leads_' + boardId)) || []; }
+  catch { return []; }
+}
+function saveLeads(boardId, leads) {
+  localStorage.setItem('gew_leads_' + boardId, JSON.stringify(leads));
+  updateSidebarCount(boardId);
+}
+function allBoards() {
+  BOARDS.forEach(b => updateSidebarCount(b.id));
+}
+function updateSidebarCount(boardId) {
+  const el = document.querySelector(`.board-item[data-id="${boardId}"] .board-count`);
+  if (el) el.textContent = loadLeads(boardId).length;
+}
+
+// ── ID ──
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+// ── Date ──
+function today() {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+
+// ════════════════════════════════════════════
+//  SIDEBAR
+// ════════════════════════════════════════════
+function renderSidebar() {
+  const list = document.getElementById('board-list');
+  list.innerHTML = BOARDS.map(b => `
+    <div class="board-item" data-id="${b.id}" onclick="selectBoard('${b.id}')">
+      <span class="board-icon">${b.icon}</span>
+      <span class="board-name">${b.name}</span>
+      <span class="board-count">0</span>
+    </div>
+  `).join('');
+  allBoards();
+}
+
+function selectBoard(id) {
+  currentBoardId = id;
+  document.querySelectorAll('.board-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === id);
+  });
+  const board = getBoard(id);
+  document.getElementById('board-title').textContent = board.name + ' ' + board.icon;
+  document.getElementById('btn-import-csv').style.display = id === 'importar' ? 'inline-flex' : 'none';
+
+  // reset filters
+  document.getElementById('search-input').value = '';
+  ['f-asignado','f-lead','f-resultado'].forEach(fid => {
+    document.getElementById(fid).value = '';
+  });
+  clearDateFilter(false);
+  assignFilter = 'all';
+  document.querySelectorAll('.assign-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.assign-tab[data-assign="all"]').classList.add('active');
+  selectedIds.clear();
+  updateBulkBar();
+
+  document.getElementById('import-panel').style.display = 'none';
+  document.getElementById('import-panel').classList.remove('visible');
+  document.getElementById('leads-table').style.display = '';
+
+  renderTable();
+}
+
+// ════════════════════════════════════════════
+//  TABLE
+// ════════════════════════════════════════════
+function getColumns(board) {
+  const cols = [
+    { key: '_check',       label: '' },
+    { key: 'nombre',       label: 'NOMBRE' },
+    { key: 'lead',         label: 'LEAD' },
+    { key: 'creacion',     label: 'REGISTRO CREACIÓN' },
+    { key: 'hijos',        label: 'HIJOS MENORES' },
+    { key: 'email',        label: 'EMAIL' },
+    { key: 'telefono',     label: 'TELÉFONO' },
+    { key: 'direccion',    label: 'DIRECCIÓN' },
+    { key: 'ubicacion',    label: 'UBICACIÓN' },
+    { key: 'asignado',     label: 'ASIGNADO A' },
+  ];
+  if (board.hasCaller) cols.push({ key: 'caller', label: 'CALLER NAME' });
+  cols.push({ key: 'resultado', label: 'RESULTADO' });
+  if (board.hasSolicitudes) cols.push({ key: 'solicitudes', label: 'SOLICITUDES' });
+  cols.push({ key: 'notas', label: 'NOTAS' });
+  cols.push({ key: '_actions', label: '' });
+  return cols;
+}
+
+function renderTable() {
+  if (!currentBoardId) return;
+  const board = getBoard(currentBoardId);
+  const cols  = getColumns(board);
+  const leads = loadLeads(currentBoardId);
+
+  // header
+  const thead = document.getElementById('thead-row');
+  thead.innerHTML = cols.map(c =>
+    c.key === '_check'
+      ? `<th class="th-check" style="width:36px"><input type="checkbox" class="header-checkbox" id="check-all" onchange="toggleSelectAll(this)" /></th>`
+      : `<th style="width:${COL_WIDTHS[c.key]||130}px">${c.label}${c.key !== 'nombre' && c.key !== '_actions' ? '<div class="col-resizer" data-col="'+c.key+'"></div>' : ''}</th>`
+  ).join('');
+  initResizers();
+  applyFilters();
+}
+
+function applyFilters() {
+  if (!currentBoardId) return;
+  const board  = getBoard(currentBoardId);
+  const leads  = loadLeads(currentBoardId);
+  const q      = document.getElementById('search-input').value.toLowerCase();
+  const fAsig  = document.getElementById('f-asignado').value;
+  const fLead  = document.getElementById('f-lead').value;
+  const fRes   = document.getElementById('f-resultado').value;
+  const fDesde = document.getElementById('f-fecha-desde').value;
+  const fHasta = document.getElementById('f-fecha-hasta').value;
+  // show/hide clear button
+  const clearBtn = document.getElementById('btn-clear-dates');
+  if (clearBtn) clearBtn.classList.toggle('visible', !!(fDesde || fHasta));
+
+  selectedIds.clear();
+  updateBulkBar();
+  filteredLeads = leads.filter(l => {
+    if (q && ![ l.nombre, l.email, l.telefono ].some(v => (v||'').toLowerCase().includes(q))) return false;
+    if (fAsig && l.asignado  !== fAsig) return false;
+    if (fLead && l.lead      !== fLead) return false;
+    if (fRes  && l.resultado !== fRes)  return false;
+    if (fDesde && (l.creacion||'') < fDesde) return false;
+    if (fHasta && (l.creacion||'') > fHasta) return false;
+    const isUnassigned = !l.asignado || l.asignado === '' || l.asignado === 'Sin asignar';
+    if (assignFilter === 'assigned'   &&  isUnassigned) return false;
+    if (assignFilter === 'unassigned' && !isUnassigned) return false;
+    return true;
+  });
+
+  renderRows(board, filteredLeads);
+  document.getElementById('toolbar-count').textContent =
+    `${filteredLeads.length} de ${leads.length} lead${leads.length !== 1 ? 's' : ''}`;
+}
+
+function renderRows(board, leads) {
+  const cols  = getColumns(board);
+  const tbody = document.getElementById('tbody');
+
+  if (leads.length === 0) {
+    tbody.innerHTML = '';
+    document.getElementById('empty-state').style.display = 'flex';
+    document.getElementById('leads-table').style.display = leads.length === 0 ? 'none' : '';
+    document.getElementById('empty-state').style.display = leads.length === 0 ? 'flex' : 'none';
+    // re-evaluate with actual board data
+    const allLeads = loadLeads(currentBoardId);
+    document.getElementById('empty-state').style.display = allLeads.length === 0 ? 'flex' : 'none';
+    if (allLeads.length > 0 && leads.length === 0) {
+      // filtered but has leads — show table with empty tbody + message row
+      document.getElementById('leads-table').style.display = '';
+      tbody.innerHTML = `<tr><td colspan="${cols.length}" style="text-align:center;padding:40px;color:var(--text2)">Sin resultados con los filtros actuales.</td></tr>`;
+      return;
+    }
+    document.getElementById('leads-table').style.display = allLeads.length === 0 ? 'none' : '';
+    return;
+  }
+
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('leads-table').style.display = '';
+
+  tbody.innerHTML = leads.map(l => {
+    const isUnassigned = !l.asignado || l.asignado === '' || l.asignado === 'Sin asignar';
+    const rowClass = isUnassigned ? 'unassigned-row' : '';
+    const cells = cols.map(c => {
+      if (c.key === '_check') return `<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-checkbox" data-id="${l.id}" onchange="toggleRowSelect(this,'${l.id}')" ${selectedIds.has(l.id)?'checked':''} /></td>`;
+      if (c.key === '_actions') return `<td><div class="row-actions">
+        <button class="row-btn" onclick="event.stopPropagation();openModal('${l.id}')" title="Editar">✏️</button>
+        <button class="row-btn del" onclick="event.stopPropagation();askDelete('${l.id}')" title="Eliminar">🗑</button>
+      </div></td>`;
+      if (c.key === 'nombre') return `<td class="td-name"><span title="${esc(l.nombre||'')}">${esc(l.nombre||'—')}</span></td>`;
+      if (c.key === 'lead')   return `<td><span class="pill pill-lead">${esc(l.lead||'')}</span></td>`;
+      if (c.key === 'estado') {
+        const cls = STATE_PILL[l.estado] || 'pill-gray';
+        return `<td><span class="pill ${cls}">${esc(l.estado||'')}</span></td>`;
+      }
+      if (c.key === 'resultado') {
+        if (!l.resultado) return '<td>—</td>';
+        const cls = RESULT_PILL[l.resultado] || 'pill-gray';
+        return `<td><span class="pill ${cls}">${esc(l.resultado)}</span></td>`;
+      }
+      if (c.key === 'ubicacion') {
+        const ubOpts = board.ubicaciones.length > 0
+          ? board.ubicaciones
+          : BOARDS.flatMap(b2 => b2.ubicaciones).filter((x,i,a) => a.indexOf(x)===i);
+        const opts = ['', ...ubOpts].map(u =>
+          `<option value="${esc(u)}"${l.ubicacion===u?' selected':''}>${u||'— Sin ubicación —'}</option>`
+        ).join('');
+        const displayVal = l.ubicacion || '';
+        const emptyClass = displayVal ? '' : ' empty-val';
+        return `<td class="td-inline" onclick="event.stopPropagation()">
+          <span class="inline-display${emptyClass}" onclick="openInlineSel(this)">${esc(displayVal||'Ubicación')} <span class="caret">▾</span></span>
+          <select class="inline-select" style="display:none"
+            onchange="saveInlineField(this,'${l.id}','ubicacion')"
+            onblur="closeInlineSel(this)">${opts}</select>
+        </td>`;
+      }
+      if (c.key === 'asignado') {
+        const agOpts = ['', ...AGENTS].map(a =>
+          `<option value="${esc(a)}"${l.asignado===a?' selected':''}>${a||'— Sin asignar —'}</option>`
+        ).join('');
+        const displayVal = l.asignado || '';
+        const emptyClass = (displayVal && displayVal !== 'Sin asignar') ? '' : ' empty-val';
+        return `<td class="td-inline" onclick="event.stopPropagation()">
+          <span class="inline-display${emptyClass}" onclick="openInlineSel(this)">${esc(displayVal||'Sin asignar')} <span class="caret">▾</span></span>
+          <select class="inline-select" style="display:none"
+            onchange="saveInlineField(this,'${l.id}','asignado')"
+            onblur="closeInlineSel(this)">${agOpts}</select>
+        </td>`;
+      }
+      if (c.key === 'notas') return `<td class="td-notes"><span title="${esc(l.notas||'')}">${esc(l.notas||'')}</span></td>`;
+      return `<td>${esc(l[c.key]||'')}</td>`;
+    }).join('');
+    return `<tr class="${rowClass}">${cells}</tr>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════════
+function openModal(leadId) {
+  if (!currentBoardId) { showToast('Selecciona un board primero','error'); return; }
+  editingLeadId = leadId || null;
+  const board = getBoard(currentBoardId);
+  const leads = loadLeads(currentBoardId);
+  const lead  = leadId ? leads.find(l => l.id === leadId) : null;
+
+  document.getElementById('modal-title').textContent = lead ? 'Editar Lead' : 'Nuevo Lead';
+  buildForm(board, lead);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingLeadId = null;
+}
+
+function overlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function buildForm(board, lead) {
+  const grid = document.getElementById('form-grid');
+  const v = k => lead ? (lead[k] || '') : '';
+
+  const ubOpts = board.ubicaciones.length > 0
+    ? board.ubicaciones
+    : BOARDS.flatMap(b => b.ubicaciones).filter((x,i,a) => a.indexOf(x) === i);
+
+  const selUb = ubOpts.map(u => `<option${v('ubicacion')===u?' selected':''}>${u}</option>`).join('');
+  const selAgents = AGENTS.map(a => `<option${v('asignado')===a?' selected':''}>${a}</option>`).join('');
+  const selLead   = LEAD_TYPES.map(t => `<option${v('lead')===t?' selected':''}>${t}</option>`).join('');
+  const selEst    = ESTADOS.map(e => `<option${v('estado')===e?' selected':''}>${e}</option>`).join('');
+  const selRes    = RESULTADOS.map(r => `<option${v('resultado')===r?' selected':''}>${r}</option>`).join('');
+  const selCall   = CALLERS.map(c => `<option${v('caller')===c?' selected':''}>${c}</option>`).join('');
+
+  const callerField = board.hasCaller ? `
+    <div class="field">
+      <label>Caller Name</label>
+      <select id="f_caller"><option value="">— Seleccionar —</option>${selCall}</select>
+    </div>` : '';
+
+  const solicitudesField = board.hasSolicitudes ? `
+    <div class="field">
+      <label>Solicitudes</label>
+      <input type="number" id="f_solicitudes" min="0" value="${v('solicitudes')}" placeholder="0" />
+    </div>` : '';
+
+  grid.innerHTML = `
+    <div class="field form-full">
+      <label>Nombre *</label>
+      <input type="text" id="f_nombre" value="${esc(v('nombre'))}" placeholder="Nombre completo" />
+    </div>
+    <div class="field">
+      <label>Lead</label>
+      <select id="f_lead"><option value="">— Seleccionar —</option>${selLead}</select>
+    </div>
+    <div class="field">
+      <label>Estado</label>
+      <select id="f_estado"><option value="">— Seleccionar —</option>${selEst}</select>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="f_email" value="${esc(v('email'))}" placeholder="correo@ejemplo.com" />
+    </div>
+    <div class="field">
+      <label>Teléfono</label>
+      <input type="tel" id="f_telefono" value="${esc(v('telefono'))}" placeholder="+1 000 000 0000" />
+    </div>
+    <div class="field">
+      <label>¿Hijos menores de edad?</label>
+      <input type="number" id="f_hijos" min="0" value="${v('hijos')}" placeholder="0" />
+    </div>
+    <div class="field">
+      <label>Ubicación</label>
+      <select id="f_ubicacion"><option value="">— Seleccionar —</option>${selUb}</select>
+    </div>
+    <div class="field form-full">
+      <label>Dirección</label>
+      <input type="text" id="f_direccion" value="${esc(v('direccion'))}" placeholder="Dirección completa" />
+    </div>
+    <div class="field">
+      <label>Asignado A</label>
+      <select id="f_asignado"><option value="">— Seleccionar —</option>${selAgents}</select>
+    </div>
+    <div class="field">
+      <label>Resultado</label>
+      <select id="f_resultado"><option value="">— Seleccionar —</option>${selRes}</select>
+    </div>
+    ${callerField}
+    ${solicitudesField}
+    <div class="field form-full">
+      <label>Notas</label>
+      <textarea id="f_notas" placeholder="Notas adicionales…">${esc(v('notas'))}</textarea>
+    </div>
+  `;
+}
+
+function saveLead() {
+  const nombre = document.getElementById('f_nombre').value.trim();
+  if (!nombre) { showToast('El nombre es requerido','error'); return; }
+
+  const board  = getBoard(currentBoardId);
+  const leads  = loadLeads(currentBoardId);
+  const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  const data = {
+    nombre:      nombre,
+    lead:        get('f_lead'),
+    email:       get('f_email'),
+    telefono:    get('f_telefono'),
+    hijos:       get('f_hijos'),
+    direccion:   get('f_direccion'),
+    ubicacion:   get('f_ubicacion'),
+    asignado:    get('f_asignado'),
+    estado:      get('f_estado'),
+    resultado:   get('f_resultado'),
+    caller:      get('f_caller'),
+    solicitudes: get('f_solicitudes'),
+    notas:       get('f_notas'),
+  };
+
+  if (editingLeadId) {
+    const idx = leads.findIndex(l => l.id === editingLeadId);
+    if (idx !== -1) { leads[idx] = { ...leads[idx], ...data }; }
+  } else {
+    data.id      = uid();
+    data.creacion = today();
+    leads.unshift(data);
+  }
+
+  saveLeads(currentBoardId, leads);
+  closeModal();
+  renderTable();
+  showToast(editingLeadId ? 'Lead actualizado ✓' : 'Lead agregado ✓', 'success');
+}
+
+// ════════════════════════════════════════════
+//  DELETE
+// ════════════════════════════════════════════
+function askDelete(id) {
+  deleteLeadId = id;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+function closeConfirm() {
+  deleteLeadId = null;
+  document.getElementById('confirm-overlay').classList.remove('open');
+}
+function confirmOverlayClick(e) {
+  if (e.target === document.getElementById('confirm-overlay')) closeConfirm();
+}
+function confirmDelete() {
+  if (!deleteLeadId) return;
+  const leads   = loadLeads(currentBoardId);
+  const updated = leads.filter(l => l.id !== deleteLeadId);
+  saveLeads(currentBoardId, updated);
+  closeConfirm();
+  renderTable();
+  showToast('Lead eliminado','error');
+}
+
+// ════════════════════════════════════════════
+//  EXPORT CSV
+// ════════════════════════════════════════════
+function exportCSV() {
+  if (!currentBoardId) return;
+  const board = getBoard(currentBoardId);
+  const leads = loadLeads(currentBoardId);
+  if (leads.length === 0) { showToast('No hay leads para exportar','error'); return; }
+
+  const cols = getColumns(board).filter(c => c.key !== '_actions');
+  const header = cols.map(c => `"${c.label}"`).join(',');
+  const rows = leads.map(l =>
+    cols.map(c => `"${(l[c.key]||'').toString().replace(/"/g,'""')}"`).join(',')
+  );
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${board.id}_leads_${today()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exportado ✓','success');
+}
+
+// ════════════════════════════════════════════
+//  IMPORT CSV
+// ════════════════════════════════════════════
+function showImportPanel() {
+  document.getElementById('leads-table').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'none';
+  const panel = document.getElementById('import-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="import-card">
+      <h3>📥 Importar Leads desde CSV</h3>
+      <p>El archivo CSV debe tener una fila de encabezados. Las columnas reconocidas son:<br>
+      <strong>nombre, lead, email, telefono, hijos, direccion, ubicacion, asignado, estado, resultado, caller, notas, solicitudes</strong></p>
+
+      <div class="field" style="margin-bottom:14px;">
+        <label>Board de destino</label>
+        <select class="filter-select" id="import-dest" style="width:260px">
+          ${BOARDS.filter(b=>b.id!=='importar').map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <div class="icon">📂</div>
+        <div>Arrastra tu CSV aquí o <strong style="color:var(--accent)">haz click para seleccionar</strong></div>
+      </div>
+      <input type="file" id="csv-file-input" accept=".csv" onchange="handleFileSelect(event)" />
+
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-secondary" onclick="hideImportPanel()">← Volver</button>
+      </div>
+      <div id="import-log" style="margin-top:14px;font-size:12px;color:var(--text2)"></div>
+    </div>
+  `;
+}
+
+function hideImportPanel() {
+  document.getElementById('import-panel').style.display = 'none';
+  document.getElementById('leads-table').style.display = '';
+  renderTable();
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) processCSVFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processCSVFile(file);
+}
+
+function processCSVFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    parseAndImport(text);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseAndImport(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { showToast('CSV vacío o sin datos','error'); return; }
+
+  const rawHeaders = parseCSVRow(lines[0]).map(h => h.toLowerCase().trim()
+    .replace(/[áä]/g,'a').replace(/[éë]/g,'e').replace(/[íï]/g,'i')
+    .replace(/[óö]/g,'o').replace(/[úü]/g,'u').replace(/ñ/g,'n')
+    .replace(/[^a-z0-9]/g,'_'));
+
+  const destId = document.getElementById('import-dest').value;
+  const leads  = loadLeads(destId);
+  let imported = 0;
+
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVRow(lines[i]);
+    if (vals.every(v => !v.trim())) continue;
+    const row = {};
+    rawHeaders.forEach((h, idx) => { row[h] = (vals[idx] || '').trim(); });
+
+    const lead = {
+      id:          uid(),
+      creacion:    today(),
+      nombre:      row.nombre || '',
+      lead:        row.lead || '',
+      email:       row.email || '',
+      telefono:    row.telefono || row.phone || row.tel || '',
+      hijos:       row.hijos || '',
+      direccion:   row.direccion || row.address || '',
+      ubicacion:   row.ubicacion || row.location || '',
+      asignado:    row.asignado || '',
+      estado:      row.estado || row.status || '',
+      resultado:   row.resultado || '',
+      caller:      row.caller || '',
+      notas:       row.notas || row.notes || '',
+      solicitudes: row.solicitudes || '',
+    };
+    leads.push(lead);
+    imported++;
+  }
+
+  saveLeads(destId, leads);
+  document.getElementById('import-log').innerHTML =
+    `<span style="color:var(--green)">✓ ${imported} lead(s) importados al board <strong>${getBoard(destId).name}</strong></span>`;
+  allBoards();
+  showToast(`${imported} leads importados ✓`, 'success');
+}
+
+function parseCSVRow(line) {
+  const result = []; let cur = ''; let inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuote && line[i+1] === '"') { cur += '"'; i++; }
+      else inQuote = !inQuote;
+    } else if (ch === ',' && !inQuote) {
+      result.push(cur); cur = '';
+    } else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ════════════════════════════════════════════
+//  COLUMN RESIZE
+// ════════════════════════════════════════════
+function initResizers() {
+  document.querySelectorAll('.col-resizer').forEach(handle => {
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const col  = handle.dataset.col;
+      const th   = handle.parentElement;
+      const startX = e.clientX;
+      const startW = th.offsetWidth;
+      handle.classList.add('dragging');
+
+      const onMove = e => {
+        const newW = Math.max(60, startW + e.clientX - startX);
+        COL_WIDTHS[col] = newW;
+        th.style.width = newW + 'px';
+        // also update all td cells in that column
+        const colIdx = Array.from(th.parentElement.children).indexOf(th);
+        document.querySelectorAll(`#leads-table tbody tr`).forEach(row => {
+          const td = row.children[colIdx];
+          if (td) td.style.width = newW + 'px';
+        });
+      };
+      const onUp = () => {
+        handle.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+// ════════════════════════════════════════════
+//  BULK SELECT
+// ════════════════════════════════════════════
+function toggleRowSelect(checkbox, id) {
+  if (checkbox.checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  const row = checkbox.closest('tr');
+  row.classList.toggle('selected-row', checkbox.checked);
+  syncHeaderCheckbox();
+  updateBulkBar();
+}
+
+function toggleSelectAll(headerCb) {
+  const checks = document.querySelectorAll('.row-checkbox');
+  checks.forEach(cb => {
+    cb.checked = headerCb.checked;
+    const id = cb.dataset.id;
+    if (headerCb.checked) selectedIds.add(id);
+    else selectedIds.delete(id);
+    cb.closest('tr').classList.toggle('selected-row', headerCb.checked);
+  });
+  updateBulkBar();
+}
+
+function syncHeaderCheckbox() {
+  const all = document.querySelectorAll('.row-checkbox');
+  const checked = document.querySelectorAll('.row-checkbox:checked');
+  const hcb = document.getElementById('check-all');
+  if (!hcb) return;
+  hcb.checked       = all.length > 0 && checked.length === all.length;
+  hcb.indeterminate = checked.length > 0 && checked.length < all.length;
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  document.querySelectorAll('.row-checkbox').forEach(cb => {
+    cb.checked = false;
+    cb.closest('tr').classList.remove('selected-row');
+  });
+  const hcb = document.getElementById('check-all');
+  if (hcb) { hcb.checked = false; hcb.indeterminate = false; }
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  const count = selectedIds.size;
+  if (count === 0) {
+    bar.classList.remove('visible');
+    return;
+  }
+  bar.classList.add('visible');
+  document.getElementById('bulk-count').textContent = `${count} seleccionado${count !== 1 ? 's' : ''}`;
+
+  // populate ubicacion options for current board
+  const board = getBoard(currentBoardId);
+  const ubSel = document.getElementById('bulk-ubicacion');
+  const ubOpts = board.ubicaciones.length > 0
+    ? board.ubicaciones
+    : BOARDS.flatMap(b2 => b2.ubicaciones).filter((x,i,a) => a.indexOf(x)===i);
+  ubSel.innerHTML = '<option value="">— Sin cambio —</option>' +
+    ubOpts.map(u => `<option value="${esc(u)}">${u}</option>`).join('');
+
+  // populate asignado
+  const agSel = document.getElementById('bulk-asignado');
+  agSel.innerHTML = '<option value="">— Sin cambio —</option>' +
+    AGENTS.map(a => `<option value="${esc(a)}">${a}</option>`).join('');
+}
+
+function applyBulkEdit() {
+  if (selectedIds.size === 0) return;
+  const asignado  = document.getElementById('bulk-asignado').value;
+  const ubicacion = document.getElementById('bulk-ubicacion').value;
+  const resultado = document.getElementById('bulk-resultado').value;
+
+  if (!asignado && !ubicacion && !resultado) {
+    showToast('Selecciona al menos un campo a editar', 'error'); return;
+  }
+
+  const leads = loadLeads(currentBoardId);
+  let changed = 0;
+  leads.forEach(l => {
+    if (!selectedIds.has(l.id)) return;
+    if (asignado)  l.asignado  = asignado;
+    if (ubicacion) l.ubicacion = ubicacion;
+    if (resultado) l.resultado = resultado;
+    changed++;
+  });
+  saveLeads(currentBoardId, leads);
+  clearSelection();
+  renderTable();
+  showToast(`${changed} lead${changed !== 1 ? 's' : ''} actualizados ✓`, 'success');
+}
+
+function bulkDelete() {
+  if (selectedIds.size === 0) return;
+  const count = selectedIds.size;
+  if (!confirm(`¿Eliminar ${count} lead${count !== 1 ? 's' : ''} seleccionados? Esta acción no se puede deshacer.`)) return;
+  const leads   = loadLeads(currentBoardId);
+  const updated = leads.filter(l => !selectedIds.has(l.id));
+  saveLeads(currentBoardId, updated);
+  clearSelection();
+  renderTable();
+  showToast(`${count} lead${count !== 1 ? 's' : ''} eliminados`, 'error');
+}
+
+// ════════════════════════════════════════════
+//  INLINE DROPDOWNS
+// ════════════════════════════════════════════
+function openInlineSel(span) {
+  const sel = span.nextElementSibling;
+  span.style.display = 'none';
+  sel.style.display  = 'block';
+  sel.focus();
+}
+
+function closeInlineSel(sel) {
+  setTimeout(() => {
+    sel.style.display = 'none';
+    const span = sel.previousElementSibling;
+    if (span) span.style.display = 'inline-flex';
+  }, 120);
+}
+
+function saveInlineField(sel, leadId, field) {
+  const leads = loadLeads(currentBoardId);
+  const lead  = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  lead[field] = sel.value;
+  saveLeads(currentBoardId, leads);
+  const span = sel.previousElementSibling;
+  const displayVal = sel.value;
+  const isAgent = field === 'asignado';
+  const isEmpty = !displayVal || (isAgent && displayVal === 'Sin asignar');
+  span.className = 'inline-display' + (isEmpty ? ' empty-val' : '');
+  span.innerHTML = esc(displayVal || (isAgent ? 'Sin asignar' : 'Ubicación')) + ' <span class="caret">▾</span>';
+  // update unassigned row class
+  if (field === 'asignado') {
+    const row = sel.closest('tr');
+    const unassigned = !val || val === 'Sin asignar';
+    row.classList.toggle('unassigned-row', unassigned);
+  }
+  showToast('Guardado ✓', 'success');
+}
+
+// ════════════════════════════════════════════
+//  ASSIGN TABS
+// ════════════════════════════════════════════
+function clearDateFilter(refilter = true) {
+  document.getElementById('f-fecha-desde').value = '';
+  document.getElementById('f-fecha-hasta').value = '';
+  const btn = document.getElementById('btn-clear-dates');
+  if (btn) btn.classList.remove('visible');
+  if (refilter) applyFilters();
+}
+
+function setAssignTab(el, val) {
+  assignFilter = val;
+  document.querySelectorAll('.assign-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+// ════════════════════════════════════════════
+//  ASIGNADO FILTER POPULATE
+// ════════════════════════════════════════════
+function populateAgentFilter() {
+  const sel = document.getElementById('f-asignado');
+  AGENTS.forEach(a => {
+    const o = document.createElement('option');
+    o.value = a; o.textContent = a;
+    sel.appendChild(o);
+  });
+}
+
+// ════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ''; }, 2800);
+}
+
+// ════════════════════════════════════════════
+//  KEYBOARD
+// ════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeConfirm();
+  }
+});
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+renderSidebar();
+populateAgentFilter();
+selectBoard('dallas');
+</script>
+</body>
+</html>
