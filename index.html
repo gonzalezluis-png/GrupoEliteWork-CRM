@@ -940,7 +940,7 @@ let COL_WIDTHS      = {
   nombre: 160, lead: 130, creacion: 120, hijos: 80,
   email: 160, telefono: 120, direccion: 160, ubicacion: 120,
   asignado: 150, resultado: 130,
-  solicitudes: 90, notas: 160, _actions: 60
+  notas: 160, _actions: 60
 };
 
 function getBoard(id) { return BOARDS.find(b => b.id === id); }
@@ -1226,7 +1226,7 @@ function buildForm(board, lead) {
   const selRes    = RESULTADOS.map(r => `<option${v('resultado')===r?' selected':''}>${r}</option>`).join('');
   const callerField = '';
 
-  const solicitudesField = '';
+
 
   grid.innerHTML = `
     <div class="field form-full">
@@ -1269,8 +1269,6 @@ function buildForm(board, lead) {
       <label>Resultado</label>
       <select id="f_resultado"><option value="">— Seleccionar —</option>${selRes}</select>
     </div>
-    ${callerField}
-    ${solicitudesField}
     <div class="field form-full">
       <label>Notas</label>
       <textarea id="f_notas" placeholder="Notas adicionales…">${esc(v('notas'))}</textarea>
@@ -1297,7 +1295,6 @@ function saveLead() {
     asignado:    get('f_asignado'),
     estado:      get('f_estado'),
     resultado:   get('f_resultado'),
-    solicitudes: get('f_solicitudes'),
     notas:       get('f_notas'),
   };
 
@@ -1421,7 +1418,7 @@ function showImportPanel() {
       <!-- CSV TAB -->
       <div id="import-tab-csv" style="display:none">
         <p style="color:var(--text2);font-size:12px;margin-bottom:12px">
-          Columnas reconocidas: <strong style="color:var(--text)">nombre, lead, email, telefono, hijos, direccion, ubicacion, asignado, resultado, notas, solicitudes</strong>
+          Columnas reconocidas: <strong style="color:var(--text)">nombre, lead, email, telefono, hijos, direccion, ubicacion, asignado, resultado, notas</strong>
         </p>
         <div class="field" style="margin-bottom:14px;">
           <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Board de destino</label>
@@ -1494,7 +1491,7 @@ const FIELD_MAP = {
   'resultado':'resultado','result':'resultado',
 
   'notas':'notas','notes':'notas','nota':'notas',
-  'solicitudes':'solicitudes',
+
 };
 
 function guessField(header) {
@@ -1506,7 +1503,7 @@ function renderPasteTable() {
   const wrap = document.getElementById('paste-preview-wrap');
   wrap.style.display = 'block';
 
-  const fieldOpts = ['','nombre','lead','email','telefono','hijos','direccion','ubicacion','asignado','resultado','notas','solicitudes']
+  const fieldOpts = ['','nombre','lead','email','telefono','hijos','direccion','ubicacion','asignado','resultado','notas']
     .map(f => `<option value="${f}">${f || '— ignorar —'}</option>`).join('');
 
   const mappings = pastedHeaders.map(h => guessField(h));
@@ -1671,7 +1668,6 @@ function parseAndImport(text) {
       resultado:   row.resultado || '',
 
       notas:       row.notas || row.notes || '',
-      solicitudes: row.solicitudes || '',
     };
     leads.push(lead);
     imported++;
@@ -2039,7 +2035,7 @@ function seedTestLeads() {
       ubicacion:   ub,
       asignado:    '',
       resultado:   'PENDIENTE',
-      solicitudes: '',
+
       notas:       'Lead de prueba generado automáticamente.',
     };
     leads.unshift(testLead);
