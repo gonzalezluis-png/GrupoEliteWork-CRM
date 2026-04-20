@@ -1012,6 +1012,7 @@ function renderSidebar() {
 }
 
 function selectBoard(id) {
+  showBoardView();
   currentBoardId = id;
   document.querySelectorAll('.board-item').forEach(el => {
     el.classList.toggle('active', el.dataset.id === id);
@@ -1667,7 +1668,9 @@ function parseAndImport(text) {
     .replace(/[óö]/g,'o').replace(/[úü]/g,'u').replace(/ñ/g,'n')
     .replace(/[^a-z0-9]/g,'_'));
 
-  const destId = document.getElementById('import-dest').value;
+  const destEl = document.getElementById('import-dest');
+  const destId = destEl ? destEl.value : '';
+  if (!destId) { showToast('Selecciona un board de destino', 'error'); return; }
   const leads  = loadLeads(destId);
   let imported = 0;
 
@@ -2122,7 +2125,8 @@ function showBoardView() {
   document.getElementById('toolbar').style.display      = '';
   document.getElementById('btn-new-lead').style.display = '';
   document.getElementById('btn-export').style.display   = '';
-  document.getElementById('nav-users').classList.remove('active');
+  const navUsers = document.getElementById('nav-users');
+  if (navUsers) navUsers.classList.remove('active');
 }
 
 function renderUsersGrid() {
@@ -2232,12 +2236,6 @@ function deleteUser(userId) {
   showToast('Usuario eliminado', 'error');
 }
 
-// override selectBoard to show board view
-const _origSelectBoard = selectBoard;
-function selectBoard(id) {
-  showBoardView();
-  _origSelectBoard(id);
-}
 
 // ════════════════════════════════════════════
 //  INIT
