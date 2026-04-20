@@ -718,6 +718,7 @@
     </div>
     <button class="login-btn" onclick="doLogin()">Ingresar</button>
     <div class="login-error" id="login-error"></div>
+    <div id="login-debug" style="display:none;margin-top:14px;padding:10px;background:rgba(0,115,234,.1);border:1px solid var(--accent);border-radius:8px;font-size:11px;color:var(--text2)"></div>
   </div>
 </div>
 
@@ -2542,8 +2543,14 @@ function doLogin() {
     err.textContent = emailExists
       ? 'Contraseña incorrecta.'
       : 'No existe ninguna cuenta con ese email.';
+    // show debug info: list stored emails (no passwords)
+    const dbg = document.getElementById('login-debug');
+    const storedEmails = [MASTER_USER.email, ...allUsers.map(u => u.email)];
+    dbg.style.display = 'block';
+    dbg.innerHTML = `<strong>Cuentas registradas:</strong><br>${storedEmails.map(e => `• ${e}`).join('<br>')}`;
     return;
   }
+  document.getElementById('login-debug').style.display = 'none';
   err.textContent = '';
   setSession(user);
   document.getElementById('login-screen').classList.add('hidden');
@@ -2558,10 +2565,20 @@ function doLogin() {
 
 function doLogout() {
   clearSession();
-  document.getElementById('login-screen').classList.remove('hidden');
+  // reset all UI state so the next user logs in clean
+  document.getElementById('sidebar-admin').style.display  = 'none';
+  document.getElementById('sidebar-master').style.display = 'none';
+  document.getElementById('assign-strip').classList.add('hidden');
+  document.getElementById('settings-page').classList.remove('visible');
+  document.getElementById('table-wrap').style.display   = '';
+  document.getElementById('toolbar').style.display      = '';
+  document.getElementById('btn-new-lead').style.display = '';
+  document.getElementById('btn-export').style.display   = '';
+  document.getElementById('topbar-user').innerHTML = '';
   document.getElementById('login-email').value = '';
   document.getElementById('login-pass').value  = '';
-  document.getElementById('topbar-user').innerHTML = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('login-screen').classList.remove('hidden');
 }
 
 function initApp(user) {
@@ -2683,7 +2700,9 @@ function userCard(u, session) {
 function renderUsersGrid() {
   const allUsers = loadUsers();
   const grid     = document.getElementById('users-grid');
+  if (!grid) return;
   const session  = getSession();
+  if (!session) return;
 
   let html = '';
 
@@ -2741,7 +2760,7 @@ function onRolChange() {
   const role    = document.getElementById('u-rol').value;
   const session = getSession();
   const orgWrap = document.getElementById('u-org-wrap');
-  if (session.role === 'master' && role === 'agent') {
+  if (session && session.role === 'master' && role === 'agent') {
     orgWrap.style.display = '';
   } else {
     orgWrap.style.display = 'none';
@@ -2841,8 +2860,8 @@ function saveUser() {
 
   saveUsers(users);
   closeUserModal();
-  renderUsersGrid();
   showToast(editingUserId ? 'Usuario actualizado ✓' : 'Usuario creado ✓', 'success');
+  try { renderUsersGrid(); } catch(e) { console.error('renderUsersGrid error:', e); }
 }
 
 function deleteUser(userId) {
