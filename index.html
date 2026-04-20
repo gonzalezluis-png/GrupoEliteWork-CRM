@@ -148,18 +148,31 @@
   .date-filter-clear.visible { display: block; }
   .date-filter-clear:hover { color: var(--red); background: rgba(226,68,92,.1); }
 
-  /* assign tabs */
-  .assign-tabs { display: flex; gap: 4px; }
-  .assign-tab {
-    padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--text2);
-    font-family: var(--font); font-size: 11px; font-weight: 600;
-    cursor: pointer; transition: background .15s, color .15s, border-color .15s;
-    white-space: nowrap;
+  /* assign tabs — prominent strip */
+  #assign-strip {
+    display: flex; align-items: center; gap: 0;
+    padding: 0 24px;
+    background: var(--card2);
+    border-bottom: 1px solid var(--border);
   }
-  .assign-tab:hover { background: rgba(255,255,255,.05); color: var(--text); }
-  .assign-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .assign-tab.tab-unassigned.active { background: var(--yellow); border-color: var(--yellow); color: #1a1a1a; }
+  #assign-strip.hidden { display: none; }
+  .assign-tabs { display: flex; gap: 0; }
+  .assign-tab {
+    padding: 11px 22px; border: none; border-bottom: 3px solid transparent;
+    background: transparent; color: var(--text2);
+    font-family: var(--font); font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+    white-space: nowrap; letter-spacing: .3px;
+  }
+  .assign-tab:hover { color: var(--text); background: rgba(255,255,255,.04); }
+  .assign-tab.active { color: #fff; border-bottom-color: var(--accent); }
+  .assign-tab.tab-unassigned.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+  .assign-strip-count {
+    margin-left: 10px; font-size: 11px; color: var(--text2);
+    background: var(--border); padding: 2px 8px; border-radius: 10px;
+  }
+  .assign-tab.active .assign-strip-count { background: var(--accent); color: #fff; }
+  .assign-tab.tab-unassigned.active .assign-strip-count { background: var(--yellow); color: #1a1a1a; }
 
   /* ── CHECKBOX ── */
   .td-check { width: 36px; padding: 0 0 0 12px !important; }
@@ -750,6 +763,12 @@
       <span class="bulk-clear" onclick="clearSelection()">✕ Deseleccionar todo</span>
     </div>
 
+    <div id="assign-strip" class="hidden">
+      <button class="assign-tab active" data-assign="all" onclick="setAssignTab(this,'all')">Todos</button>
+      <button class="assign-tab" data-assign="assigned" onclick="setAssignTab(this,'assigned')">Asignados</button>
+      <button class="assign-tab tab-unassigned" data-assign="unassigned" onclick="setAssignTab(this,'unassigned')">Sin asignar</button>
+    </div>
+
     <div id="toolbar">
       <div class="search-wrap">
         <span class="ico">🔍</span>
@@ -774,11 +793,6 @@
         <option>CLIENTE ACTIVO</option><option>PENDIENTE</option>
         <option>SIN RESULTADO</option>
       </select>
-      <div class="assign-tabs">
-        <button class="assign-tab active" data-assign="all"        onclick="setAssignTab(this,'all')">Todos</button>
-        <button class="assign-tab"        data-assign="assigned"   onclick="setAssignTab(this,'assigned')">Asignados</button>
-        <button class="assign-tab tab-unassigned" data-assign="unassigned" onclick="setAssignTab(this,'unassigned')">Sin asignar</button>
-      </div>
       <div class="date-filter-wrap">
         <span class="date-filter-label">📅 Desde</span>
         <input type="date" class="filter-date" id="f-fecha-desde" onchange="applyFilters()" />
@@ -2054,6 +2068,7 @@ function getActiveColumns(board) {
 // settings page
 function showSettingsPage() {
   showBoardView();
+  document.getElementById('assign-strip').classList.add('hidden');
   document.getElementById('table-wrap').style.display    = 'none';
   document.getElementById('toolbar').style.display       = 'none';
   document.getElementById('bulk-bar').classList.remove('visible');
@@ -2312,6 +2327,9 @@ function initApp(user) {
   if (user.role === 'admin' || user.role === 'master') {
     document.getElementById('sidebar-admin').style.display = 'block';
   }
+  if (user.role === 'admin' || user.role === 'master') {
+    document.getElementById('assign-strip').classList.remove('hidden');
+  }
   selectBoard('dallas');
 }
 
@@ -2332,6 +2350,7 @@ function renderTopbarUser(user) {
 let editingUserId = null;
 
 function showUsersPage() {
+  document.getElementById('assign-strip').classList.add('hidden');
   document.getElementById('table-wrap').style.display   = 'none';
   document.getElementById('bulk-bar').classList.remove('visible');
   document.getElementById('toolbar').style.display      = 'none';
@@ -2356,6 +2375,13 @@ function showBoardView() {
   if (navUsers) navUsers.classList.remove('active');
   const navSet = document.getElementById('nav-settings');
   if (navSet) navSet.classList.remove('active');
+  const session = getSession();
+  const strip = document.getElementById('assign-strip');
+  if (session && (session.role === 'admin' || session.role === 'master')) {
+    strip.classList.remove('hidden');
+  } else {
+    strip.classList.add('hidden');
+  }
 }
 
 function renderUsersGrid() {
