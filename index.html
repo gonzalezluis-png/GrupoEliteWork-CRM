@@ -816,9 +816,6 @@
         </div>
         <div style="display:flex;gap:20px">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
-            <input type="checkbox" id="b-caller" /> Columna Caller Name
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
             <input type="checkbox" id="b-solicitudes" /> Columna Solicitudes
           </label>
         </div>
@@ -892,11 +889,6 @@ const AGENTS = [
   'MARILYN ALVARADO','ALEJANDRA OSEGUEDA','JOCELYN AGUIRRE',
   'KARLA SALAZAR','PERLA BARRIOS','VALERIA MENDEZ','Sin asignar'
 ];
-const CALLERS = [
-  'LINDA CASTILLO','DIANA VARGAS','MARCO CASTILLO','YURI CASTILLO',
-  'MARILYN ALVARADO','ALEJANDRA OSEGUEDA','JOCELYN AGUIRRE',
-  'KARLA SALAZAR','PERLA BARRIOS','VALERIA MENDEZ'
-];
 const LEAD_TYPES = [
   'BIENES DE DISTRIBUCIÓN','GUÍA DE INFORMACIÓN','GUÍA MÉDICO',
   'GUÍA MÉDICO RESGUARDAR','CSKID'
@@ -908,13 +900,13 @@ const RESULTADOS = [
 ];
 
 const DEFAULT_BOARDS = [
-  { id: 'dallas',     name: 'LEAD DALLAS',              icon: '🏙️',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Dallas'] },
-  { id: 'austin',     name: 'LEAD AUSTIN - SAN ANTONIO', icon: '🤠',  hasCaller: true,  hasSolicitudes: true,  ubicaciones: ['Austin','San Antonio'] },
+  { id: 'dallas',     name: 'LEAD DALLAS',              icon: '🏙️',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Dallas'] },
+  { id: 'austin',     name: 'LEAD AUSTIN - SAN ANTONIO', icon: '🤠',  hasCaller: false,  hasSolicitudes: true,  ubicaciones: ['Austin','San Antonio'] },
   { id: 'connecticut',name: 'LEAD CONNECTICUT',          icon: '🏛️',  hasCaller: false, hasSolicitudes: false, ubicaciones: ['Connecticut'] },
-  { id: 'florida',    name: 'LEAD FLORIDA',              icon: '🌴',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Miami','Orlando','Tampa','Jacksonville','Fort Lauderdale'] },
-  { id: 'georgia',    name: 'LEAD GEORGIA',              icon: '🍑',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Atlanta','Savannah','Augusta','Columbus'] },
-  { id: 'virginia',   name: 'LEAD VIRGINIA',             icon: '🌿',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Virginia'] },
-  { id: 'washington', name: 'LEAD WASHINGTON',           icon: '🌲',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Washington'] },
+  { id: 'florida',    name: 'LEAD FLORIDA',              icon: '🌴',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Miami','Orlando','Tampa','Jacksonville','Fort Lauderdale'] },
+  { id: 'georgia',    name: 'LEAD GEORGIA',              icon: '🍑',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Atlanta','Savannah','Augusta','Columbus'] },
+  { id: 'virginia',   name: 'LEAD VIRGINIA',             icon: '🌿',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Virginia'] },
+  { id: 'washington', name: 'LEAD WASHINGTON',           icon: '🌲',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Washington'] },
   { id: 'importar',   name: 'PARA IMPORTAR',             icon: '📥',  hasCaller: false, hasSolicitudes: false, ubicaciones: [] },
 ];
 let BOARDS = [...DEFAULT_BOARDS];
@@ -950,7 +942,7 @@ let selectedIds     = new Set();
 let COL_WIDTHS      = {
   nombre: 160, lead: 130, creacion: 120, hijos: 80,
   email: 160, telefono: 120, direccion: 160, ubicacion: 120,
-  asignado: 150, estado: 110, caller: 140, resultado: 130,
+  asignado: 150, resultado: 130,
   solicitudes: 90, notas: 160, _actions: 60
 };
 
@@ -1056,7 +1048,6 @@ function getColumns(board) {
     { key: 'ubicacion',    label: 'UBICACIÓN' },
     { key: 'asignado',     label: 'ASIGNADO A' },
   ];
-  if (board.hasCaller) cols.push({ key: 'caller', label: 'CALLER NAME' });
   cols.push({ key: 'resultado', label: 'RESULTADO' });
   if (board.hasSolicitudes) cols.push({ key: 'solicitudes', label: 'SOLICITUDES' });
   cols.push({ key: 'notas', label: 'NOTAS' });
@@ -1237,13 +1228,7 @@ function buildForm(board, lead) {
   const selLead   = LEAD_TYPES.map(t => `<option${v('lead')===t?' selected':''}>${t}</option>`).join('');
   const selEst    = ESTADOS.map(e => `<option${v('estado')===e?' selected':''}>${e}</option>`).join('');
   const selRes    = RESULTADOS.map(r => `<option${v('resultado')===r?' selected':''}>${r}</option>`).join('');
-  const selCall   = CALLERS.map(c => `<option${v('caller')===c?' selected':''}>${c}</option>`).join('');
-
-  const callerField = board.hasCaller ? `
-    <div class="field">
-      <label>Caller Name</label>
-      <select id="f_caller"><option value="">— Seleccionar —</option>${selCall}</select>
-    </div>` : '';
+  const callerField = '';
 
   const solicitudesField = board.hasSolicitudes ? `
     <div class="field">
@@ -1320,7 +1305,6 @@ function saveLead() {
     asignado:    get('f_asignado'),
     estado:      get('f_estado'),
     resultado:   get('f_resultado'),
-    caller:      get('f_caller'),
     solicitudes: get('f_solicitudes'),
     notas:       get('f_notas'),
   };
@@ -1445,7 +1429,7 @@ function showImportPanel() {
       <!-- CSV TAB -->
       <div id="import-tab-csv" style="display:none">
         <p style="color:var(--text2);font-size:12px;margin-bottom:12px">
-          Columnas reconocidas: <strong style="color:var(--text)">nombre, lead, email, telefono, hijos, direccion, ubicacion, asignado, resultado, caller, notas, solicitudes</strong>
+          Columnas reconocidas: <strong style="color:var(--text)">nombre, lead, email, telefono, hijos, direccion, ubicacion, asignado, resultado, notas, solicitudes</strong>
         </p>
         <div class="field" style="margin-bottom:14px;">
           <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Board de destino</label>
@@ -1516,7 +1500,7 @@ const FIELD_MAP = {
   'ubicacion':'ubicacion','ubicación':'ubicacion','city':'ubicacion','ciudad':'ubicacion',
   'asignado':'asignado','asignado a':'asignado','assigned':'asignado','agente':'asignado',
   'resultado':'resultado','result':'resultado',
-  'caller':'caller','caller name':'caller',
+
   'notas':'notas','notes':'notas','nota':'notas',
   'solicitudes':'solicitudes',
 };
@@ -1530,7 +1514,7 @@ function renderPasteTable() {
   const wrap = document.getElementById('paste-preview-wrap');
   wrap.style.display = 'block';
 
-  const fieldOpts = ['','nombre','lead','email','telefono','hijos','direccion','ubicacion','asignado','resultado','caller','notas','solicitudes']
+  const fieldOpts = ['','nombre','lead','email','telefono','hijos','direccion','ubicacion','asignado','resultado','notas','solicitudes']
     .map(f => `<option value="${f}">${f || '— ignorar —'}</option>`).join('');
 
   const mappings = pastedHeaders.map(h => guessField(h));
@@ -1693,7 +1677,7 @@ function parseAndImport(text) {
       asignado:    row.asignado || '',
       estado:      row.estado || row.status || '',
       resultado:   row.resultado || '',
-      caller:      row.caller || '',
+
       notas:       row.notas || row.notes || '',
       solicitudes: row.solicitudes || '',
     };
@@ -1974,7 +1958,7 @@ function openBoardModal() {
   document.getElementById('b-icon').value = '📋';
   document.getElementById('b-nombre').value = '';
   document.getElementById('b-ubicaciones').value = '';
-  document.getElementById('b-caller').checked = false;
+
   document.getElementById('b-solicitudes').checked = false;
   document.getElementById('board-modal-overlay').classList.add('open');
 }
@@ -1986,7 +1970,7 @@ function saveBoard() {
   const name  = document.getElementById('b-nombre').value.trim().toUpperCase();
   const icon  = document.getElementById('b-icon').value.trim() || '📋';
   const ubRaw = document.getElementById('b-ubicaciones').value.trim();
-  const hasCaller      = document.getElementById('b-caller').checked;
+
   const hasSolicitudes = document.getElementById('b-solicitudes').checked;
 
   if (!name) { showToast('El nombre es requerido', 'error'); return; }
@@ -1994,7 +1978,7 @@ function saveBoard() {
   const id = 'custom_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_') + '_' + Date.now().toString(36);
   const ubicaciones = ubRaw ? ubRaw.split(',').map(u => u.trim()).filter(Boolean) : [];
 
-  const newBoard = { id, name, icon, hasCaller, hasSolicitudes, ubicaciones, custom: true };
+  const newBoard = { id, name, icon, hasCaller: false, hasSolicitudes, ubicaciones, custom: true };
   const customs  = loadCustomBoards();
   customs.push(newBoard);
   saveCustomBoards(customs);
