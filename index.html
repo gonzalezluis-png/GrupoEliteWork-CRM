@@ -1240,9 +1240,17 @@ function renderRows(board, leads) {
         return `<td><span class="pill ${cls}">${esc(l.estado||'')}</span></td>`;
       }
       if (c.key === 'resultado') {
-        if (!l.resultado) return '<td>—</td>';
-        const cls = RESULT_PILL[l.resultado] || 'pill-gray';
-        return `<td><span class="pill ${cls}">${esc(l.resultado)}</span></td>`;
+        const resOpts = ['', ...RESULTADOS].map(r =>
+          `<option value="${esc(r)}"${l.resultado===r?' selected':''}>${r||'— Sin resultado —'}</option>`
+        ).join('');
+        const displayVal = l.resultado || '';
+        const emptyClass = displayVal ? '' : ' empty-val';
+        return `<td class="td-inline" onclick="event.stopPropagation()">
+          <span class="inline-display${emptyClass}" onclick="openInlineSel(this)">${esc(displayVal||'Sin resultado')} <span class="caret">▾</span></span>
+          <select class="inline-select" style="display:none"
+            onchange="saveInlineField(this,'${l.id}','resultado')"
+            onblur="closeInlineSel(this)">${resOpts}</select>
+        </td>`;
       }
       if (c.key === 'ubicacion') {
         const ubOpts = board.ubicaciones.length > 0
@@ -2285,7 +2293,7 @@ function seedTestLeads() {
       direccion:   '123 Test Street',
       ubicacion:   ub,
       asignado:    '',
-      resultado:   'PENDIENTE',
+      resultado:   '',
 
       notas:       'Lead de prueba generado automáticamente.',
     };
