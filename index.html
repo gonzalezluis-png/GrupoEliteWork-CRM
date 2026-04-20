@@ -686,6 +686,10 @@
   .custom-col-form .field { margin: 0; }
   .custom-col-form .field input, .custom-col-form .field select { padding: 7px 10px; }
   .custom-cols-list { display: flex; flex-direction: column; gap: 6px; }
+  #lead-types-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .lt-tag { display: flex; align-items: center; gap: 6px; background: var(--card2); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: #fff; }
+  .lt-tag button { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+  .lt-tag button:hover { color: var(--red); }
   .custom-col-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--card2); border-radius: 7px; border: 1px solid var(--border); }
   .custom-col-item-left { display: flex; align-items: center; gap: 10px; }
   .custom-col-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; background: rgba(0,115,234,.15); color: var(--accent); text-transform: uppercase; }
@@ -787,11 +791,6 @@
       </select>
       <select class="filter-select" id="f-lead" onchange="applyFilters()">
         <option value="">Lead: Todos</option>
-        <option>BIENES DE DISTRIBUCIÓN</option>
-        <option>GUÍA DE INFORMACIÓN</option>
-        <option>GUÍA MÉDICO</option>
-        <option>GUÍA MÉDICO RESGUARDAR</option>
-        <option>CSKID</option>
       </select>
       <select class="filter-select" id="f-resultado" onchange="applyFilters()">
         <option value="">Resultado: Todos</option>
@@ -870,6 +869,17 @@
           </div>
           <div class="custom-cols-list" id="custom-cols-list"></div>
         </div>
+
+        <div class="settings-section">
+          <h3>Tipos de Lead</h3>
+          <p>Define los tipos de lead disponibles al importar y en el formulario.</p>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input type="text" id="lt-new" placeholder="Ej: GUÍA LABORAL" style="flex:1;max-width:280px" />
+            <button class="btn btn-primary btn-sm" onclick="addLeadType()">＋ Agregar</button>
+          </div>
+          <div id="lead-types-list"></div>
+        </div>
+
       </div>
     </div>
 
@@ -1010,10 +1020,19 @@ function getAgents() {
 }
 // legacy alias used in some places — replaced dynamically below
 const AGENTS = [];
-const LEAD_TYPES = [
+const DEFAULT_LEAD_TYPES = [
   'BIENES DE DISTRIBUCIÓN','GUÍA DE INFORMACIÓN','GUÍA MÉDICO',
   'GUÍA MÉDICO RESGUARDAR','CSKID'
 ];
+function getLeadTypes() {
+  try {
+    const stored = localStorage.getItem('gew_lead_types');
+    if (stored) return JSON.parse(stored);
+  } catch(e) {}
+  return [...DEFAULT_LEAD_TYPES];
+}
+function saveLeadTypes(arr) { localStorage.setItem('gew_lead_types', JSON.stringify(arr)); }
+const LEAD_TYPES = DEFAULT_LEAD_TYPES; // legacy alias — use getLeadTypes() for live data
 const ESTADOS = ['ACTIVO','INACTIVO','EN PROCESO','CERRADO','NUEVO'];
 const RESULTADOS = [
   'INTERESADO','NO INTERESADO','NO CONTESTA','NÚMERO EQUIVOCADO',
@@ -1353,7 +1372,7 @@ function buildForm(board, lead) {
 
   const selUb = ubOpts.map(u => `<option${v('ubicacion')===u?' selected':''}>${u}</option>`).join('');
   const selAgents = getAgents().map(a => `<option${v('asignado')===a?' selected':''}>${a}</option>`).join('');
-  const selLead   = LEAD_TYPES.map(t => `<option${v('lead')===t?' selected':''}>${t}</option>`).join('');
+  const selLead   = getLeadTypes().map(t => `<option${v('lead')===t?' selected':''}>${t}</option>`).join('');
   const selEst    = ESTADOS.map(e => `<option${v('estado')===e?' selected':''}>${e}</option>`).join('');
   const selRes    = RESULTADOS.map(r => `<option${v('resultado')===r?' selected':''}>${r}</option>`).join('');
   const callerField = '';
@@ -1533,6 +1552,13 @@ function showImportPanel() {
                 ${boardOpts}
               </select>
             </div>
+            <div class="paste-dest-global">
+              <label>Tipo de lead:</label>
+              <select id="global-lead-type">
+                <option value="">— Sin cambio —</option>
+                ${getLeadTypes().map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}
+              </select>
+            </div>
             <button class="btn btn-primary" onclick="importPastedLeads()">⬆ Importar seleccionados</button>
             <button class="btn btn-secondary btn-sm" onclick="clearPaste()">✕ Limpiar</button>
             <span class="paste-stats" id="paste-stats"></span>
@@ -1552,9 +1578,18 @@ function showImportPanel() {
         <p style="color:var(--text2);font-size:12px;margin-bottom:12px">
           Columnas reconocidas: <strong style="color:var(--text)">nombre, lead, email, telefono, hijos, direccion, ubicacion, asignado, resultado, notas</strong>
         </p>
-        <div class="field" style="margin-bottom:14px;">
-          <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Board de destino</label>
-          <select class="filter-select" id="import-dest" style="width:260px">${boardOpts}</select>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+          <div class="field" style="margin:0">
+            <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Board de destino</label>
+            <select class="filter-select" id="import-dest" style="width:240px">${boardOpts}</select>
+          </div>
+          <div class="field" style="margin:0">
+            <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Tipo de lead</label>
+            <select class="filter-select" id="import-lead-type" style="width:240px">
+              <option value="">— Sin cambio —</option>
+              ${getLeadTypes().map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}
+            </select>
+          </div>
         </div>
         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()"
              ondragover="event.preventDefault();this.classList.add('drag')"
@@ -1713,6 +1748,7 @@ function importPastedLeads() {
   const noDest = toImport.filter(r => !r.dest);
   if (noDest.length > 0) { showToast(`${noDest.length} fila(s) sin board destino`, 'error'); return; }
 
+  const globalLeadType = (document.getElementById('global-lead-type') || {}).value || '';
   const byBoard = {};
   toImport.forEach(row => {
     const lead = { id: uid(), creacion: today() };
@@ -1720,6 +1756,7 @@ function importPastedLeads() {
       if (field && row.cells[ci] !== undefined) lead[field] = row.cells[ci];
     });
     if (!lead.nombre) lead.nombre = row.cells[0] || '';
+    if (globalLeadType) lead.lead = globalLeadType;
     if (!byBoard[row.dest]) byBoard[row.dest] = [];
     byBoard[row.dest].push(lead);
   });
@@ -1773,9 +1810,11 @@ function parseAndImport(text) {
     .replace(/[óö]/g,'o').replace(/[úü]/g,'u').replace(/ñ/g,'n')
     .replace(/[^a-z0-9]/g,'_'));
 
-  const destEl = document.getElementById('import-dest');
-  const destId = destEl ? destEl.value : '';
+  const destEl     = document.getElementById('import-dest');
+  const destId     = destEl ? destEl.value : '';
   if (!destId) { showToast('Selecciona un board de destino', 'error'); return; }
+  const csvLeadTypeEl = document.getElementById('import-lead-type');
+  const csvLeadType   = csvLeadTypeEl ? csvLeadTypeEl.value : '';
   const leads  = loadLeads(destId);
   let imported = 0;
 
@@ -1789,7 +1828,7 @@ function parseAndImport(text) {
       id:          uid(),
       creacion:    today(),
       nombre:      row.nombre || '',
-      lead:        row.lead || '',
+      lead:        csvLeadType || row.lead || '',
       email:       row.email || '',
       telefono:    row.telefono || row.phone || row.tel || '',
       hijos:       row.hijos || '',
@@ -2028,6 +2067,46 @@ function setAssignTab(el, val) {
 // ════════════════════════════════════════════
 //  ASIGNADO FILTER POPULATE
 // ════════════════════════════════════════════
+function renderLeadTypesList() {
+  const types = getLeadTypes();
+  const el = document.getElementById('lead-types-list');
+  if (!el) return;
+  el.innerHTML = types.map((t, i) =>
+    `<div class="lt-tag">${esc(t)}<button onclick="removeLeadType(${i})" title="Eliminar">✕</button></div>`
+  ).join('') || '<span style="color:var(--text2);font-size:12px">Sin tipos definidos</span>';
+}
+function addLeadType() {
+  const inp = document.getElementById('lt-new');
+  const val = inp.value.trim().toUpperCase();
+  if (!val) return;
+  const types = getLeadTypes();
+  if (types.includes(val)) { showToast('Ya existe ese tipo', 'error'); return; }
+  types.push(val);
+  saveLeadTypes(types);
+  inp.value = '';
+  renderLeadTypesList();
+  populateLeadFilter();
+  showToast('Tipo agregado ✓', 'success');
+}
+function removeLeadType(idx) {
+  const types = getLeadTypes();
+  types.splice(idx, 1);
+  saveLeadTypes(types);
+  renderLeadTypesList();
+  populateLeadFilter();
+  showToast('Tipo eliminado', 'error');
+}
+
+function populateLeadFilter() {
+  const sel = document.getElementById('f-lead');
+  sel.innerHTML = '<option value="">Lead: Todos</option>';
+  getLeadTypes().forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    sel.appendChild(o);
+  });
+}
+
 function populateAgentFilter() {
   const sel = document.getElementById('f-asignado');
   sel.innerHTML = '<option value="">Agente: Todos</option>';
@@ -2115,6 +2194,7 @@ function showSettingsPage() {
   document.getElementById('settings-page').classList.add('visible');
   document.getElementById('board-title').textContent     = 'Configuración';
   document.getElementById('appname-settings-input').value = loadAppName();
+  renderLeadTypesList();
   document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
   const ns = document.getElementById('nav-settings');
   if (ns) ns.classList.add('active');
@@ -2362,6 +2442,7 @@ function doLogout() {
 function initApp(user) {
   renderSidebar();
   populateAgentFilter();
+  populateLeadFilter();
   renderTopbarUser(user);
   applyAppName();
   if (user.role === 'admin' || user.role === 'master') {
@@ -2653,7 +2734,8 @@ if (_session) {
   initApp(_session);
 } else {
   // keep login visible
-  populateAgentFilter(); // pre-populate for when app loads
+  populateAgentFilter();
+  populateLeadFilter(); // pre-populate for when app loads
 }
 </script>
 </body>
