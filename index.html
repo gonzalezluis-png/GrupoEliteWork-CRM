@@ -426,6 +426,68 @@
   .drop-zone .icon { font-size: 28px; margin-bottom: 6px; }
   #csv-file-input { display: none; }
 
+  /* ── PASTE IMPORT ── */
+  .import-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+  .import-tab {
+    padding: 8px 18px; font-family: var(--font); font-size: 12px; font-weight: 600;
+    color: var(--text2); background: none; border: none; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+    transition: color .15s;
+  }
+  .import-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .import-tab:hover { color: var(--text); }
+
+  .paste-area-wrap { position: relative; margin-bottom: 14px; }
+  .paste-area {
+    width: 100%; min-height: 120px; max-height: 180px;
+    background: var(--card2); border: 2px dashed var(--border);
+    border-radius: 8px; padding: 14px;
+    color: var(--text2); font-family: var(--font); font-size: 12px;
+    resize: none; outline: none; transition: border-color .15s;
+    overflow-y: auto;
+  }
+  .paste-area:focus { border-color: var(--accent); color: var(--text); }
+  .paste-area.has-data { border-style: solid; border-color: var(--green); color: var(--text); }
+
+  /* preview grid */
+  .paste-preview { overflow-x: auto; margin-bottom: 14px; border-radius: 8px; border: 1px solid var(--border); }
+  .paste-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 800px; }
+  .paste-table th {
+    background: var(--card2); padding: 7px 10px;
+    text-align: left; font-size: 10px; font-weight: 700;
+    color: var(--text2); text-transform: uppercase; letter-spacing: .4px;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .paste-table th select {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 5px; padding: 3px 6px;
+    font-family: var(--font); font-size: 10px; margin-top: 4px;
+    outline: none; width: 100%;
+  }
+  .paste-table td {
+    padding: 6px 10px; border-bottom: 1px solid var(--border);
+    color: var(--text); white-space: nowrap; max-width: 160px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .paste-table tr:last-child td { border-bottom: none; }
+  .paste-table tr:hover td { background: rgba(255,255,255,.03); }
+  .paste-table td.dest-cell { min-width: 160px; }
+  .paste-table td.dest-cell select {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 5px; padding: 4px 6px;
+    font-family: var(--font); font-size: 11px; width: 100%; outline: none;
+  }
+  .paste-row-check { width: 32px; text-align: center; }
+  .paste-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .paste-dest-global { display: flex; align-items: center; gap: 8px; }
+  .paste-dest-global label { font-size: 11px; color: var(--text2); font-weight: 600; white-space: nowrap; }
+  .paste-dest-global select {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px; padding: 6px 10px;
+    font-family: var(--font); font-size: 12px; outline: none; min-width: 200px;
+  }
+  .paste-stats { font-size: 11px; color: var(--text2); margin-left: auto; }
+
   /* scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -1259,34 +1321,240 @@ function showImportPanel() {
   document.getElementById('empty-state').style.display = 'none';
   const panel = document.getElementById('import-panel');
   panel.style.display = 'block';
+  const session = getSession();
+  const isMaster = session && session.role === 'master';
+  const boardOpts = BOARDS.filter(b => b.id !== 'importar')
+    .map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
   panel.innerHTML = `
-    <div class="import-card">
-      <h3>📥 Importar Leads desde CSV</h3>
-      <p>El archivo CSV debe tener una fila de encabezados. Las columnas reconocidas son:<br>
-      <strong>nombre, lead, email, telefono, hijos, direccion, ubicacion, asignado, estado, resultado, caller, notas, solicitudes</strong></p>
+    <div class="import-card" style="max-width:960px">
+      ${isMaster ? `
+      <div class="import-tabs">
+        <button class="import-tab active" id="tab-paste" onclick="switchImportTab('paste')">📋 Pegar desde Excel</button>
+        <button class="import-tab" id="tab-csv" onclick="switchImportTab('csv')">📂 Importar CSV</button>
+      </div>` : ''}
 
-      <div class="field" style="margin-bottom:14px;">
-        <label>Board de destino</label>
-        <select class="filter-select" id="import-dest" style="width:260px">
-          ${BOARDS.filter(b=>b.id!=='importar').map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
-        </select>
+      <!-- PASTE TAB -->
+      <div id="import-tab-paste" ${isMaster ? '' : 'style="display:none"'}>
+        <p style="color:var(--text2);font-size:12px;margin-bottom:12px">
+          Copia las celdas directamente desde Excel o Google Sheets y pégalas aquí con <strong style="color:var(--text)">Ctrl+V</strong>.<br>
+          La primera fila debe ser el encabezado. Luego elige a qué board va cada lead.
+        </p>
+        <div class="paste-area-wrap">
+          <textarea class="paste-area" id="paste-area" placeholder="Pega aquí tu tabla de Excel (Ctrl+V)…" onpaste="handlePaste(event)" onkeydown="if(event.ctrlKey&&event.key==='v'){}"></textarea>
+        </div>
+        <div id="paste-preview-wrap" style="display:none">
+          <div class="paste-actions" style="margin-bottom:12px">
+            <div class="paste-dest-global">
+              <label>Destino para todos:</label>
+              <select id="global-dest" onchange="applyGlobalDest()">
+                <option value="">— Elegir board —</option>
+                ${boardOpts}
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="importPastedLeads()">⬆ Importar seleccionados</button>
+            <button class="btn btn-secondary btn-sm" onclick="clearPaste()">✕ Limpiar</button>
+            <span class="paste-stats" id="paste-stats"></span>
+          </div>
+          <div class="paste-preview">
+            <table class="paste-table" id="paste-table"></table>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn btn-secondary" onclick="hideImportPanel()">← Volver</button>
+        </div>
+        <div id="paste-log" style="margin-top:10px;font-size:12px;color:var(--text2)"></div>
       </div>
 
-      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()"
-           ondragover="event.preventDefault();this.classList.add('drag')"
-           ondragleave="this.classList.remove('drag')"
-           ondrop="handleDrop(event)">
-        <div class="icon">📂</div>
-        <div>Arrastra tu CSV aquí o <strong style="color:var(--accent)">haz click para seleccionar</strong></div>
+      <!-- CSV TAB -->
+      <div id="import-tab-csv" style="display:none">
+        <p style="color:var(--text2);font-size:12px;margin-bottom:12px">
+          Columnas reconocidas: <strong style="color:var(--text)">nombre, lead, email, telefono, hijos, direccion, ubicacion, asignado, resultado, caller, notas, solicitudes</strong>
+        </p>
+        <div class="field" style="margin-bottom:14px;">
+          <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Board de destino</label>
+          <select class="filter-select" id="import-dest" style="width:260px">${boardOpts}</select>
+        </div>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="handleDrop(event)">
+          <div class="icon">📂</div>
+          <div>Arrastra tu CSV aquí o <strong style="color:var(--accent)">haz click para seleccionar</strong></div>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv" onchange="handleFileSelect(event)" />
+        <div style="margin-top:12px">
+          <button class="btn btn-secondary" onclick="hideImportPanel()">← Volver</button>
+        </div>
+        <div id="import-log" style="margin-top:14px;font-size:12px;color:var(--text2)"></div>
       </div>
-      <input type="file" id="csv-file-input" accept=".csv" onchange="handleFileSelect(event)" />
-
-      <div style="display:flex;gap:10px;margin-top:4px">
-        <button class="btn btn-secondary" onclick="hideImportPanel()">← Volver</button>
-      </div>
-      <div id="import-log" style="margin-top:14px;font-size:12px;color:var(--text2)"></div>
     </div>
   `;
+
+  if (!isMaster) {
+    document.getElementById('import-tab-csv').style.display = 'block';
+  }
+}
+
+let pastedRows = []; // { checked, dest, cells[] }
+let pastedHeaders = [];
+
+function switchImportTab(tab) {
+  document.getElementById('tab-paste').classList.toggle('active', tab === 'paste');
+  document.getElementById('tab-csv').classList.toggle('active', tab === 'csv');
+  document.getElementById('import-tab-paste').style.display = tab === 'paste' ? 'block' : 'none';
+  document.getElementById('import-tab-csv').style.display  = tab === 'csv'   ? 'block' : 'none';
+}
+
+function handlePaste(e) {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  const area = document.getElementById('paste-area');
+  area.value = text;
+  area.classList.add('has-data');
+  parsePastedData(text);
+}
+
+function parsePastedData(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { showToast('Necesitas al menos encabezados y una fila de datos','error'); return; }
+
+  pastedHeaders = lines[0].split('\t').map(h => h.trim());
+  pastedRows = lines.slice(1).map(line => ({
+    checked: true,
+    dest: '',
+    cells: line.split('\t').map(c => c.trim())
+  }));
+
+  renderPasteTable();
+}
+
+// field mapping from common header names
+const FIELD_MAP = {
+  'nombre':'nombre','name':'nombre','full name':'nombre',
+  'lead':'lead','tipo':'lead','tipo de lead':'lead',
+  'email':'email','correo':'email',
+  'telefono':'telefono','teléfono':'telefono','phone':'telefono','tel':'telefono','celular':'telefono',
+  'hijos':'hijos','hijos menores':'hijos','children':'hijos',
+  'direccion':'direccion','dirección':'direccion','address':'direccion',
+  'ubicacion':'ubicacion','ubicación':'ubicacion','city':'ubicacion','ciudad':'ubicacion',
+  'asignado':'asignado','asignado a':'asignado','assigned':'asignado','agente':'asignado',
+  'resultado':'resultado','result':'resultado',
+  'caller':'caller','caller name':'caller',
+  'notas':'notas','notes':'notas','nota':'notas',
+  'solicitudes':'solicitudes',
+};
+
+function guessField(header) {
+  const h = header.toLowerCase().trim();
+  return FIELD_MAP[h] || '';
+}
+
+function renderPasteTable() {
+  const wrap = document.getElementById('paste-preview-wrap');
+  wrap.style.display = 'block';
+
+  const fieldOpts = ['','nombre','lead','email','telefono','hijos','direccion','ubicacion','asignado','resultado','caller','notas','solicitudes']
+    .map(f => `<option value="${f}">${f || '— ignorar —'}</option>`).join('');
+
+  const mappings = pastedHeaders.map(h => guessField(h));
+  const boardOpts = '<option value="">— Elegir —</option>' +
+    BOARDS.filter(b => b.id !== 'importar').map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
+  const thead = `<thead><tr>
+    <th class="paste-row-check"><input type="checkbox" checked onchange="toggleAllPasteRows(this)" /></th>
+    ${pastedHeaders.map((h,i) => `
+      <th>
+        <div>${esc(h)}</div>
+        <select onchange="updateMapping(${i},this.value)">
+          ${fieldOpts.replace(`value="${mappings[i]}"`,`value="${mappings[i]}" selected`)}
+        </select>
+      </th>`).join('')}
+    <th>BOARD DESTINO</th>
+  </tr></thead>`;
+
+  const tbody = `<tbody>${pastedRows.map((row,ri) => `
+    <tr>
+      <td class="paste-row-check"><input type="checkbox" ${row.checked?'checked':''} onchange="togglePasteRow(${ri},this.checked)" /></td>
+      ${row.cells.map(c => `<td title="${esc(c)}">${esc(c)}</td>`).join('')}
+      <td class="dest-cell"><select onchange="pastedRows[${ri}].dest=this.value">
+        ${boardOpts}
+      </select></td>
+    </tr>`).join('')}</tbody>`;
+
+  document.getElementById('paste-table').innerHTML = thead + tbody;
+  updatePasteStats();
+
+  // store mappings reference
+  window._pastedMappings = mappings;
+}
+
+function updateMapping(colIdx, val) {
+  window._pastedMappings[colIdx] = val;
+}
+
+function toggleAllPasteRows(cb) {
+  pastedRows.forEach(r => r.checked = cb.checked);
+  document.querySelectorAll('#paste-table tbody input[type=checkbox]').forEach(c => c.checked = cb.checked);
+  updatePasteStats();
+}
+
+function togglePasteRow(idx, val) {
+  pastedRows[idx].checked = val;
+  updatePasteStats();
+}
+
+function updatePasteStats() {
+  const sel = pastedRows.filter(r => r.checked).length;
+  const el = document.getElementById('paste-stats');
+  if (el) el.textContent = `${sel} de ${pastedRows.length} filas seleccionadas`;
+}
+
+function applyGlobalDest() {
+  const dest = document.getElementById('global-dest').value;
+  if (!dest) return;
+  pastedRows.forEach(r => r.dest = dest);
+  document.querySelectorAll('#paste-table tbody td.dest-cell select').forEach(s => s.value = dest);
+}
+
+function clearPaste() {
+  pastedRows = []; pastedHeaders = [];
+  document.getElementById('paste-area').value = '';
+  document.getElementById('paste-area').classList.remove('has-data');
+  document.getElementById('paste-preview-wrap').style.display = 'none';
+}
+
+function importPastedLeads() {
+  const mappings = window._pastedMappings || [];
+  const toImport = pastedRows.filter(r => r.checked);
+  if (toImport.length === 0) { showToast('No hay filas seleccionadas','error'); return; }
+
+  const noDest = toImport.filter(r => !r.dest);
+  if (noDest.length > 0) { showToast(`${noDest.length} fila(s) sin board destino`, 'error'); return; }
+
+  const byBoard = {};
+  toImport.forEach(row => {
+    const lead = { id: uid(), creacion: today() };
+    mappings.forEach((field, ci) => {
+      if (field && row.cells[ci] !== undefined) lead[field] = row.cells[ci];
+    });
+    if (!lead.nombre) lead.nombre = row.cells[0] || '';
+    if (!byBoard[row.dest]) byBoard[row.dest] = [];
+    byBoard[row.dest].push(lead);
+  });
+
+  let total = 0;
+  Object.entries(byBoard).forEach(([boardId, leads]) => {
+    const existing = loadLeads(boardId);
+    saveLeads(boardId, [...existing, ...leads]);
+    total += leads.length;
+  });
+
+  const boardNames = Object.keys(byBoard).map(id => getBoard(id).name).join(', ');
+  document.getElementById('paste-log').innerHTML =
+    `<span style="color:var(--green)">✓ ${total} lead(s) importados a: <strong>${boardNames}</strong></span>`;
+  showToast(`${total} leads importados ✓`, 'success');
+  clearPaste();
 }
 
 function hideImportPanel() {
