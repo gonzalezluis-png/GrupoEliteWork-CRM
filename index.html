@@ -1049,7 +1049,13 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // ── Date ──
 function today() {
   const d = new Date();
-  return d.toISOString().split('T')[0];
+  return d.toISOString().split('T')[0]; // stored as YYYY-MM-DD internally
+}
+function formatDate(str) {
+  if (!str) return '';
+  const [y, m, d] = str.split('-');
+  if (!y || !m || !d) return str;
+  return `${m}/${d}/${y.slice(2)}`; // MM/DD/YY
 }
 
 // ════════════════════════════════════════════
@@ -1242,6 +1248,7 @@ function renderRows(board, leads) {
             onblur="closeInlineSel(this)">${agOpts}</select>
         </td>`;
       }
+      if (c.key === 'creacion') return `<td style="white-space:nowrap">${esc(formatDate(l.creacion||''))}</td>`;
       if (c.key === 'notas') return `<td class="td-notes"><span title="${esc(l.notas||'')}">${esc(l.notas||'')}</span></td>`;
       // custom column
       if (c.customDef) {
