@@ -735,6 +735,9 @@
       <div class="sidebar-item" id="nav-users" onclick="showUsersPage()">👥 <span>Usuarios</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span></div>
     </div>
+    <div id="sidebar-master" style="display:none">
+      <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span></div>
+    </div>
   </nav>
 
   <!-- MAIN -->
@@ -743,7 +746,6 @@
       <span id="board-title">Selecciona un board</span>
       <button class="btn btn-primary" id="btn-new-lead" onclick="openModal()">＋ Nuevo Lead</button>
       <button class="btn btn-secondary" id="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
-      <button class="btn btn-success" id="btn-import-csv" style="display:none" onclick="showImportPanel()">⬆ Importar CSV</button>
       <div class="topbar-user" id="topbar-user"></div>
     </div>
 
@@ -1047,7 +1049,6 @@ const DEFAULT_BOARDS = [
   { id: 'georgia',    name: 'LEAD GEORGIA',              icon: '🍑',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Atlanta','Savannah','Augusta','Columbus'] },
   { id: 'virginia',   name: 'LEAD VIRGINIA',             icon: '🌿',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Virginia'] },
   { id: 'washington', name: 'LEAD WASHINGTON',           icon: '🌲',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Washington'] },
-  { id: 'importar',   name: 'PARA IMPORTAR',             icon: '📥',  hasCaller: false, hasSolicitudes: false, ubicaciones: [] },
 ];
 let BOARDS = [...DEFAULT_BOARDS];
 
@@ -1157,8 +1158,6 @@ function selectBoard(id) {
   });
   const board = getBoard(id);
   document.getElementById('board-title').textContent = board.name + ' ' + board.icon;
-  document.getElementById('btn-import-csv').style.display = id === 'importar' ? 'inline-flex' : 'none';
-
   // reset filters
   document.getElementById('search-input').value = '';
   ['f-asignado','f-lead','f-resultado'].forEach(fid => {
@@ -1518,12 +1517,13 @@ function exportCSV() {
 // ════════════════════════════════════════════
 function showImportPanel() {
   document.getElementById('leads-table').style.display = 'none';
-  document.getElementById('empty-state').style.display = 'none';
+  const es = document.getElementById('empty-state');
+  if (es) es.style.display = 'none';
   const panel = document.getElementById('import-panel');
   panel.style.display = 'block';
   const session = getSession();
   const isMaster = session && session.role === 'master';
-  const boardOpts = BOARDS.filter(b => b.id !== 'importar')
+  const boardOpts = BOARDS
     .map(b => `<option value="${b.id}">${b.name}</option>`).join('');
 
   panel.innerHTML = `
@@ -1675,7 +1675,7 @@ function renderPasteTable() {
 
   const mappings = pastedHeaders.map(h => guessField(h));
   const boardOpts = '<option value="">— Elegir —</option>' +
-    BOARDS.filter(b => b.id !== 'importar').map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+    BOARDS.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
 
   const thead = `<thead><tr>
     <th class="paste-row-check"><input type="checkbox" checked onchange="toggleAllPasteRows(this)" /></th>
@@ -1776,9 +1776,26 @@ function importPastedLeads() {
 }
 
 function hideImportPanel() {
-  document.getElementById('import-panel').style.display = 'none';
-  document.getElementById('leads-table').style.display = '';
-  renderTable();
+  if (currentBoardId) {
+    document.getElementById('import-panel').style.display = 'none';
+    document.getElementById('leads-table').style.display = '';
+    renderTable();
+  } else {
+    selectBoard('dallas');
+  }
+}
+
+function showImportPage() {
+  showBoardView();
+  document.getElementById('assign-strip').classList.add('hidden');
+  currentBoardId = null;
+  document.getElementById('board-title').textContent = 'Importar Leads';
+  document.getElementById('btn-new-lead').style.display = 'none';
+  document.getElementById('btn-export').style.display   = 'none';
+  document.getElementById('table-wrap').style.display   = '';
+  document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-import').classList.add('active');
+  showImportPanel();
 }
 
 function handleDrop(e) {
@@ -2376,7 +2393,6 @@ function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
 function seedTestLeads() {
   BOARDS.forEach(b => {
-    if (b.id === 'importar') return;
     const leads = loadLeads(b.id);
     const already = leads.some(l => l._testLead === true);
     if (already) return;
@@ -2449,6 +2465,9 @@ function initApp(user) {
     document.getElementById('sidebar-admin').style.display = 'block';
     document.getElementById('assign-strip').classList.remove('hidden');
   }
+  if (user.role === 'master') {
+    document.getElementById('sidebar-master').style.display = 'block';
+  }
   selectBoard('dallas');
 }
 
@@ -2509,6 +2528,8 @@ function showBoardView() {
   if (navUsers) navUsers.classList.remove('active');
   const navSet = document.getElementById('nav-settings');
   if (navSet) navSet.classList.remove('active');
+  const navImp = document.getElementById('nav-import');
+  if (navImp) navImp.classList.remove('active');
   const session = getSession();
   const strip = document.getElementById('assign-strip');
   if (session && (session.role === 'admin' || session.role === 'master')) {
