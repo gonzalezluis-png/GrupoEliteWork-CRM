@@ -873,6 +873,21 @@
         </div>
 
         <div class="settings-section">
+          <h3>Ubicaciones por Board</h3>
+          <p>Agrega o elimina ubicaciones disponibles en el desplegable de cada board.</p>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+            <div class="field" style="margin:0">
+              <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Board</label>
+              <select id="ub-board-sel" style="width:220px" onchange="renderUbicacionesList()">
+              </select>
+            </div>
+            <input type="text" id="ub-new" placeholder="Ej: Houston" style="width:180px" onkeydown="if(event.key==='Enter')addUbicacion()" />
+            <button class="btn btn-primary btn-sm" onclick="addUbicacion()">＋ Agregar</button>
+          </div>
+          <div id="ubicaciones-list"></div>
+        </div>
+
+        <div class="settings-section">
           <h3>Tipos de Lead</h3>
           <p>Define los tipos de lead disponibles al importar y en el formulario.</p>
           <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -2084,6 +2099,59 @@ function setAssignTab(el, val) {
 // ════════════════════════════════════════════
 //  ASIGNADO FILTER POPULATE
 // ════════════════════════════════════════════
+function populateUbicacionesBoardSel() {
+  const sel = document.getElementById('ub-board-sel');
+  if (!sel) return;
+  sel.innerHTML = BOARDS.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+  renderUbicacionesList();
+}
+
+function renderUbicacionesList() {
+  const sel = document.getElementById('ub-board-sel');
+  if (!sel) return;
+  const boardId = sel.value;
+  const board   = getBoard(boardId);
+  if (!board) return;
+  const list = document.getElementById('ubicaciones-list');
+  list.innerHTML = board.ubicaciones.length
+    ? board.ubicaciones.map((u, i) =>
+        `<div class="lt-tag">${esc(u)}<button onclick="removeUbicacion('${boardId}',${i})" title="Eliminar">✕</button></div>`
+      ).join('')
+    : '<span style="color:var(--text2);font-size:12px">Sin ubicaciones definidas</span>';
+}
+
+function addUbicacion() {
+  const sel = document.getElementById('ub-board-sel');
+  const inp = document.getElementById('ub-new');
+  const val = inp.value.trim();
+  if (!val || !sel) return;
+  const board = getBoard(sel.value);
+  if (!board) return;
+  const overrides = loadUbicacionesOverrides();
+  const current   = overrides[board.id] || [...board.ubicaciones];
+  if (current.includes(val)) { showToast('Ya existe esa ubicación', 'error'); return; }
+  current.push(val);
+  overrides[board.id] = current;
+  saveUbicacionesOverrides(overrides);
+  refreshBoards();
+  inp.value = '';
+  renderUbicacionesList();
+  showToast('Ubicación agregada ✓', 'success');
+}
+
+function removeUbicacion(boardId, idx) {
+  const board     = getBoard(boardId);
+  if (!board) return;
+  const overrides = loadUbicacionesOverrides();
+  const current   = overrides[boardId] || [...board.ubicaciones];
+  current.splice(idx, 1);
+  overrides[boardId] = current;
+  saveUbicacionesOverrides(overrides);
+  refreshBoards();
+  renderUbicacionesList();
+  showToast('Ubicación eliminada', 'error');
+}
+
 function renderLeadTypesList() {
   const types = getLeadTypes();
   const el = document.getElementById('lead-types-list');
@@ -2211,6 +2279,7 @@ function showSettingsPage() {
   document.getElementById('settings-page').classList.add('visible');
   document.getElementById('board-title').textContent     = 'Configuración';
   document.getElementById('appname-settings-input').value = loadAppName();
+  populateUbicacionesBoardSel();
   renderLeadTypesList();
   document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
   const ns = document.getElementById('nav-settings');
@@ -2314,8 +2383,18 @@ function loadCustomBoards() {
 function saveCustomBoards(boards) {
   localStorage.setItem(CUSTOM_BOARDS_KEY, JSON.stringify(boards));
 }
+const UBICACIONES_KEY = 'gew_ubicaciones';
+function loadUbicacionesOverrides() {
+  try { return JSON.parse(localStorage.getItem(UBICACIONES_KEY)) || {}; } catch { return {}; }
+}
+function saveUbicacionesOverrides(obj) { localStorage.setItem(UBICACIONES_KEY, JSON.stringify(obj)); }
+
 function refreshBoards() {
-  BOARDS = [...DEFAULT_BOARDS, ...loadCustomBoards()];
+  const overrides = loadUbicacionesOverrides();
+  BOARDS = [...DEFAULT_BOARDS, ...loadCustomBoards()].map(b => {
+    if (overrides[b.id]) return { ...b, ubicaciones: overrides[b.id] };
+    return b;
+  });
 }
 
 function openBoardModal() {
