@@ -446,9 +446,132 @@
   #toast.show { transform: translateY(0); opacity: 1; }
   #toast.success { border-color: var(--green); }
   #toast.error   { border-color: var(--red); }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 5000;
+    background: #0f1120;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #login-screen.hidden { display: none; }
+  .login-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 40px 36px;
+    width: 100%; max-width: 380px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6);
+  }
+  .login-logo { text-align: center; margin-bottom: 28px; }
+  .login-logo h1 { font-size: 17px; font-weight: 800; color: #fff; letter-spacing: .5px; }
+  .login-logo span { font-size: 12px; color: var(--text2); }
+  .login-box .field { margin-bottom: 14px; }
+  .login-box .field label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 5px; }
+  .login-box .field input {
+    width: 100%; background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 7px; padding: 9px 12px;
+    font-family: var(--font); font-size: 13px; outline: none;
+    transition: border-color .15s;
+  }
+  .login-box .field input:focus { border-color: var(--accent); }
+  .login-btn {
+    width: 100%; padding: 10px; border-radius: 8px; border: none;
+    background: var(--accent); color: #fff;
+    font-family: var(--font); font-size: 14px; font-weight: 700;
+    cursor: pointer; margin-top: 6px; transition: opacity .15s;
+  }
+  .login-btn:hover { opacity: .88; }
+  .login-error { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; min-height: 18px; }
+
+  /* ── TOPBAR USER ── */
+  .topbar-user { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+  .topbar-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .topbar-user-info { line-height: 1.3; }
+  .topbar-user-name { font-size: 12px; font-weight: 600; color: #fff; }
+  .topbar-user-role { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; }
+  .btn-logout { background: none; border: 1px solid var(--border); color: var(--text2); padding: 5px 10px; border-radius: 6px; font-family: var(--font); font-size: 11px; cursor: pointer; transition: background .15s, color .15s; }
+  .btn-logout:hover { background: var(--border); color: var(--text); }
+
+  /* ── USERS PAGE ── */
+  #users-page { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  #users-page.visible { display: flex; }
+  .users-wrap { padding: 28px; overflow-y: auto; flex: 1; }
+  .users-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .users-header h2 { font-size: 18px; font-weight: 700; color: #fff; }
+  .users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .user-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 18px 14px;
+    display: flex; flex-direction: column; gap: 10px;
+    transition: border-color .15s;
+  }
+  .user-card:hover { border-color: var(--accent); }
+  .user-card-top { display: flex; align-items: center; gap: 12px; }
+  .user-card-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .avatar-admin { background: var(--accent); }
+  .avatar-agent { background: var(--purple); }
+  .user-card-info { flex: 1; min-width: 0; }
+  .user-card-name { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-card-email { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-card-bottom { display: flex; align-items: center; justify-content: space-between; }
+  .role-badge { padding: 3px 9px; border-radius: 10px; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+  .role-admin { background: rgba(0,115,234,.2); color: #4da8ff; }
+  .role-agent { background: rgba(120,75,209,.2); color: #a97ff2; }
+  .user-card-actions { display: flex; gap: 6px; }
+  .user-card-actions button { background: var(--border); border: none; color: var(--text2); padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 12px; transition: background .15s, color .15s; }
+  .user-card-actions button:hover { background: var(--accent); color: #fff; }
+  .user-card-actions button.del:hover { background: var(--red); color: #fff; }
+  .user-add-card {
+    background: transparent; border: 2px dashed var(--border);
+    border-radius: 10px; padding: 18px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; cursor: pointer; color: var(--text2);
+    font-size: 13px; font-weight: 600;
+    transition: border-color .15s, color .15s;
+    min-height: 100px;
+  }
+  .user-add-card:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* sidebar admin section */
+  .sidebar-admin { border-top: 1px solid var(--border); margin-top: auto; padding-top: 8px; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 18px; cursor: pointer;
+    transition: background .15s; font-size: 12px; font-weight: 500; color: var(--text2);
+  }
+  .sidebar-item:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .sidebar-item.active { color: var(--accent); background: rgba(0,115,234,.1); }
 </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>GRUPO ELITE WORK</h1>
+      <span>CRM · Gestión de Leads</span>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="correo@ejemplo.com" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
 
 <div id="app">
   <!-- SIDEBAR -->
@@ -459,6 +582,11 @@
     </div>
     <div class="sidebar-label">Boards</div>
     <div id="board-list"></div>
+    <div class="sidebar-admin" id="sidebar-admin" style="display:none">
+      <div class="sidebar-item" id="nav-users" onclick="showUsersPage()">
+        👥 <span>Usuarios</span>
+      </div>
+    </div>
   </nav>
 
   <!-- MAIN -->
@@ -468,6 +596,7 @@
       <button class="btn btn-primary" id="btn-new-lead" onclick="openModal()">＋ Nuevo Lead</button>
       <button class="btn btn-secondary" id="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
       <button class="btn btn-success" id="btn-import-csv" style="display:none" onclick="showImportPanel()">⬆ Importar CSV</button>
+      <div class="topbar-user" id="topbar-user"></div>
     </div>
 
     <!-- BULK ACTION BAR -->
@@ -549,6 +678,17 @@
         <button class="btn btn-primary" onclick="openModal()">＋ Agregar primer lead</button>
       </div>
     </div>
+
+    <!-- USERS PAGE -->
+    <div id="users-page">
+      <div class="users-wrap">
+        <div class="users-header">
+          <h2>👥 Gestión de Usuarios</h2>
+          <button class="btn btn-primary" onclick="openUserModal()">＋ Nuevo Usuario</button>
+        </div>
+        <div class="users-grid" id="users-grid"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -565,6 +705,43 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveLead()">Guardar Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER MODAL -->
+<div class="overlay" id="user-modal-overlay" onclick="if(event.target===this)closeUserModal()">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h2 id="user-modal-title">Nuevo Usuario</h2>
+      <button class="modal-close" onclick="closeUserModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="field">
+          <label>Nombre completo *</label>
+          <input type="text" id="u-nombre" placeholder="Nombre completo" />
+        </div>
+        <div class="field">
+          <label>Email *</label>
+          <input type="email" id="u-email" placeholder="correo@ejemplo.com" />
+        </div>
+        <div class="field">
+          <label>Contraseña *</label>
+          <input type="password" id="u-pass" placeholder="Mínimo 6 caracteres" />
+        </div>
+        <div class="field">
+          <label>Rol</label>
+          <select id="u-rol">
+            <option value="agent">Agente</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveUser()">Guardar</button>
     </div>
   </div>
 </div>
@@ -1433,11 +1610,236 @@ document.addEventListener('keydown', e => {
 });
 
 // ════════════════════════════════════════════
+//  AUTH & USERS
+// ════════════════════════════════════════════
+const USERS_KEY   = 'gew_users';
+const SESSION_KEY = 'gew_session';
+
+// Usuario Maestro — hardcoded, no editable ni visible desde UI
+const MASTER_USER = { id: 'master', name: 'Luis González', email: 'gonzalezluis@grupoelitework.com', password: '21241800', role: 'master' };
+
+function loadUsers() {
+  try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; } catch { return []; }
+}
+function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+function getSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; }
+}
+function setSession(user) { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+function seedDefaultAdmin() {
+  const users = loadUsers();
+  if (users.length === 0) {
+    users.push({ id: uid(), name: 'Administrador', email: 'admin@grupoelitework.com', password: 'admin123', role: 'admin', createdAt: today() });
+    saveUsers(users);
+  }
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('login-pass').value;
+  const err   = document.getElementById('login-error');
+
+  // check master user first
+  let user = null;
+  if (email === MASTER_USER.email.toLowerCase() && pass === MASTER_USER.password) {
+    user = MASTER_USER;
+  } else {
+    const users = loadUsers();
+    user = users.find(u => u.email.toLowerCase() === email && u.password === pass);
+  }
+
+  if (!user) { err.textContent = 'Email o contraseña incorrectos.'; return; }
+  err.textContent = '';
+  setSession(user);
+  document.getElementById('login-screen').classList.add('hidden');
+  initApp(user);
+}
+
+function doLogout() {
+  clearSession();
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value  = '';
+  document.getElementById('topbar-user').innerHTML = '';
+}
+
+function initApp(user) {
+  renderSidebar();
+  populateAgentFilter();
+  renderTopbarUser(user);
+  if (user.role === 'admin' || user.role === 'master') {
+    document.getElementById('sidebar-admin').style.display = 'block';
+  }
+  selectBoard('dallas');
+}
+
+function renderTopbarUser(user) {
+  const initials = user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const roleLabel = user.role === 'master' ? 'Maestro' : user.role === 'admin' ? 'Administrador' : 'Agente';
+  document.getElementById('topbar-user').innerHTML = `
+    <div class="topbar-avatar">${initials}</div>
+    <div class="topbar-user-info">
+      <div class="topbar-user-name">${esc(user.name)}</div>
+      <div class="topbar-user-role">${roleLabel}</div>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Salir</button>
+  `;
+}
+
+// ── Users Page ──
+let editingUserId = null;
+
+function showUsersPage() {
+  document.getElementById('table-wrap').style.display   = 'none';
+  document.getElementById('bulk-bar').classList.remove('visible');
+  document.getElementById('toolbar').style.display      = 'none';
+  document.getElementById('users-page').classList.add('visible');
+  document.getElementById('board-title').textContent    = 'Gestión de Usuarios';
+  document.getElementById('btn-new-lead').style.display = 'none';
+  document.getElementById('btn-export').style.display   = 'none';
+  document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-users').classList.add('active');
+  currentBoardId = null;
+  renderUsersGrid();
+}
+
+function showBoardView() {
+  document.getElementById('users-page').classList.remove('visible');
+  document.getElementById('table-wrap').style.display   = '';
+  document.getElementById('toolbar').style.display      = '';
+  document.getElementById('btn-new-lead').style.display = '';
+  document.getElementById('btn-export').style.display   = '';
+  document.getElementById('nav-users').classList.remove('active');
+}
+
+function renderUsersGrid() {
+  const users = loadUsers();
+  const grid  = document.getElementById('users-grid');
+  const session = getSession();
+
+  const cards = users.map(u => {
+    const initials = u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const avatarCls = u.role === 'admin' ? 'avatar-admin' : 'avatar-agent';
+    const roleCls   = u.role === 'admin' ? 'role-admin' : 'role-agent';
+    const roleLabel = u.role === 'admin' ? 'Administrador' : 'Agente';
+    const isSelf = session && session.id === u.id;
+    return `
+      <div class="user-card">
+        <div class="user-card-top">
+          <div class="user-card-avatar ${avatarCls}">${initials}</div>
+          <div class="user-card-info">
+            <div class="user-card-name">${esc(u.name)}</div>
+            <div class="user-card-email">${esc(u.email)}</div>
+          </div>
+        </div>
+        <div class="user-card-bottom">
+          <span class="role-badge ${roleCls}">${roleLabel}</span>
+          <div class="user-card-actions">
+            <button onclick="openUserModal('${u.id}')" title="Editar">✏️</button>
+            ${!isSelf ? `<button class="del" onclick="deleteUser('${u.id}')" title="Eliminar">🗑</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  grid.innerHTML = cards + `
+    <div class="user-add-card" onclick="openUserModal()">
+      ＋ Agregar usuario
+    </div>`;
+}
+
+function openUserModal(userId) {
+  editingUserId = userId || null;
+  const users = loadUsers();
+  const u = userId ? users.find(x => x.id === userId) : null;
+  document.getElementById('user-modal-title').textContent = u ? 'Editar Usuario' : 'Nuevo Usuario';
+  document.getElementById('u-nombre').value = u ? u.name : '';
+  document.getElementById('u-email').value  = u ? u.email : '';
+  document.getElementById('u-pass').value   = '';
+  document.getElementById('u-rol').value    = u ? u.role : 'agent';
+  if (u) document.getElementById('u-pass').placeholder = 'Dejar vacío para no cambiar';
+  else   document.getElementById('u-pass').placeholder = 'Mínimo 6 caracteres';
+  document.getElementById('user-modal-overlay').classList.add('open');
+}
+
+function closeUserModal() {
+  document.getElementById('user-modal-overlay').classList.remove('open');
+  editingUserId = null;
+}
+
+function saveUser() {
+  const name  = document.getElementById('u-nombre').value.trim();
+  const email = document.getElementById('u-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('u-pass').value;
+  const role  = document.getElementById('u-rol').value;
+
+  if (!name)  { showToast('El nombre es requerido', 'error'); return; }
+  if (!email) { showToast('El email es requerido', 'error'); return; }
+
+  const users = loadUsers();
+
+  if (editingUserId) {
+    const idx = users.findIndex(u => u.id === editingUserId);
+    if (idx === -1) return;
+    const dup = users.find(u => u.email === email && u.id !== editingUserId);
+    if (dup) { showToast('Ese email ya está registrado', 'error'); return; }
+    users[idx].name  = name;
+    users[idx].email = email;
+    users[idx].role  = role;
+    if (pass) {
+      if (pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
+      users[idx].password = pass;
+    }
+    // update session if editing self
+    const session = getSession();
+    if (session && session.id === editingUserId) {
+      setSession({ ...session, name, email, role });
+      renderTopbarUser({ ...session, name, email, role });
+    }
+  } else {
+    if (!pass || pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
+    if (email === MASTER_USER.email.toLowerCase()) { showToast('Ese email no está disponible', 'error'); return; }
+    if (users.find(u => u.email === email)) { showToast('Ese email ya está registrado', 'error'); return; }
+    users.push({ id: uid(), name, email, password: pass, role, createdAt: today() });
+  }
+
+  saveUsers(users);
+  closeUserModal();
+  renderUsersGrid();
+  showToast(editingUserId ? 'Usuario actualizado ✓' : 'Usuario creado ✓', 'success');
+}
+
+function deleteUser(userId) {
+  const users = loadUsers();
+  const u = users.find(x => x.id === userId);
+  if (!u) return;
+  if (!confirm(`¿Eliminar al usuario "${u.name}"?`)) return;
+  saveUsers(users.filter(x => x.id !== userId));
+  renderUsersGrid();
+  showToast('Usuario eliminado', 'error');
+}
+
+// override selectBoard to show board view
+const _origSelectBoard = selectBoard;
+function selectBoard(id) {
+  showBoardView();
+  _origSelectBoard(id);
+}
+
+// ════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════
-renderSidebar();
-populateAgentFilter();
-selectBoard('dallas');
+seedDefaultAdmin();
+const _session = getSession();
+if (_session) {
+  document.getElementById('login-screen').classList.add('hidden');
+  initApp(_session);
+} else {
+  // keep login visible
+  populateAgentFilter(); // pre-populate for when app loads
+}
 </script>
 </body>
 </html>
