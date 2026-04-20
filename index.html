@@ -602,6 +602,26 @@
   }
   .user-add-card:hover { border-color: var(--accent); color: var(--accent); }
 
+  /* board item delete btn */
+  .board-item .board-del {
+    display: none; background: none; border: none;
+    color: var(--text2); cursor: pointer; font-size: 13px;
+    padding: 0 2px; border-radius: 3px; line-height: 1;
+    transition: color .15s;
+  }
+  .board-item:hover .board-del { display: block; }
+  .board-item .board-del:hover { color: var(--red); }
+
+  /* add board btn */
+  .add-board-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 18px; cursor: pointer;
+    color: var(--text2); font-size: 12px; font-weight: 500;
+    transition: color .15s, background .15s;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .add-board-btn:hover { color: var(--accent); background: rgba(0,115,234,.06); }
+
   /* sidebar admin section */
   .sidebar-admin { border-top: 1px solid var(--border); margin-top: auto; padding-top: 8px; }
   .sidebar-item {
@@ -771,6 +791,46 @@
   </div>
 </div>
 
+<!-- BOARD MODAL -->
+<div class="overlay" id="board-modal-overlay" onclick="if(event.target===this)closeBoardModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2>➕ Nuevo Board</h2>
+      <button class="modal-close" onclick="closeBoardModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;gap:10px">
+          <div class="field" style="width:70px">
+            <label>Ícono</label>
+            <input type="text" id="b-icon" value="📋" maxlength="4" style="text-align:center;font-size:18px" />
+          </div>
+          <div class="field" style="flex:1">
+            <label>Nombre del Board *</label>
+            <input type="text" id="b-nombre" placeholder="Ej: LEAD CHICAGO" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Ubicaciones <span style="font-weight:400;text-transform:none;font-size:10px">(separadas por coma)</span></label>
+          <input type="text" id="b-ubicaciones" placeholder="Ej: Chicago, Naperville, Aurora" />
+        </div>
+        <div style="display:flex;gap:20px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
+            <input type="checkbox" id="b-caller" /> Columna Caller Name
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
+            <input type="checkbox" id="b-solicitudes" /> Columna Solicitudes
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeBoardModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveBoard()">Crear Board</button>
+    </div>
+  </div>
+</div>
+
 <!-- USER MODAL -->
 <div class="overlay" id="user-modal-overlay" onclick="if(event.target===this)closeUserModal()">
   <div class="modal" style="max-width:440px">
@@ -847,7 +907,7 @@ const RESULTADOS = [
   'BUZÓN DE VOZ','CITA AGENDADA','CLIENTE ACTIVO','PENDIENTE','SIN RESULTADO'
 ];
 
-const BOARDS = [
+const DEFAULT_BOARDS = [
   { id: 'dallas',     name: 'LEAD DALLAS',              icon: '🏙️',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Dallas'] },
   { id: 'austin',     name: 'LEAD AUSTIN - SAN ANTONIO', icon: '🤠',  hasCaller: true,  hasSolicitudes: true,  ubicaciones: ['Austin','San Antonio'] },
   { id: 'connecticut',name: 'LEAD CONNECTICUT',          icon: '🏛️',  hasCaller: false, hasSolicitudes: false, ubicaciones: ['Connecticut'] },
@@ -857,6 +917,7 @@ const BOARDS = [
   { id: 'washington', name: 'LEAD WASHINGTON',           icon: '🌲',  hasCaller: true,  hasSolicitudes: false, ubicaciones: ['Washington'] },
   { id: 'importar',   name: 'PARA IMPORTAR',             icon: '📥',  hasCaller: false, hasSolicitudes: false, ubicaciones: [] },
 ];
+let BOARDS = [...DEFAULT_BOARDS];
 
 const STATE_PILL = {
   'ACTIVO':     'pill-green',
@@ -925,14 +986,28 @@ function today() {
 //  SIDEBAR
 // ════════════════════════════════════════════
 function renderSidebar() {
+  const session = getSession();
+  const canManage = session && (session.role === 'admin' || session.role === 'master');
   const list = document.getElementById('board-list');
-  list.innerHTML = BOARDS.map(b => `
-    <div class="board-item" data-id="${b.id}" onclick="selectBoard('${b.id}')">
-      <span class="board-icon">${b.icon}</span>
-      <span class="board-name">${b.name}</span>
-      <span class="board-count">0</span>
-    </div>
-  `).join('');
+  const defaultIds = new Set(DEFAULT_BOARDS.map(b => b.id));
+
+  list.innerHTML = BOARDS.map(b => {
+    const isCustom = !defaultIds.has(b.id);
+    const delBtn = (canManage && isCustom)
+      ? `<button class="board-del" onclick="event.stopPropagation();deleteBoard('${b.id}')" title="Eliminar board">✕</button>`
+      : '';
+    return `
+      <div class="board-item" data-id="${b.id}" onclick="selectBoard('${b.id}')">
+        <span class="board-icon">${b.icon}</span>
+        <span class="board-name">${b.name}</span>
+        <span class="board-count">0</span>
+        ${delBtn}
+      </div>`;
+  }).join('');
+
+  if (canManage) {
+    list.innerHTML += `<button class="add-board-btn" onclick="openBoardModal()">＋ Nuevo Board</button>`;
+  }
   allBoards();
 }
 
@@ -1878,6 +1953,74 @@ document.addEventListener('keydown', e => {
 });
 
 // ════════════════════════════════════════════
+//  BOARD MANAGEMENT
+// ════════════════════════════════════════════
+const CUSTOM_BOARDS_KEY = 'gew_custom_boards';
+
+function loadCustomBoards() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_BOARDS_KEY)) || []; } catch { return []; }
+}
+function saveCustomBoards(boards) {
+  localStorage.setItem(CUSTOM_BOARDS_KEY, JSON.stringify(boards));
+}
+function refreshBoards() {
+  BOARDS = [...DEFAULT_BOARDS, ...loadCustomBoards()];
+}
+
+function openBoardModal() {
+  document.getElementById('b-icon').value = '📋';
+  document.getElementById('b-nombre').value = '';
+  document.getElementById('b-ubicaciones').value = '';
+  document.getElementById('b-caller').checked = false;
+  document.getElementById('b-solicitudes').checked = false;
+  document.getElementById('board-modal-overlay').classList.add('open');
+}
+function closeBoardModal() {
+  document.getElementById('board-modal-overlay').classList.remove('open');
+}
+
+function saveBoard() {
+  const name  = document.getElementById('b-nombre').value.trim().toUpperCase();
+  const icon  = document.getElementById('b-icon').value.trim() || '📋';
+  const ubRaw = document.getElementById('b-ubicaciones').value.trim();
+  const hasCaller      = document.getElementById('b-caller').checked;
+  const hasSolicitudes = document.getElementById('b-solicitudes').checked;
+
+  if (!name) { showToast('El nombre es requerido', 'error'); return; }
+
+  const id = 'custom_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_') + '_' + Date.now().toString(36);
+  const ubicaciones = ubRaw ? ubRaw.split(',').map(u => u.trim()).filter(Boolean) : [];
+
+  const newBoard = { id, name, icon, hasCaller, hasSolicitudes, ubicaciones, custom: true };
+  const customs  = loadCustomBoards();
+  customs.push(newBoard);
+  saveCustomBoards(customs);
+  refreshBoards();
+  closeBoardModal();
+  renderSidebar();
+  showToast(`Board "${name}" creado ✓`, 'success');
+  selectBoard(id);
+}
+
+function deleteBoard(id) {
+  const board = BOARDS.find(b => b.id === id);
+  if (!board) return;
+  const count = loadLeads(id).length;
+  const msg = count > 0
+    ? `¿Eliminar el board "${board.name}"? Tiene ${count} lead(s) que también se eliminarán.`
+    : `¿Eliminar el board "${board.name}"?`;
+  if (!confirm(msg)) return;
+
+  const customs = loadCustomBoards().filter(b => b.id !== id);
+  saveCustomBoards(customs);
+  localStorage.removeItem('gew_leads_' + id);
+  refreshBoards();
+  renderSidebar();
+  if (currentBoardId === id) selectBoard('dallas');
+  showToast('Board eliminado', 'error');
+}
+
+// ════════════════════════════════════════════
 //  AUTH & USERS
 // ════════════════════════════════════════════
 const USERS_KEY   = 'gew_users';
@@ -2100,6 +2243,7 @@ function selectBoard(id) {
 //  INIT
 // ════════════════════════════════════════════
 seedDefaultAdmin();
+refreshBoards();
 const _session = getSession();
 if (_session) {
   document.getElementById('login-screen').classList.add('hidden');
