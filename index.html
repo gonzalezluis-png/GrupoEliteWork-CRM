@@ -815,9 +815,6 @@
           <input type="text" id="b-ubicaciones" placeholder="Ej: Chicago, Naperville, Aurora" />
         </div>
         <div style="display:flex;gap:20px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
-            <input type="checkbox" id="b-solicitudes" /> Columna Solicitudes
-          </label>
         </div>
       </div>
     </div>
@@ -901,7 +898,7 @@ const RESULTADOS = [
 
 const DEFAULT_BOARDS = [
   { id: 'dallas',     name: 'LEAD DALLAS',              icon: '🏙️',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Dallas'] },
-  { id: 'austin',     name: 'LEAD AUSTIN - SAN ANTONIO', icon: '🤠',  hasCaller: false,  hasSolicitudes: true,  ubicaciones: ['Austin','San Antonio'] },
+  { id: 'austin',     name: 'LEAD AUSTIN - SAN ANTONIO', icon: '🤠',  hasCaller: false,  hasSolicitudes: false,  ubicaciones: ['Austin','San Antonio'] },
   { id: 'connecticut',name: 'LEAD CONNECTICUT',          icon: '🏛️',  hasCaller: false, hasSolicitudes: false, ubicaciones: ['Connecticut'] },
   { id: 'florida',    name: 'LEAD FLORIDA',              icon: '🌴',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Miami','Orlando','Tampa','Jacksonville','Fort Lauderdale'] },
   { id: 'georgia',    name: 'LEAD GEORGIA',              icon: '🍑',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Atlanta','Savannah','Augusta','Columbus'] },
@@ -1049,7 +1046,6 @@ function getColumns(board) {
     { key: 'asignado',     label: 'ASIGNADO A' },
   ];
   cols.push({ key: 'resultado', label: 'RESULTADO' });
-  if (board.hasSolicitudes) cols.push({ key: 'solicitudes', label: 'SOLICITUDES' });
   cols.push({ key: 'notas', label: 'NOTAS' });
   cols.push({ key: '_actions', label: '' });
   return cols;
@@ -1230,11 +1226,7 @@ function buildForm(board, lead) {
   const selRes    = RESULTADOS.map(r => `<option${v('resultado')===r?' selected':''}>${r}</option>`).join('');
   const callerField = '';
 
-  const solicitudesField = board.hasSolicitudes ? `
-    <div class="field">
-      <label>Solicitudes</label>
-      <input type="number" id="f_solicitudes" min="0" value="${v('solicitudes')}" placeholder="0" />
-    </div>` : '';
+  const solicitudesField = '';
 
   grid.innerHTML = `
     <div class="field form-full">
@@ -1959,7 +1951,7 @@ function openBoardModal() {
   document.getElementById('b-nombre').value = '';
   document.getElementById('b-ubicaciones').value = '';
 
-  document.getElementById('b-solicitudes').checked = false;
+
   document.getElementById('board-modal-overlay').classList.add('open');
 }
 function closeBoardModal() {
@@ -1971,14 +1963,14 @@ function saveBoard() {
   const icon  = document.getElementById('b-icon').value.trim() || '📋';
   const ubRaw = document.getElementById('b-ubicaciones').value.trim();
 
-  const hasSolicitudes = document.getElementById('b-solicitudes').checked;
+
 
   if (!name) { showToast('El nombre es requerido', 'error'); return; }
 
   const id = 'custom_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_') + '_' + Date.now().toString(36);
   const ubicaciones = ubRaw ? ubRaw.split(',').map(u => u.trim()).filter(Boolean) : [];
 
-  const newBoard = { id, name, icon, hasCaller: false, hasSolicitudes, ubicaciones, custom: true };
+  const newBoard = { id, name, icon, hasCaller: false, hasSolicitudes: false, ubicaciones, custom: true };
   const customs  = loadCustomBoards();
   customs.push(newBoard);
   saveCustomBoards(customs);
@@ -2047,7 +2039,7 @@ function seedTestLeads() {
       ubicacion:   ub,
       asignado:    '',
       resultado:   'PENDIENTE',
-      solicitudes: b.hasSolicitudes ? '1' : '',
+      solicitudes: '',
       notas:       'Lead de prueba generado automáticamente.',
     };
     leads.unshift(testLead);
