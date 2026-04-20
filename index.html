@@ -1983,6 +1983,7 @@ function saveBoard() {
   customs.push(newBoard);
   saveCustomBoards(customs);
   refreshBoards();
+  seedTestLeads();
   closeBoardModal();
   renderSidebar();
   showToast(`Board "${name}" creado ✓`, 'success');
@@ -2025,6 +2026,34 @@ function getSession() {
 }
 function setSession(user) { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+function seedTestLeads() {
+  BOARDS.forEach(b => {
+    if (b.id === 'importar') return;
+    const leads = loadLeads(b.id);
+    const already = leads.some(l => l._testLead === true);
+    if (already) return;
+    const ub = b.ubicaciones.length > 0 ? b.ubicaciones[0] : '';
+    const testLead = {
+      id:          uid(),
+      _testLead:   true,
+      creacion:    today(),
+      nombre:      'Usuario de Prueba de ' + b.name,
+      lead:        'GUÍA DE INFORMACIÓN',
+      email:       'prueba@grupoelitework.com',
+      telefono:    '+1 000 000 0000',
+      hijos:       '2',
+      direccion:   '123 Test Street',
+      ubicacion:   ub,
+      asignado:    '',
+      resultado:   'PENDIENTE',
+      solicitudes: b.hasSolicitudes ? '1' : '',
+      notas:       'Lead de prueba generado automáticamente.',
+    };
+    leads.unshift(testLead);
+    saveLeads(b.id, leads);
+  });
+}
 
 function seedDefaultAdmin() {
   const users = loadUsers();
@@ -2226,6 +2255,7 @@ function deleteUser(userId) {
 // ════════════════════════════════════════════
 seedDefaultAdmin();
 refreshBoards();
+seedTestLeads();
 const _session = getSession();
 if (_session) {
   document.getElementById('login-screen').classList.add('hidden');
