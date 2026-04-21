@@ -950,6 +950,40 @@
   .del-user-meta { font-size:10px; color:var(--gray); margin-top:3px; }
   .del-user-badge { display:inline-block; background:rgba(226,68,92,.12); color:var(--red); font-size:9px; font-weight:700; padding:1px 7px; border-radius:8px; text-transform:uppercase; letter-spacing:.3px; margin-left:6px; }
 
+  /* ── SCRIPTS SIDE PANEL (agent quick-view) ── */
+  #scripts-side-panel {
+    position: fixed; top: 0; right: -360px; width: 360px; height: 100vh;
+    background: var(--sidebar); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 900;
+    transition: right .25s cubic-bezier(.4,0,.2,1);
+    box-shadow: -6px 0 24px rgba(0,0,0,.35);
+  }
+  #scripts-side-panel.open { right: 0; }
+  .ssp-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 14px 12px; border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .ssp-title { font-size: 12px; font-weight: 700; color: #fff; letter-spacing: .3px; text-transform: uppercase; flex: 1; }
+  .ssp-close { background: none; border: none; color: var(--text2); font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; transition: color .12s; }
+  .ssp-close:hover { color: #fff; }
+  .ssp-list { overflow-y: auto; border-bottom: 1px solid var(--border); flex-shrink: 0; max-height: 38%; }
+  .ssp-script-item { display: flex; align-items: center; gap: 8px; padding: 9px 12px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text2); transition: all .12s; border-bottom: 1px solid rgba(255,255,255,.03); }
+  .ssp-script-item:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .ssp-script-item.active { background: rgba(0,115,234,.18); color: #fff; border-left: 3px solid var(--accent); }
+  .ssp-body { flex: 1; overflow-y: auto; padding: 20px 18px; }
+  .ssp-script-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 14px; line-height: 1.3; }
+  .ssp-script-content { font-size: 13px; line-height: 1.8; color: var(--text); }
+  .ssp-script-content h1 { font-size: 18px; font-weight: 700; margin: 14px 0 6px; color: #fff; }
+  .ssp-script-content h2 { font-size: 15px; font-weight: 700; margin: 12px 0 5px; color: #fff; }
+  .ssp-script-content h3 { font-size: 13px; font-weight: 700; margin: 10px 0 4px; }
+  .ssp-script-content p { margin: 0 0 10px; }
+  .ssp-script-content ul, .ssp-script-content ol { padding-left: 20px; margin: 0 0 10px; }
+  .ssp-script-content li { margin-bottom: 3px; }
+  .ssp-script-content blockquote { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--text2); margin: 10px 0; }
+  .ssp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text2); gap: 8px; }
+  #btn-scripts-panel { display: none; }
+
   /* ── SCRIPTS PAGE ── */
   #scripts-page { display:none; flex:1; overflow:hidden; }
   #scripts-page.visible { display:flex; }
@@ -1055,6 +1089,7 @@
       <span id="board-title">Selecciona un board</span>
       <button class="btn btn-primary" id="btn-new-lead" onclick="openModal()">＋ Nuevo Lead</button>
       <button class="btn btn-secondary" id="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
+      <button class="btn btn-secondary" id="btn-scripts-panel" onclick="toggleScriptsPanel()" title="Scripts de Llamada">📋 Scripts</button>
       <div id="sync-status" title="Estado de sincronización con la nube" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);user-select:none">
         <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;transition:background .3s"></span>
         <span id="sync-label">Guardado</span>
@@ -1605,6 +1640,26 @@
 
     <!-- USERS PAGE (kept for compatibility but hidden) -->
     <div id="users-page" style="display:none"></div>
+  </div>
+</div>
+
+<!-- SCRIPTS SIDE PANEL (agent quick-view) -->
+<div id="scripts-side-panel">
+  <div class="ssp-header">
+    <span class="ssp-title">📋 Scripts de Llamada</span>
+    <button class="ssp-close" onclick="toggleScriptsPanel()" title="Cerrar">✕</button>
+  </div>
+  <div class="ssp-list" id="ssp-list"></div>
+  <div class="ssp-body" id="ssp-body">
+    <div class="ssp-empty" id="ssp-empty">
+      <div style="font-size:36px;opacity:.35">📋</div>
+      <div style="font-size:13px;font-weight:600">Selecciona un script</div>
+      <div style="font-size:11px;color:var(--gray)">Elige uno de la lista de arriba</div>
+    </div>
+    <div id="ssp-content" style="display:none">
+      <div class="ssp-script-title" id="ssp-script-title"></div>
+      <div class="ssp-script-content" id="ssp-script-content"></div>
+    </div>
   </div>
 </div>
 
@@ -2868,6 +2923,52 @@ function stbHeading(value) {
     document.execCommand('formatBlock', false, value);
   }
   document.getElementById('stb-heading').value = value;
+}
+
+// ════════════════════════════════════════════
+//  SCRIPTS SIDE PANEL (agent quick-view)
+// ════════════════════════════════════════════
+let _sspOpen = false;
+let _sspCurrentId = null;
+
+function toggleScriptsPanel() {
+  const panel = document.getElementById('scripts-side-panel');
+  _sspOpen = !_sspOpen;
+  panel.classList.toggle('open', _sspOpen);
+  const btn = document.getElementById('btn-scripts-panel');
+  if (btn) btn.style.background = _sspOpen ? 'rgba(0,115,234,.25)' : '';
+  if (_sspOpen) {
+    renderSspList();
+    if (_sspCurrentId) selectSspScript(_sspCurrentId);
+  }
+}
+
+function renderSspList() {
+  const scripts = getOrgScripts();
+  const list    = document.getElementById('ssp-list');
+  if (!list) return;
+  if (scripts.length === 0) {
+    list.innerHTML = '<div style="padding:12px 14px;color:var(--text2);font-size:11px;text-align:center">Sin scripts disponibles</div>';
+    return;
+  }
+  list.innerHTML = scripts.map(s => `
+    <div class="ssp-script-item ${s.id === _sspCurrentId ? 'active' : ''}" onclick="selectSspScript('${s.id}')">
+      <span>📄</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.title || 'Sin título')}</span>
+    </div>
+  `).join('');
+}
+
+function selectSspScript(id) {
+  const scripts = getOrgScripts();
+  const script  = scripts.find(s => s.id === id);
+  if (!script) return;
+  _sspCurrentId = id;
+  renderSspList();
+  document.getElementById('ssp-empty').style.display   = 'none';
+  document.getElementById('ssp-content').style.display = '';
+  document.getElementById('ssp-script-title').textContent = script.title || 'Sin título';
+  document.getElementById('ssp-script-content').innerHTML = script.body || '';
 }
 
 // ════════════════════════════════════════════
@@ -4300,6 +4401,10 @@ function doLogout() {
   document.getElementById('sidebar-master').style.display  = 'none';
   document.getElementById('sidebar-scripts').style.display = 'none';
   document.getElementById('scripts-page').classList.remove('visible');
+  document.getElementById('btn-scripts-panel').style.display = 'none';
+  const ssp = document.getElementById('scripts-side-panel');
+  if (ssp) ssp.classList.remove('open');
+  _sspOpen = false; _sspCurrentId = null;
   document.getElementById('assign-strip').classList.add('hidden');
   document.getElementById('sidebar').style.display = '';
   const agBanner = document.getElementById('agent-org-banner');
@@ -4361,8 +4466,9 @@ function showAgentView() {
     document.getElementById('agent-org-name').textContent = loadAppName();
   }
   document.getElementById('assign-strip').classList.add('hidden');
-  document.getElementById('btn-new-lead').style.display = 'none';
-  document.getElementById('btn-export').style.display   = 'none';
+  document.getElementById('btn-new-lead').style.display   = 'none';
+  document.getElementById('btn-export').style.display     = 'none';
+  document.getElementById('btn-scripts-panel').style.display = 'inline-flex';
   // build header using default board columns
   const board = BOARDS[0];
   const cols  = getColumns(board);
