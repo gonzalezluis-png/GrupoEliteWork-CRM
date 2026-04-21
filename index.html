@@ -1079,6 +1079,12 @@
     <div id="notes-lead-summary" style="padding:0 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;flex-wrap:wrap;gap:10px"></div>
     <div id="notes-journal" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;min-height:120px"></div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Resultado</label>
+        <select id="notes-resultado-sel" onchange="saveNotesResultado()" style="flex:1;max-width:260px;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-family:var(--font);font-size:12px">
+          <option value="">— Sin resultado —</option>
+        </select>
+      </div>
       <textarea id="notes-new-input" placeholder="Escribe una nota…" style="width:100%;min-height:90px;resize:vertical;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-family:var(--font);font-size:13px;line-height:1.5"></textarea>
       <div style="display:flex;justify-content:flex-end;margin-top:8px">
         <button class="btn btn-primary" onclick="submitNote()">Agregar nota</button>
@@ -3357,9 +3363,25 @@ function openNotesPanel(leadId) {
     `<span style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--text2)">${esc(c)}</span>`
   ).join('');
 
+  // populate resultado dropdown
+  const resSel = document.getElementById('notes-resultado-sel');
+  resSel.innerHTML = `<option value="">— Sin resultado —</option>` +
+    RESULTADOS.map(r => `<option value="${esc(r)}"${lead.resultado===r?' selected':''}>${esc(r)}</option>`).join('');
+
   _renderNotesJournal(lead);
   document.getElementById('notes-new-input').value = '';
   document.getElementById('notes-panel-overlay').classList.add('open');
+}
+
+async function saveNotesResultado() {
+  const val = document.getElementById('notes-resultado-sel').value;
+  if (!_notesBoardId || !_notesLeadId) return;
+  const leads = loadLeads(_notesBoardId);
+  const lead  = leads.find(l => l.id === _notesLeadId);
+  if (!lead) return;
+  lead.resultado = val;
+  await saveLeads(_notesBoardId, leads);
+  showToast('Resultado guardado ✓', 'success');
 }
 
 function _renderNotesJournal(lead) {
