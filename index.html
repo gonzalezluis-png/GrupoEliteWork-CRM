@@ -762,6 +762,10 @@
 
   <!-- MAIN -->
   <div id="main">
+    <div id="agent-org-banner" style="display:none;padding:14px 24px 10px;border-bottom:1px solid var(--border);background:var(--card2)">
+      <div style="font-size:18px;font-weight:700;color:#fff;letter-spacing:.5px" id="agent-org-name"></div>
+      <div style="font-size:11px;color:var(--text2);font-style:italic;margin-top:2px">Grupo Elite Development</div>
+    </div>
     <div id="topbar">
       <span id="board-title">Selecciona un board</span>
       <button class="btn btn-primary" id="btn-new-lead" onclick="openModal()">＋ Nuevo Lead</button>
@@ -2930,6 +2934,8 @@ function doLogout() {
   document.getElementById('sidebar-master').style.display = 'none';
   document.getElementById('assign-strip').classList.add('hidden');
   document.getElementById('sidebar').style.display = '';
+  const agBanner = document.getElementById('agent-org-banner');
+  if (agBanner) agBanner.style.display = 'none';
   document.getElementById('settings-page').classList.remove('visible');
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
@@ -2975,6 +2981,11 @@ function showAgentView() {
   currentBoardId = '__agent__';
   showBoardView();
   document.getElementById('board-title').textContent = 'Mis Leads';
+  const banner = document.getElementById('agent-org-banner');
+  if (banner) {
+    banner.style.display = 'block';
+    document.getElementById('agent-org-name').textContent = loadAppName();
+  }
   document.getElementById('assign-strip').classList.add('hidden');
   document.getElementById('btn-new-lead').style.display = 'none';
   document.getElementById('btn-export').style.display   = '';
