@@ -1202,7 +1202,7 @@
         </div>
         <div class="field" id="u-masterManager-wrap" style="display:none">
           <label>Asignar a Master Manager</label>
-          <select id="u-masterManager">
+          <select id="u-masterManager" onchange="onMasterManagerChange()">
             <option value="">— Sin Master Manager —</option>
           </select>
         </div>
@@ -1262,9 +1262,11 @@ function getManagerAgentNames(managerId) {
     .map(u => u.name);
 }
 function getMasterManagerAgentNames(mmId) {
-  const users = loadUsers();
+  const users  = loadUsers();
   const mgrIds = users.filter(u => u.role === 'manager' && u.orgMasterManagerId === mmId).map(u => u.id);
-  return users.filter(u => u.role === 'agent' && mgrIds.includes(u.orgManagerId)).map(u => u.name);
+  return users
+    .filter(u => u.role === 'agent' && (mgrIds.includes(u.orgManagerId) || u.orgMasterManagerId === mmId))
+    .map(u => u.name);
 }
 // legacy alias used in some places — replaced dynamically below
 const AGENTS = [];
@@ -3250,27 +3252,25 @@ function buildOrgBranch(admId, allUsers, session) {
   const agents     = allUsers.filter(u => u.role === 'agent'          && u.orgAdminId === admId);
   let li = '';
 
-  // master_managers and their managers/agents
+  // master_managers → their managers → agents; plus direct agents under master_manager
   masterMgrs.forEach(mm => {
-    const mmManagers = managers.filter(u => u.orgMasterManagerId === mm.id);
-    const mmAgents   = agents.filter(u => {
-      const mgr = mmManagers.find(m => m.id === u.orgManagerId);
-      return !!mgr;
-    });
-    const mgrItems = mmManagers.map(mgr => buildManagerBranch(mgr, mmAgents, admId, session)).join('');
-    const addMgr   = `<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}','manager')">＋ Agregar manager</button></li>`;
-    li += `<li>${orgNode(mm, session)}<ul>${mgrItems}${addMgr}</ul></li>`;
+    const mmManagers     = managers.filter(u => u.orgMasterManagerId === mm.id);
+    const mmDirectAgents = agents.filter(u => u.orgMasterManagerId === mm.id && !u.orgManagerId);
+    let mmItems = mmManagers.map(mgr => buildManagerBranch(mgr, agents, admId, session)).join('');
+    mmDirectAgents.forEach(ag => { mmItems += `<li>${orgNode(ag, session)}</li>`; });
+    mmItems += `<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar usuario</button></li>`;
+    li += `<li>${orgNode(mm, session)}<ul>${mmItems}</ul></li>`;
   });
 
-  // managers not under any master_manager
-  const freeMgrs = managers.filter(u => !u.orgMasterManagerId);
-  freeMgrs.forEach(mgr => {
+  // managers directly under admin (no master_manager)
+  managers.filter(u => !u.orgMasterManagerId).forEach(mgr => {
     li += buildManagerBranch(mgr, agents, admId, session);
   });
 
-  // agents not under any manager
-  const freeAgents = agents.filter(u => !u.orgManagerId);
-  freeAgents.forEach(ag => { li += `<li>${orgNode(ag, session)}</li>`; });
+  // agents directly under admin (no master_manager, no manager)
+  agents.filter(u => !u.orgManagerId && !u.orgMasterManagerId).forEach(ag => {
+    li += `<li>${orgNode(ag, session)}</li>`;
+  });
 
   li += `<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar usuario</button></li>`;
   return li;
@@ -3310,45 +3310,66 @@ function renderUsersGrid() {
 }
 
 function onRolChange() {
-  const role       = document.getElementById('u-rol').value;
-  const session    = getSession();
-  const orgWrap    = document.getElementById('u-org-wrap');
-  const mmWrap     = document.getElementById('u-masterManager-wrap');
-  const mgrWrap    = document.getElementById('u-manager-wrap');
-  const isAgent          = role === 'agent';
-  const isManager        = role === 'manager';
-  const isMasterManager  = role === 'master_manager';
-  const isMasterSess     = session && session.role === 'master';
-  const isAdminSess      = session && session.role === 'admin';
+  const role     = document.getElementById('u-rol').value;
+  const session  = getSession();
+  const orgWrap  = document.getElementById('u-org-wrap');
+  const mmWrap   = document.getElementById('u-masterManager-wrap');
+  const mgrWrap  = document.getElementById('u-manager-wrap');
+  const isMasterSess = session && session.role === 'master';
+  const isAdminSess  = session && session.role === 'admin';
 
-  // "Pertenece a Administrador" — visible for agent/manager/master_manager when master is creating
-  orgWrap.style.display = (isMasterSess && (isAgent || isManager || isMasterManager)) ? '' : 'none';
+  // "Pertenece a Administrador" — only when master is creating non-admin users
+  orgWrap.style.display = (isMasterSess && role !== 'admin') ? '' : 'none';
 
   const users   = loadUsers();
   const orgId   = isAdminSess ? session.id : (document.getElementById('u-org').value || null);
   const editingUser = editingUserId ? users.find(u => u.id === editingUserId) : null;
 
-  // "Asignar a Master Manager" — visible when creating a manager
-  if (isManager) {
+  // "Asignar a Master Manager" — for manager and agent (optional in both)
+  if (role === 'manager' || role === 'agent') {
     mmWrap.style.display = '';
-    const masterManagers = users.filter(u => u.role === 'master_manager' && u.orgAdminId === orgId);
+    const masterManagers = users.filter(u => u.role === 'master_manager' && (!orgId || u.orgAdminId === orgId));
     document.getElementById('u-masterManager').innerHTML =
-      `<option value="">— Sin Master Manager —</option>` +
+      `<option value="">— Sin Master Manager (directo al admin) —</option>` +
       masterManagers.map(m => `<option value="${m.id}"${editingUser && editingUser.orgMasterManagerId === m.id ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
   } else {
     mmWrap.style.display = 'none';
   }
 
-  // "Asignar a Manager" — visible when creating an agent
-  if (isAgent) {
+  // "Asignar a Manager" — only for agent (optional, filtered by selected master_manager)
+  if (role === 'agent') {
     mgrWrap.style.display = '';
-    const managers = users.filter(u => u.role === 'manager' && u.orgAdminId === orgId);
-    document.getElementById('u-manager').innerHTML =
-      `<option value="">— Sin manager —</option>` +
-      managers.map(m => `<option value="${m.id}"${editingUser && editingUser.orgManagerId === m.id ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+    _populateManagerDropdown(users, orgId, editingUser);
   } else {
     mgrWrap.style.display = 'none';
   }
+}
+
+function _populateManagerDropdown(users, orgId, editingUser) {
+  if (!users) users = loadUsers();
+  if (!orgId) {
+    const session = getSession();
+    orgId = session && session.role === 'admin' ? session.id : (document.getElementById('u-org') ? document.getElementById('u-org').value || null : null);
+  }
+  const mmId = document.getElementById('u-masterManager') ? (document.getElementById('u-masterManager').value || null) : null;
+  const managers = users.filter(u =>
+    u.role === 'manager' &&
+    (!orgId || u.orgAdminId === orgId) &&
+    (!mmId  || u.orgMasterManagerId === mmId)
+  );
+  document.getElementById('u-manager').innerHTML =
+    `<option value="">— Sin manager (directo) —</option>` +
+    managers.map(m => `<option value="${m.id}"${editingUser && editingUser.orgManagerId === m.id ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+}
+
+function onMasterManagerChange() {
+  const role = document.getElementById('u-rol').value;
+  if (role !== 'agent') return;
+  const users = loadUsers();
+  const session = getSession();
+  const orgId = session && session.role === 'admin' ? session.id : (document.getElementById('u-org') ? document.getElementById('u-org').value || null : null);
+  const editingUser = editingUserId ? users.find(u => u.id === editingUserId) : null;
+  _populateManagerDropdown(users, orgId, editingUser);
 }
 
 function openUserModal(userId, presetOrgId, presetRole) {
@@ -3408,10 +3429,10 @@ async function saveUser() {
 
   if (session.role === 'master') {
     role = document.getElementById('u-rol').value;
-    if (role === 'agent' || role === 'manager' || role === 'master_manager') {
+    if (role !== 'admin') {
       orgAdminId = document.getElementById('u-org') ? (document.getElementById('u-org').value || null) : null;
     }
-    if (role === 'manager') {
+    if (role === 'manager' || role === 'agent') {
       orgMasterManagerId = document.getElementById('u-masterManager') ? (document.getElementById('u-masterManager').value || null) : null;
     }
     if (role === 'agent') {
@@ -3420,7 +3441,7 @@ async function saveUser() {
   } else if (session.role === 'admin') {
     role       = document.getElementById('u-rol') ? document.getElementById('u-rol').value : 'agent';
     orgAdminId = session.id;
-    if (role === 'manager') {
+    if (role === 'manager' || role === 'agent') {
       orgMasterManagerId = document.getElementById('u-masterManager') ? (document.getElementById('u-masterManager').value || null) : null;
     }
     if (role === 'agent') {
