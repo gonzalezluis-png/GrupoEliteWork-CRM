@@ -3363,10 +3363,11 @@ function openNotesPanel(leadId) {
     `<span style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--text2)">${esc(c)}</span>`
   ).join('');
 
-  // populate resultado dropdown
+  // populate resultado dropdown — always starts blank so same value can be re-selected
   const resSel = document.getElementById('notes-resultado-sel');
-  resSel.innerHTML = `<option value="">— Sin resultado —</option>` +
-    RESULTADOS.map(r => `<option value="${esc(r)}"${lead.resultado===r?' selected':''}>${esc(r)}</option>`).join('');
+  resSel.innerHTML = `<option value="">— Seleccionar resultado —</option>` +
+    RESULTADOS.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  resSel.value = '';
 
   _renderNotesJournal(lead);
   document.getElementById('notes-new-input').value = '';
@@ -3415,19 +3416,19 @@ async function submitNote() {
   const lead  = leads.find(l => l.id === _notesLeadId);
   if (!lead) return;
 
-  const resChanged = newRes !== (lead.resultado || '');
-  if (!text && !resChanged) { showToast('Escribe una nota o cambia el resultado', 'error'); return; }
+  // newRes === '' means user didn't touch the dropdown — don't change resultado
+  const resSelected = newRes !== '';
+  if (!text && !resSelected) { showToast('Escribe una nota o selecciona un resultado', 'error'); return; }
 
   const session = getSession();
   const notes   = parseNotes(lead._notes);
   const now     = new Date().toISOString();
   const author  = session ? session.name : 'Usuario';
 
-  if (resChanged) {
-    const prev = lead.resultado || '';
+  if (resSelected) {
     lead.resultado = newRes;
     notes.push({
-      text:   `Resultado: ${prev || 'Sin resultado'} → ${newRes || 'Sin resultado'}`,
+      text:   `Resultado: ${newRes}`,
       author, date: now, system: true
     });
   }
