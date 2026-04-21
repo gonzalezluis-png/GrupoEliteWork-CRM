@@ -1088,6 +1088,9 @@
       <a href="#" onclick="openRegisterForm();return false;" style="font-size:12px;color:var(--text2);text-decoration:none;border-bottom:1px dashed var(--text2)">¿No tienes cuenta? Solicitar acceso</a>
     </div>
     <div id="login-debug" style="display:none;margin-top:14px;padding:10px;background:rgba(0,115,234,.1);border:1px solid var(--accent);border-radius:8px;font-size:11px;color:var(--text2)"></div>
+    <div style="text-align:center;margin-top:18px">
+      <a href="#" onclick="openTosViewer();return false;" style="font-size:10px;color:var(--gray);text-decoration:none;letter-spacing:.3px;transition:color .15s" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--gray)'">Terms of Service &amp; End User Agreement</a>
+    </div>
   </div>
 </div>
 
@@ -5014,20 +5017,9 @@ async function confirmTermsAcceptance() {
   try { initApp(user); updatePendingBadge(); updateTrashBadge(); } catch(e) { console.error(e); }
 }
 
-// T&C preview from register form
+// T&C preview from register form — opens the full styled viewer
 function showTermsPreview() {
-  const overlay = document.getElementById('terms-modal-overlay');
-  document.getElementById('terms-modal-org').textContent  = loadAppName();
-  document.getElementById('terms-modal-text').textContent = loadTerms();
-  document.getElementById('terms-accept-check').checked   = false;
-  const btn = document.getElementById('terms-accept-btn');
-  btn.disabled = true; btn.classList.remove('enabled');
-  // Replace button with close for preview context
-  btn.textContent  = 'Cerrar';
-  btn.classList.add('enabled');
-  btn.disabled     = false;
-  btn.onclick      = () => { overlay.style.display = 'none'; btn.textContent = 'Acepto y Continuar →'; btn.onclick = confirmTermsAcceptance; };
-  overlay.style.display = 'flex';
+  openTosViewer();
 }
 function applyAppName() {
   document.getElementById('appname-display').textContent = loadAppName();
@@ -5959,6 +5951,235 @@ async function loadFromSupabase() {
     populateLeadFilter();
   }
 })();
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     TERMS OF SERVICE VIEWER
+═══════════════════════════════════════════════════════════ -->
+<style>
+  /* Scoped to #tos-viewer-overlay */
+  #tos-viewer-overlay {
+    position:fixed;inset:0;z-index:11000;background:rgba(0,0,0,.65);
+    display:none;align-items:flex-start;justify-content:center;
+    overflow-y:auto;padding:24px 16px 40px;
+  }
+  #tos-viewer-overlay.open { display:flex; }
+  .tos-card {
+    background:#fff;border-radius:12px;width:100%;max-width:1080px;
+    box-shadow:0 40px 120px rgba(0,0,0,.55);overflow:hidden;
+    position:relative;
+  }
+  .tos-card-bar {
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 24px;background:#1a365d;position:sticky;top:0;z-index:10;
+  }
+  .tos-card-bar-title { font-size:13px;font-weight:700;letter-spacing:.5px;color:#fff; }
+  .tos-card-close {
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+    color:#fff;border-radius:6px;padding:5px 12px;font-size:12px;font-family:var(--font);
+    cursor:pointer;transition:background .15s;
+  }
+  .tos-card-close:hover { background:rgba(255,255,255,.22); }
+  .tos-card-inner { padding:0; }
+
+  /* ── TOC ── */
+  .tos-wrapper { max-width:100%;margin:0;padding:48px 40px 60px;display:grid;grid-template-columns:230px 1fr;gap:48px; }
+  .tos-toc { position:sticky;top:56px;align-self:start;max-height:calc(100vh - 120px);overflow-y:auto;padding-right:14px;border-right:1px solid #e2e8f0; }
+  .tos-toc h3 { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#718096;margin:0 0 14px; }
+  .tos-toc ol { list-style:none;padding:0;margin:0;counter-reset:toc-counter; }
+  .tos-toc li { counter-increment:toc-counter;margin-bottom:3px; }
+  .tos-toc a { display:block;padding:5px 8px;font-size:12px;line-height:1.4;color:#4a5568;text-decoration:none;border-left:2px solid transparent;border-radius:3px;transition:all .15s; }
+  .tos-toc a::before { content:counter(toc-counter)". ";color:#a0aec0;font-weight:600; }
+  .tos-toc a:hover { color:#1a365d;background:#f7fafc;border-left-color:#2b6cb0; }
+
+  /* ── Content ── */
+  .tos-content { min-width:0;max-width:720px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#2d3748; }
+  .tos-header { padding-bottom:32px;border-bottom:2px solid #1a365d;margin-bottom:32px; }
+  .tos-brand { font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2b6cb0;margin:0 0 10px; }
+  .tos-content h1.tos-title { font-size:34px;font-weight:800;line-height:1.15;color:#1a202c;margin:0 0 10px;letter-spacing:-.02em; }
+  .tos-subtitle { font-size:16px;color:#4a5568;font-style:italic;margin:0 0 20px;font-weight:400; }
+  .tos-meta { display:flex;flex-wrap:wrap;gap:6px 24px;font-size:13px;color:#4a5568; }
+  .tos-meta span strong { color:#1a202c;font-weight:600; }
+  .tos-content h2 { font-size:21px;font-weight:700;color:#1a365d;margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid #e2e8f0;line-height:1.3;scroll-margin-top:20px; }
+  .tos-content h3 { font-size:16px;font-weight:700;color:#2d3748;margin:26px 0 10px;line-height:1.4; }
+  .tos-content h4 { font-size:14px;font-weight:700;font-style:italic;color:#4a5568;margin:20px 0 8px; }
+  .tos-content p { margin:0 0 14px;text-align:justify;hyphens:auto; }
+  .tos-content ul { margin:0 0 16px;padding-left:20px; }
+  .tos-content ul li { margin-bottom:8px;line-height:1.65; }
+  .tos-content ul li::marker { color:#2b6cb0; }
+  .tos-content strong { color:#1a202c;font-weight:600; }
+  .tos-content a { color:#2b6cb0;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px; }
+  .tos-content a:hover { color:#1a365d; }
+  .tos-caps { text-transform:uppercase;font-weight:600;font-size:13px;letter-spacing:.3px;color:#1a202c;background:#f7fafc;padding:16px 20px;border-left:4px solid #1a365d;border-radius:2px;margin:20px 0 !important;line-height:1.75; }
+  .tos-callout { background:#fffaf0;border:1px solid #feb2b2;border-left:4px solid #c53030;padding:18px 22px;border-radius:4px;margin:24px 0; }
+  .tos-callout p { margin:0;font-size:14px; }
+  .tos-callout strong { color:#c53030; }
+  .tos-contact { background:#f7fafc;border:1px solid #e2e8f0;padding:20px 24px;border-radius:6px;margin:16px 0 32px; }
+  .tos-contact p { margin:4px 0; }
+  .tos-recitals p { font-style:italic;color:#4a5568; }
+  .tos-recitals p strong { font-style:normal; }
+  .tos-footer-doc { margin-top:48px;padding-top:24px;border-top:1px solid #e2e8f0;text-align:center;font-size:12px;color:#a0aec0; }
+  @media(max-width:860px){
+    .tos-wrapper { grid-template-columns:1fr;gap:28px;padding:28px 20px 40px; }
+    .tos-toc { position:static;max-height:none;padding-right:0;border-right:none;padding-bottom:20px;border-bottom:1px solid #e2e8f0; }
+    .tos-content h1.tos-title { font-size:26px; }
+  }
+</style>
+
+<div id="tos-viewer-overlay">
+  <div class="tos-card">
+    <div class="tos-card-bar">
+      <span class="tos-card-bar-title">Terms of Service — Grupo Elite Work</span>
+      <button class="tos-card-close" onclick="closeTosViewer()">✕ Cerrar</button>
+    </div>
+    <div class="tos-card-inner">
+      <div class="tos-wrapper">
+        <nav class="tos-toc" aria-label="Table of Contents">
+          <h3>Contents</h3>
+          <ol>
+            <li><a href="#tos-definitions">Definitions</a></li>
+            <li><a href="#tos-nature">Nature of the Service</a></li>
+            <li><a href="#tos-eligibility">Eligibility &amp; Registration</a></li>
+            <li><a href="#tos-responsibilities">User Responsibilities</a></li>
+            <li><a href="#tos-prohibited">Prohibited Conduct</a></li>
+            <li><a href="#tos-data-protection">Data Protection</a></li>
+            <li><a href="#tos-security">Information Security</a></li>
+            <li><a href="#tos-indemnification">Indemnification</a></li>
+            <li><a href="#tos-warranties">Disclaimer of Warranties</a></li>
+            <li><a href="#tos-liability">Limitation of Liability</a></li>
+            <li><a href="#tos-confidentiality">Confidentiality</a></li>
+            <li><a href="#tos-ip">Intellectual Property</a></li>
+            <li><a href="#tos-fees">Fees &amp; Payment</a></li>
+            <li><a href="#tos-term">Term &amp; Termination</a></li>
+            <li><a href="#tos-governing-law">Governing Law</a></li>
+            <li><a href="#tos-arbitration">Arbitration &amp; Class Waiver</a></li>
+            <li><a href="#tos-modifications">Modifications</a></li>
+            <li><a href="#tos-force-majeure">Force Majeure</a></li>
+            <li><a href="#tos-general">General Provisions</a></li>
+            <li><a href="#tos-contact">Contact</a></li>
+            <li><a href="#tos-acceptance">Acceptance</a></li>
+          </ol>
+        </nav>
+        <main class="tos-content">
+          <header class="tos-header">
+            <p class="tos-brand">Grupo Elite Work</p>
+            <h1 class="tos-title">Terms of Service &amp; End User Agreement</h1>
+            <p class="tos-subtitle">Customer Relationship Management (CRM) Software Platform — Dallas, Texas, USA</p>
+            <div class="tos-meta">
+              <span><strong>Effective Date:</strong> April 14, 2026</span>
+              <span><strong>Last Updated:</strong> April 21, 2026</span>
+              <span><strong>Version:</strong> 1.0</span>
+            </div>
+          </header>
+
+          <h2 id="tos-notice">Important Notice — Please Read Carefully</h2>
+          <p class="tos-caps">These Terms of Service constitute a legally binding agreement between you and Grupo Elite Work. By accessing, registering for, or using the Platform, you expressly acknowledge that you have read, understood, and agreed to be bound by these Terms in their entirety, including the mandatory binding arbitration provision, the class action waiver, the jury trial waiver, and the limitation of liability clauses set forth herein.</p>
+          <p class="tos-caps">If you do not agree to any portion of these Terms, you must not access or use the Platform. Your continued use of the Platform after any modification to these Terms constitutes your acceptance of the modified Terms.</p>
+          <p><strong>Bilingual Notice:</strong> This Agreement is executed in English. A Spanish summary may be provided for convenience only. In the event of any conflict, the <strong>English version shall prevail and control</strong> for all legal purposes.</p>
+
+          <h2 id="tos-recitals">Recitals</h2>
+          <div class="tos-recitals">
+            <p><strong>WHEREAS,</strong> Grupo Elite Work has developed, owns, and operates a proprietary CRM software platform designed exclusively to assist its users in organizing, administering, and tracking information relating to their own prospects, leads, clients, commercial activities, and internal workflows;</p>
+            <p><strong>WHEREAS,</strong> the Platform is offered strictly as an information-management and productivity tool, and is not intended, designed, or authorized to function as a financial institution, bank, insurer, healthcare provider, or repository for sensitive, regulated, or confidential data categories;</p>
+            <p><strong>NOW, THEREFORE,</strong> in consideration of the mutual covenants set forth herein, the parties agree as follows:</p>
+          </div>
+
+          <h2 id="tos-definitions">1. Definitions</h2>
+          <ul>
+            <li><strong>"Agreement"</strong> — these Terms of Service, together with any incorporated documents.</li>
+            <li><strong>"Platform" / "Service"</strong> — the Grupo Elite Work CRM application, APIs, integrations, documentation, and related services.</li>
+            <li><strong>"User"</strong> — any person who accesses or uses the Platform, including Agents, Managers, and Administrators.</li>
+            <li><strong>"Customer"</strong> — the individual or entity commercially subscribed to the Platform, responsible for all Users under its account.</li>
+            <li><strong>"User Content"</strong> — all data, records, files, and materials uploaded or transmitted through the Platform.</li>
+            <li><strong>"Sensitive Data"</strong> — payment card data, bank credentials, SSNs/TINs, biometrics, PHI (HIPAA), minors' data (COPPA), genetic data, or any category classified as sensitive under Applicable Law.</li>
+            <li><strong>"Applicable Law"</strong> — all federal, state, local, and foreign laws applicable to a party.</li>
+          </ul>
+
+          <h2 id="tos-nature">2. Nature of the Service — CRM Only</h2>
+          <p>The Platform is offered solely as a Customer Relationship Management tool for administrative, organizational, and productivity purposes. It is <strong>not</strong> a bank, payment processor, insurer, healthcare provider, securities broker, or professional advisor of any kind.</p>
+          <p class="tos-caps">Nothing displayed or processed through the Platform constitutes legal, tax, financial, investment, medical, or psychological advice. Any decision based on Platform information is made solely at the User's own risk.</p>
+
+          <h2 id="tos-eligibility">3. Eligibility and Account Registration</h2>
+          <p>The Platform is for business use only by persons (i) at least 18 years of age; (ii) with full legal capacity; (iii) not barred under U.S. law. Each User is solely responsible for maintaining credential confidentiality and for all activity under their account.</p>
+
+          <h2 id="tos-responsibilities">4. User Responsibilities and Data Authorizations</h2>
+          <p>The User represents and warrants that it has obtained all necessary consents from Data Subjects under applicable privacy laws (CCPA, CPRA, Texas DPSA, GDPR, etc.) before uploading User Content, and will <strong>not</strong> upload Sensitive Data to the Platform.</p>
+          <div class="tos-callout"><p><strong>Excluded Data.</strong> If the User uploads Sensitive Data notwithstanding this prohibition, the User does so entirely at its own risk and expressly assumes all resulting liability. Company disclaims all liability arising from such unauthorized use.</p></div>
+
+          <h2 id="tos-prohibited">5. Acceptable Use and Prohibited Conduct</h2>
+          <p>Users shall not: reverse engineer the Platform; resell or sublicense it; introduce malware; attempt unauthorized access; transmit spam (CAN-SPAM, TCPA); violate export control or sanctions laws; or hold out the Platform as performing any regulated function beyond CRM.</p>
+
+          <h2 id="tos-data-protection">6. Data Protection and Processing Roles</h2>
+          <p>The User is the Data Controller / Business. Company acts solely as Data Processor / Service Provider on documented User instructions. The User is solely responsible for responding to Data Subject rights requests.</p>
+
+          <h2 id="tos-security">7. Information Security</h2>
+          <p>Company maintains commercially reasonable safeguards. No system is absolutely secure. Company is not liable for incidents caused by the User's credential practices, insecure devices, third-party failures, or the User's upload of excluded data categories.</p>
+
+          <h2 id="tos-indemnification">8. Indemnification by the User</h2>
+          <p class="tos-caps">The User agrees to defend, indemnify, and hold harmless Grupo Elite Work and its affiliates, officers, employees, and agents from any claims, liabilities, damages, and expenses arising from: (a) the User's use of the Platform; (b) User Content; (c) violation of this Agreement or Applicable Law; (d) failure to obtain lawful bases for data processing; (e) any Data Subject or regulatory claim; or (f) upload of Sensitive Data.</p>
+
+          <h2 id="tos-warranties">9. Disclaimer of Warranties</h2>
+          <p class="tos-caps">The Platform is provided "as is," "as available," and "with all faults," without any warranties of merchantability, fitness for a particular purpose, title, non-infringement, accuracy, uninterrupted service, or security. Company makes no warranty that the Platform will meet the User's requirements or be error-free.</p>
+
+          <h2 id="tos-liability">10. Limitation of Liability</h2>
+          <p class="tos-caps">To the maximum extent permitted by law, Company shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits, data, goodwill, or business. Total aggregate liability shall not exceed the lesser of fees paid in the preceding three (3) months or US$100.</p>
+          <div class="tos-callout"><p><strong>Essential Basis.</strong> These limitations are a fundamental basis of the bargain. Company would not provide the Platform without them.</p></div>
+
+          <h2 id="tos-confidentiality">11. Confidentiality</h2>
+          <p>Each party shall protect the other's Confidential Information using at least the same care it uses for its own confidential information (no less than reasonable care), and use it solely to perform obligations under this Agreement.</p>
+
+          <h2 id="tos-ip">12. Intellectual Property</h2>
+          <p>The Platform and all associated software, designs, and content are the exclusive property of Company or its licensors. Users receive a limited, non-exclusive, non-transferable, revocable license for internal business use only. Users retain ownership of their User Content.</p>
+
+          <h2 id="tos-fees">13. Fees, Payment, and Taxes</h2>
+          <p>Fees are non-refundable and due upon invoice, quoted in U.S. dollars. Late payments bear interest at 1.5%/month. All fees exclude applicable taxes, which are the User's responsibility.</p>
+
+          <h2 id="tos-term">14. Term, Suspension, and Termination</h2>
+          <p>Company may suspend or terminate access for breach, non-payment, security threats, or legal requirements. Upon termination, the User has 30 days to export User Content via standard tools, after which Company may delete it.</p>
+
+          <h2 id="tos-governing-law">15. Governing Law and Venue</h2>
+          <p>This Agreement is governed by the laws of the State of Texas, USA, without regard to conflict-of-laws principles. Judicial proceedings (e.g., to enforce arbitral awards) shall be in Dallas County, Texas.</p>
+
+          <h2 id="tos-arbitration">16. Binding Arbitration and Class Action Waiver</h2>
+          <p class="tos-caps">Any dispute shall be resolved by final and binding arbitration administered by the AAA in Dallas, Texas. The User and Company each waive any right to a jury trial and to bring or participate in any class, collective, or representative action.</p>
+          <p>Opt-out: email <a href="mailto:administracion@grupoelitework.com">administracion@grupoelitework.com</a> within 30 days of first accepting these Terms.</p>
+
+          <h2 id="tos-modifications">17. Modifications</h2>
+          <p>Company may modify this Agreement by posting updated Terms. Continued use after the effective date constitutes acceptance. If you disagree, discontinue use.</p>
+
+          <h2 id="tos-force-majeure">18. Force Majeure</h2>
+          <p>Neither party is liable for delays caused by events beyond reasonable control, including natural disasters, pandemics, war, cyberattacks, or failures of third-party infrastructure.</p>
+
+          <h2 id="tos-general">19. General Provisions</h2>
+          <p><strong>19.1 Entire Agreement.</strong> This Agreement supersedes all prior agreements regarding its subject matter. <strong>19.2 Severability.</strong> Invalid provisions shall be modified or severed; the rest remains in effect. <strong>19.3 No Waiver.</strong> Failure to enforce any right is not a waiver. <strong>19.4 Assignment.</strong> Users may not assign without Company's consent. <strong>19.5 Independent Contractors.</strong> No partnership, agency, or employment is created. <strong>19.6 Electronic Signatures.</strong> Acceptance by clicking "I Agree" or creating an account is legally binding under E-SIGN and UETA. <strong>19.7 Language.</strong> English version controls.</p>
+
+          <h2 id="tos-contact">20. Contact Information</h2>
+          <div class="tos-contact">
+            <p><strong>Grupo Elite Work</strong></p>
+            <p><strong>Email:</strong> <a href="mailto:administracion@grupoelitework.com">administracion@grupoelitework.com</a></p>
+            <p><strong>Address:</strong> Dallas, Texas, United States of America</p>
+          </div>
+
+          <h2 id="tos-acceptance">21. Acknowledgment and Acceptance</h2>
+          <p class="tos-caps">By clicking "I agree," creating an account, or using the Platform, the User represents that: (i) they have had a full opportunity to review this Agreement; (ii) they have read, understood, and agree to all terms; (iii) they have full legal capacity to enter this Agreement; and (iv) they expressly accept the arbitration clause, class action waiver, jury trial waiver, disclaimers, liability limitations, and indemnification obligations herein.</p>
+
+          <div class="tos-footer-doc">© 2026 Grupo Elite Work. All rights reserved. · Dallas, Texas, USA</div>
+        </main>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openTosViewer() {
+  document.getElementById('tos-viewer-overlay').classList.add('open');
+}
+function closeTosViewer() {
+  document.getElementById('tos-viewer-overlay').classList.remove('open');
+}
+document.getElementById('tos-viewer-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeTosViewer();
+});
 </script>
 </body>
 </html>
