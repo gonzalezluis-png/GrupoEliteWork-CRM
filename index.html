@@ -1449,7 +1449,7 @@
             </div>
 
             <!-- Danger zone inside Org tab — master only -->
-            <div class="st-card" id="danger-zone-card2" style="display:none;border-color:rgba(226,68,92,.3)">
+            <div class="st-card" id="danger-zone-card2" style="border-color:rgba(226,68,92,.3)">
               <div class="st-card-header">
                 <div class="st-card-header-left">
                   <div class="st-card-icon" style="background:rgba(226,68,92,.12)">⚠️</div>
@@ -6162,13 +6162,15 @@ async function confirmUserAction() {
 
 async function confirmClearAllUsers() {
   const session = getSession();
-  if (!session || session.role !== 'master') return;
+  if (!session || (session.role !== 'master' && session.role !== 'admin')) return;
   const users = loadUsers();
-  const toDelete = users.filter(u => u.role !== 'admin');
+  const isAdmin = session.role === 'admin';
+  const toDelete = users.filter(u => u.role !== 'admin' && (!isAdmin || u.orgAdminId === session.id));
   if (!toDelete.length) { showToast('No hay usuarios para eliminar', 'error'); return; }
   const ok = confirm(`¿Eliminar ${toDelete.length} usuario${toDelete.length !== 1 ? 's' : ''}? Se conservarán los Administradores. Esta acción no se puede deshacer.`);
   if (!ok) return;
-  const kept = users.filter(u => u.role === 'admin');
+  const deleteIds = new Set(toDelete.map(u => u.id));
+  const kept = users.filter(u => !deleteIds.has(u.id));
   await saveUsers(kept);
   renderUsersGrid();
   _populateSettingsStats();
