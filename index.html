@@ -6185,6 +6185,12 @@ async function seedDefaultAdmin() {
 }
 
 function doLogin() {
+  try { _doLoginInner(); } catch(e) {
+    const err2 = document.getElementById('login-error');
+    if (err2) err2.textContent = 'Error: ' + (e && e.message ? e.message : String(e));
+  }
+}
+function _doLoginInner() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pass  = document.getElementById('login-pass').value;
   const err   = document.getElementById('login-error');
