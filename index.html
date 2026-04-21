@@ -1221,6 +1221,27 @@
   </div>
 </div>
 
+<!-- USER ACTION PASSWORD CONFIRM -->
+<div class="overlay" id="user-action-overlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 id="ua-title">Confirmar acción</h2>
+      <button class="modal-close" onclick="cancelUserAction()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="ua-msg" style="background:rgba(226,68,92,.08);border:1px solid rgba(226,68,92,.3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.6;margin-bottom:16px"></div>
+      <div class="field">
+        <label>Introduce tu contraseña para confirmar</label>
+        <input type="password" id="ua-pass" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')confirmUserAction()" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cancelUserAction()">Cancelar</button>
+      <button class="btn" id="ua-btn" style="background:var(--red);color:#fff" onclick="confirmUserAction()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIRM DELETE -->
 <div class="overlay" id="confirm-overlay" onclick="confirmOverlayClick(event)">
   <div class="confirm-box">
@@ -3459,43 +3480,116 @@ async function saveUser() {
     if (idx === -1) return;
     const dup = users.find(u => u.email === email && u.id !== editingUserId);
     if (dup) { showToast('Ese email ya está registrado', 'error'); return; }
-    users[idx].name               = name;
-    users[idx].email              = email;
-    users[idx].role               = role;
-    users[idx].orgAdminId         = orgAdminId;
-    users[idx].orgMasterManagerId = orgMasterManagerId;
-    users[idx].orgManagerId       = orgManagerId;
-    if (pass) {
-      if (pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
-      users[idx].password = pass;
+
+    const prev = users[idx];
+    const isReassign = prev.orgAdminId !== orgAdminId ||
+                       prev.orgMasterManagerId !== orgMasterManagerId ||
+                       prev.orgManagerId !== orgManagerId;
+
+    const applyEdit = async () => {
+      const freshUsers = loadUsers();
+      const i = freshUsers.findIndex(u => u.id === editingUserId);
+      if (i === -1) return;
+      freshUsers[i].name               = name;
+      freshUsers[i].email              = email;
+      freshUsers[i].role               = role;
+      freshUsers[i].orgAdminId         = orgAdminId;
+      freshUsers[i].orgMasterManagerId = orgMasterManagerId;
+      freshUsers[i].orgManagerId       = orgManagerId;
+      if (pass && pass.length >= 6) freshUsers[i].password = pass;
+      if (session && session.id === editingUserId) {
+        setSession({ ...session, name, email, role });
+        renderTopbarUser({ ...session, name, email, role });
+      }
+      await saveUsers(freshUsers);
+      closeUserModal();
+      showToast('Usuario actualizado ✓', 'success');
+      try { renderUsersGrid(); } catch(e) {}
+    };
+
+    if (pass && pass.length > 0 && pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
+
+    if (isReassign) {
+      const userName = esc(prev.name);
+      requirePasswordForUserAction(
+        '🔀 Mover Usuario',
+        `Estás cambiando la línea de reporte de <strong>${userName}</strong>.<br>Confirma con tu contraseña para continuar.`,
+        'Confirmar movimiento',
+        applyEdit
+      );
+      return;
     }
-    if (session && session.id === editingUserId) {
-      setSession({ ...session, name, email, role });
-      renderTopbarUser({ ...session, name, email, role });
-    }
+
+    await applyEdit();
+
   } else {
     if (!pass || pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
     if (email === MASTER_USER.email.toLowerCase()) { showToast('Ese email no está disponible', 'error'); return; }
     if (users.find(u => u.email === email)) { showToast('Ese email ya está registrado', 'error'); return; }
     users.push({ id: uid(), name, email, password: pass, role, orgAdminId, orgMasterManagerId, orgManagerId, createdAt: today() });
+    await saveUsers(users);
+    closeUserModal();
+    showToast('Usuario creado ✓', 'success');
+    try { renderUsersGrid(); } catch(e) {}
   }
+}
 
-  await saveUsers(users);
-  closeUserModal();
-  showToast(editingUserId ? 'Usuario actualizado ✓' : 'Usuario creado ✓', 'success');
-  try { renderUsersGrid(); } catch(e) { console.error('renderUsersGrid error:', e); }
+// ── User action password gate ──────────────────────────
+let _pendingUserAction = null;
+
+function requirePasswordForUserAction(title, msg, btnLabel, action) {
+  _pendingUserAction = action;
+  document.getElementById('ua-title').textContent        = title;
+  document.getElementById('ua-msg').innerHTML            = msg;
+  document.getElementById('ua-btn').textContent          = btnLabel;
+  document.getElementById('ua-pass').value               = '';
+  document.getElementById('user-action-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('ua-pass').focus(), 120);
+}
+
+function cancelUserAction() {
+  _pendingUserAction = null;
+  document.getElementById('user-action-overlay').classList.remove('open');
+}
+
+async function confirmUserAction() {
+  const pass    = document.getElementById('ua-pass').value;
+  if (!pass) { showToast('Introduce tu contraseña', 'error'); return; }
+  const session = getSession();
+  let valid = false;
+  if (session.id === MASTER_USER.id) {
+    valid = pass === MASTER_USER.password;
+  } else {
+    const me = loadUsers().find(u => u.id === session.id);
+    valid = me && me.password === pass;
+  }
+  if (!valid) { showToast('Contraseña incorrecta', 'error'); document.getElementById('ua-pass').value = ''; document.getElementById('ua-pass').focus(); return; }
+  cancelUserAction();
+  if (_pendingUserAction) await _pendingUserAction();
+  _pendingUserAction = null;
 }
 
 async function deleteUser(userId) {
   const session = getSession();
-  const users   = loadUsers();
-  const u       = users.find(x => x.id === userId);
+  if (!session || (session.role !== 'master' && session.role !== 'admin')) {
+    showToast('Solo el administrador o maestro puede eliminar usuarios', 'error');
+    return;
+  }
+  const users = loadUsers();
+  const u     = users.find(x => x.id === userId);
   if (!u) return;
   if (session.role === 'admin' && u.orgAdminId !== session.id) return;
-  if (!confirm(`¿Eliminar al usuario "${u.name}"?`)) return;
-  await saveUsers(users.filter(x => x.id !== userId));
-  renderUsersGrid();
-  showToast('Usuario eliminado', 'error');
+
+  requirePasswordForUserAction(
+    '🗑 Eliminar Usuario',
+    `Estás a punto de eliminar a <strong>${esc(u.name)}</strong> (${esc(u.email)}).<br>Esta acción <strong>no se puede deshacer</strong>.`,
+    'Eliminar',
+    async () => {
+      await saveUsers(loadUsers().filter(x => x.id !== userId));
+      renderUsersGrid();
+      showToast('Usuario eliminado', 'error');
+    }
+  );
 }
 
 
