@@ -778,6 +778,9 @@
     <div class="login-error" id="login-error"></div>
     <div class="login-divider">o</div>
     <div class="login-google-wrap" id="google-signin-btn"></div>
+    <div style="text-align:center;margin-top:14px">
+      <a href="#" onclick="openRegisterForm();return false;" style="font-size:12px;color:var(--text2);text-decoration:none;border-bottom:1px dashed var(--text2)">¿No tienes cuenta? Solicitar acceso</a>
+    </div>
     <div id="login-debug" style="display:none;margin-top:14px;padding:10px;background:rgba(0,115,234,.1);border:1px solid var(--accent);border-radius:8px;font-size:11px;color:var(--text2)"></div>
   </div>
 </div>
@@ -793,7 +796,7 @@
     <div class="sidebar-label">Boards</div>
     <div id="board-list"></div>
     <div class="sidebar-admin" id="sidebar-admin" style="display:none">
-      <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span></div>
+      <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
     </div>
     <div id="sidebar-master" style="display:none">
       <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span></div>
@@ -1040,6 +1043,14 @@
           </div>
         </div>
 
+        <div class="settings-section" id="settings-pending-section" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <h3 style="margin:0">🔔 Solicitudes de Acceso</h3>
+            <span id="pending-badge" style="background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px"></span>
+          </div>
+          <div id="pending-list"></div>
+        </div>
+
         <div class="settings-section" id="settings-users-section">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
             <div>
@@ -1223,6 +1234,78 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveUser()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER REQUEST MODAL -->
+<div class="overlay" id="register-overlay" onclick="if(event.target===this)closeRegisterForm()">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h2>Solicitar Acceso</h2>
+      <button class="modal-close" onclick="closeRegisterForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">Completa el formulario. Un administrador revisará tu solicitud y te dará acceso.</p>
+      <div class="field">
+        <label>Nombre completo</label>
+        <input type="text" id="reg-name" placeholder="Tu nombre completo" />
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="correo@ejemplo.com" />
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" />
+      </div>
+      <div class="field">
+        <label>Mensaje (opcional)</label>
+        <textarea id="reg-msg" placeholder="¿Por qué necesitas acceso?" style="width:100%;min-height:70px;resize:vertical;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"></textarea>
+      </div>
+      <div id="reg-error" style="color:var(--red);font-size:12px;min-height:18px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeRegisterForm()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitRegisterRequest()">Enviar solicitud</button>
+    </div>
+  </div>
+</div>
+
+<!-- APPROVE REQUEST MODAL -->
+<div class="overlay" id="approve-overlay" onclick="if(event.target===this)closeApproveModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2>✅ Aprobar Solicitud</h2>
+      <button class="modal-close" onclick="closeApproveModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="approve-user-info" style="background:var(--card2);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.7"></div>
+      <div class="field" id="approve-rol-wrap">
+        <label>Rol</label>
+        <select id="approve-rol" onchange="onApproveRolChange()">
+          <option value="agent">Agente</option>
+          <option value="manager">Manager</option>
+          <option value="master_manager">Master Manager</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <div class="field" id="approve-org-wrap" style="display:none">
+        <label>Pertenece a (Administrador)</label>
+        <select id="approve-org"><option value="">— Sin organización —</option></select>
+      </div>
+      <div class="field" id="approve-mm-wrap" style="display:none">
+        <label>Asignar a Master Manager</label>
+        <select id="approve-mm"><option value="">— Sin Master Manager —</option></select>
+      </div>
+      <div class="field" id="approve-mgr-wrap" style="display:none">
+        <label>Asignar a Manager</label>
+        <select id="approve-mgr"><option value="">— Sin manager —</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeApproveModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="approveRequest()">Aprobar</button>
     </div>
   </div>
 </div>
@@ -2792,6 +2875,7 @@ function showSettingsPage() {
   populateUbicacionesBoardSel();
   renderLeadTypesList();
   renderUsersGrid();
+  renderPendingList();
   document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
   const ns = document.getElementById('nav-settings');
   if (ns) ns.classList.add('active');
@@ -3066,6 +3150,7 @@ function doLogin() {
   document.getElementById('login-screen').classList.add('hidden');
   try {
     initApp(user);
+    updatePendingBadge();
   } catch(e) {
     console.error('initApp error:', e);
     document.getElementById('login-screen').classList.remove('hidden');
@@ -3096,7 +3181,7 @@ function handleGoogleSignIn(response) {
     document.getElementById('login-debug').style.display = 'none';
     setSession(user);
     document.getElementById('login-screen').classList.add('hidden');
-    try { initApp(user); } catch(e) {
+    try { initApp(user); updatePendingBadge(); } catch(e) {
       console.error('initApp error:', e);
       document.getElementById('login-screen').classList.remove('hidden');
       err.textContent = 'Error al cargar la app. Contacta al administrador.';
@@ -3596,6 +3681,172 @@ async function saveUser() {
   }
 }
 
+// ── Access Request (self-registration) ────────────────
+const PENDING_KEY = 'gew_pending_users';
+
+function loadPendingUsers() {
+  try { return JSON.parse(localStorage.getItem(PENDING_KEY)) || []; } catch { return []; }
+}
+async function savePendingUsers(list) {
+  localStorage.setItem(PENDING_KEY, JSON.stringify(list));
+  await supaSync(PENDING_KEY, JSON.stringify(list));
+}
+
+function openRegisterForm() {
+  document.getElementById('reg-name').value  = '';
+  document.getElementById('reg-email').value = '';
+  document.getElementById('reg-pass').value  = '';
+  document.getElementById('reg-msg').value   = '';
+  document.getElementById('reg-error').textContent = '';
+  document.getElementById('register-overlay').classList.add('open');
+}
+function closeRegisterForm() {
+  document.getElementById('register-overlay').classList.remove('open');
+}
+
+async function submitRegisterRequest() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('reg-pass').value;
+  const msg   = document.getElementById('reg-msg').value.trim();
+  const err   = document.getElementById('reg-error');
+
+  if (!name)              { err.textContent = 'El nombre es requerido.'; return; }
+  if (!email)             { err.textContent = 'El email es requerido.'; return; }
+  if (!pass || pass.length < 6) { err.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+
+  // Check not already a user
+  if (email === MASTER_USER.email.toLowerCase() || loadUsers().some(u => u.email.toLowerCase() === email)) {
+    err.textContent = 'Ese email ya tiene una cuenta activa. Inicia sesión directamente.';
+    return;
+  }
+  const pending = loadPendingUsers();
+  if (pending.some(u => u.email.toLowerCase() === email)) {
+    err.textContent = 'Ya existe una solicitud pendiente con ese email.';
+    return;
+  }
+
+  pending.push({ id: uid(), name, email, password: pass, message: msg, requestedAt: new Date().toISOString() });
+  await savePendingUsers(pending);
+  closeRegisterForm();
+  showToast('¡Solicitud enviada! Un administrador la revisará pronto.', 'success');
+  updatePendingBadge();
+}
+
+function updatePendingBadge() {
+  const count = loadPendingUsers().length;
+  const badge    = document.getElementById('sidebar-pending-badge');
+  const secBadge = document.getElementById('pending-badge');
+  if (badge)    { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
+  if (secBadge) { secBadge.textContent = count + ' pendiente' + (count !== 1 ? 's' : ''); }
+}
+
+function renderPendingList() {
+  const session = getSession();
+  if (!session || (session.role !== 'master' && session.role !== 'admin')) return;
+  const pending = loadPendingUsers();
+  const sec  = document.getElementById('settings-pending-section');
+  const list = document.getElementById('pending-list');
+  if (!sec || !list) return;
+  sec.style.display = pending.length > 0 ? '' : 'none';
+  updatePendingBadge();
+  if (pending.length === 0) { list.innerHTML = ''; return; }
+  list.innerHTML = pending.map(u => `
+    <div style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#1a1a1a;flex-shrink:0">${esc(u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase())}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:#fff">${esc(u.name)}</div>
+        <div style="font-size:11px;color:var(--text2)">${esc(u.email)}</div>
+        ${u.message ? `<div style="font-size:11px;color:var(--text2);margin-top:3px;font-style:italic">"${esc(u.message)}"</div>` : ''}
+        <div style="font-size:10px;color:var(--gray);margin-top:2px">${new Date(u.requestedAt).toLocaleString('es')}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button class="btn btn-primary btn-sm" onclick="openApproveModal('${u.id}')">✓ Aprobar</button>
+        <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="rejectRequest('${u.id}')">✕ Rechazar</button>
+      </div>
+    </div>`).join('');
+}
+
+let _approvingId = null;
+
+function openApproveModal(pendingId) {
+  const u = loadPendingUsers().find(x => x.id === pendingId);
+  if (!u) return;
+  _approvingId = pendingId;
+  document.getElementById('approve-user-info').innerHTML =
+    `<strong>${esc(u.name)}</strong> &middot; ${esc(u.email)}${u.message ? `<br><span style="color:var(--text2)">"${esc(u.message)}"</span>` : ''}`;
+  document.getElementById('approve-rol').value = 'agent';
+  onApproveRolChange();
+  document.getElementById('approve-overlay').classList.add('open');
+}
+function closeApproveModal() {
+  document.getElementById('approve-overlay').classList.remove('open');
+  _approvingId = null;
+}
+
+function onApproveRolChange() {
+  const role    = document.getElementById('approve-rol').value;
+  const session = getSession();
+  const users   = loadUsers();
+  const isMasterSess = session && session.role === 'master';
+
+  document.getElementById('approve-org-wrap').style.display  = (isMasterSess && role !== 'admin') ? '' : 'none';
+  document.getElementById('approve-mm-wrap').style.display   = (role === 'manager' || role === 'agent') ? '' : 'none';
+  document.getElementById('approve-mgr-wrap').style.display  = role === 'agent' ? '' : 'none';
+
+  const orgId = isMasterSess ? (document.getElementById('approve-org').value || null) : (session ? session.id : null);
+
+  if (isMasterSess) {
+    const admins = users.filter(u => u.role === 'admin');
+    document.getElementById('approve-org').innerHTML =
+      `<option value="">— Sin organización —</option>` +
+      admins.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('');
+  }
+  const mms = users.filter(u => u.role === 'master_manager' && (!orgId || u.orgAdminId === orgId));
+  document.getElementById('approve-mm').innerHTML =
+    `<option value="">— Sin Master Manager —</option>` +
+    mms.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('');
+
+  const mgrs = users.filter(u => u.role === 'manager' && (!orgId || u.orgAdminId === orgId));
+  document.getElementById('approve-mgr').innerHTML =
+    `<option value="">— Sin manager —</option>` +
+    mgrs.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('');
+}
+
+async function approveRequest() {
+  const u = loadPendingUsers().find(x => x.id === _approvingId);
+  if (!u) return;
+  const session = getSession();
+  const role    = document.getElementById('approve-rol').value;
+  const isMasterSess = session && session.role === 'master';
+  const orgAdminId         = isMasterSess ? (document.getElementById('approve-org').value || null) : (session ? session.id : null);
+  const orgMasterManagerId = document.getElementById('approve-mm-wrap').style.display !== 'none' ? (document.getElementById('approve-mm').value || null) : null;
+  const orgManagerId       = document.getElementById('approve-mgr-wrap').style.display !== 'none' ? (document.getElementById('approve-mgr').value || null) : null;
+
+  const users = loadUsers();
+  if (users.some(x => x.email.toLowerCase() === u.email.toLowerCase())) {
+    showToast('Ese email ya tiene una cuenta activa.', 'error'); return;
+  }
+  users.push({ id: uid(), name: u.name, email: u.email, password: u.password, role, orgAdminId, orgMasterManagerId, orgManagerId, createdAt: today() });
+  await saveUsers(users);
+
+  const remaining = loadPendingUsers().filter(x => x.id !== _approvingId);
+  await savePendingUsers(remaining);
+
+  closeApproveModal();
+  renderPendingList();
+  renderUsersGrid();
+  showToast(`${u.name} aprobado como ${role} ✓`, 'success');
+}
+
+async function rejectRequest(pendingId) {
+  const u = loadPendingUsers().find(x => x.id === pendingId);
+  if (!u || !confirm(`¿Rechazar la solicitud de ${u.name}?`)) return;
+  await savePendingUsers(loadPendingUsers().filter(x => x.id !== pendingId));
+  renderPendingList();
+  showToast('Solicitud rechazada', 'error');
+}
+
 // ── User action password gate ──────────────────────────
 let _pendingUserAction = null;
 
@@ -3848,6 +4099,7 @@ async function loadFromSupabase() {
   if (_session) {
     document.getElementById('login-screen').classList.add('hidden');
     initApp(_session);
+    updatePendingBadge();
   } else {
     populateAgentFilter();
     populateLeadFilter();
