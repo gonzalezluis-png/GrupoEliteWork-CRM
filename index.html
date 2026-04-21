@@ -2496,12 +2496,21 @@ setTimeout(function(){
           <label>Email *</label>
           <input type="email" id="u-email" placeholder="correo@ejemplo.com" />
         </div>
+        <div class="field" id="u-email-warning" style="display:none">
+          <div style="background:rgba(226,68,92,.08);border:1px solid rgba(226,68,92,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:#e2445c;line-height:1.6">
+            ⚠️ <strong>Advertencia:</strong> Cambiar el correo afectará el acceso del usuario. Asegúrate de notificarle el nuevo correo antes de guardar.
+          </div>
+        </div>
         <div class="field">
-          <label>Contraseña *</label>
+          <label id="u-pass-label">Contraseña *</label>
           <div style="display:flex;gap:6px;align-items:center">
             <input type="password" id="u-pass" placeholder="Mínimo 6 caracteres" style="flex:1" />
             <button type="button" style="background:var(--border);border:none;color:var(--text2);padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px" onmousedown="document.getElementById('u-pass').type='text'" onmouseup="document.getElementById('u-pass').type='password'" onmouseleave="document.getElementById('u-pass').type='password'" title="Mantén presionado para ver">👁</button>
           </div>
+          <label id="u-force-pass-wrap" style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;user-select:none">
+            <input type="checkbox" id="u-force-pass" style="accent-color:var(--accent);width:14px;height:14px" />
+            <span style="font-size:12px;color:var(--text2)">Forzar cambio de contraseña al iniciar sesión</span>
+          </label>
         </div>
         <div class="field" id="u-rol-wrap">
           <label>Rol</label>
@@ -6330,6 +6339,13 @@ async function doLogin() {
     setSession(user);
     document.getElementById('login-screen').classList.add('hidden');
     if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
+
+    // Force password change if required
+    if (user.mustChangePassword) {
+      document.getElementById('force-pass-overlay').style.display = 'flex';
+      return;
+    }
+
     try {
       initApp(user);
       updatePendingBadge();
@@ -6948,8 +6964,23 @@ function openUserModal(userId, presetOrgId, presetRole) {
   document.getElementById('u-nombre').value = u ? u.name  : '';
   document.getElementById('u-email').value  = u ? u.email : '';
   document.getElementById('u-pass').value   = '';
-  if (u) document.getElementById('u-pass').placeholder = 'Dejar vacío para no cambiar';
-  else   document.getElementById('u-pass').placeholder = 'Mínimo 6 caracteres';
+  document.getElementById('u-force-pass').checked = u ? !!u.mustChangePassword : false;
+  document.getElementById('u-email-warning').style.display = 'none';
+  if (u) {
+    document.getElementById('u-pass').placeholder = 'Dejar vacío para no cambiar';
+    document.getElementById('u-pass-label').textContent = 'Contraseña';
+    // Watch email changes to show warning
+    const emailInput = document.getElementById('u-email');
+    emailInput.dataset.original = u.email;
+    emailInput.oninput = function() {
+      const changed = this.value.trim().toLowerCase() !== (this.dataset.original || '').toLowerCase();
+      document.getElementById('u-email-warning').style.display = changed ? '' : 'none';
+    };
+  } else {
+    document.getElementById('u-pass').placeholder = 'Mínimo 6 caracteres';
+    document.getElementById('u-pass-label').textContent = 'Contraseña *';
+    document.getElementById('u-email').oninput = null;
+  }
 
   const rolWrap = document.getElementById('u-rol-wrap');
   const orgWrap = document.getElementById('u-org-wrap');
@@ -7030,6 +7061,8 @@ async function saveUser() {
     const isReassign = prev.orgAdminId !== orgAdminId ||
                        prev.orgMasterManagerId !== orgMasterManagerId ||
                        prev.orgManagerId !== orgManagerId;
+    const isEmailChange = prev.email.toLowerCase() !== email.toLowerCase();
+    const forcePass = document.getElementById('u-force-pass') ? document.getElementById('u-force-pass').checked : false;
 
     const applyEdit = async () => {
       const freshUsers = loadUsers();
@@ -7041,19 +7074,24 @@ async function saveUser() {
       freshUsers[i].orgAdminId         = orgAdminId;
       freshUsers[i].orgMasterManagerId = orgMasterManagerId;
       freshUsers[i].orgManagerId       = orgManagerId;
+      freshUsers[i].mustChangePassword = forcePass;
       if (pass && pass.length >= 6) freshUsers[i].password = pass;
       if (session && session.id === editingUserId) {
         setSession({ ...session, name, email, role });
         renderTopbarUser({ ...session, name, email, role });
       }
       await saveUsers(freshUsers);
-      logActivity('user_edited', `Usuario editado: ${name}`, `Rol: ${role}`);
+      logActivity('user_edited', `Usuario editado: ${name}`, `Rol: ${role}${isEmailChange ? ' · Email cambiado' : ''}${forcePass ? ' · Cambio de clave requerido' : ''}`);
       closeUserModal();
       showToast('Usuario actualizado ✓', 'success');
       try { renderUsersGrid(); } catch(e) {}
     };
 
     if (pass && pass.length > 0 && pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
+
+    if (isEmailChange) {
+      if (!confirm(`⚠️ Estás cambiando el correo de "${prev.name}" de:\n\n${prev.email} → ${email}\n\nEsto afectará su acceso al sistema. El usuario deberá usar el nuevo correo para ingresar.\n\n¿Confirmas el cambio?`)) return;
+    }
 
     if (isReassign) {
       const userName = esc(prev.name);
@@ -7502,6 +7540,34 @@ async function submitNote() {
   document.getElementById('notes-new-input').value = '';
   _renderNotesJournal(lead);
   showToast('Guardado ✓', 'success');
+}
+
+// ════════════════════════════════════════════
+//  FORCE CHANGE PASSWORD
+// ════════════════════════════════════════════
+async function submitForceChangePass() {
+  const p1  = document.getElementById('fcp-pass1').value;
+  const p2  = document.getElementById('fcp-pass2').value;
+  const err = document.getElementById('fcp-error');
+  if (p1.length < 6) { err.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+  if (p1 !== p2)     { err.textContent = 'Las contraseñas no coinciden.'; return; }
+  err.textContent = '';
+
+  const session = getSession();
+  if (!session) return;
+  const users = loadUsers();
+  const idx = users.findIndex(u => u.id === session.id);
+  if (idx !== -1) {
+    users[idx].password          = p1;
+    users[idx].mustChangePassword = false;
+    await saveUsers(users);
+    setSession({ ...session, mustChangePassword: false });
+  }
+  document.getElementById('force-pass-overlay').style.display = 'none';
+  document.getElementById('fcp-pass1').value = '';
+  document.getElementById('fcp-pass2').value = '';
+  showToast('✅ Contraseña actualizada', 'success');
+  try { initApp(session); updatePendingBadge(); updateTrashBadge(); } catch(e) { console.error(e); }
 }
 
 // ════════════════════════════════════════════
@@ -7981,6 +8047,31 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
   }
 });
 </script>
+
+<!-- ══════════════════════════════════════════════
+     FORCE CHANGE PASSWORD MODAL
+══════════════════════════════════════════════ -->
+<div id="force-pass-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:400px;padding:32px 28px;box-shadow:0 40px 100px rgba(0,0,0,.7)">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:32px;margin-bottom:8px">🔑</div>
+      <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">Crea tu contraseña</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.5">El administrador requiere que establezcas tu propia contraseña antes de continuar.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="field" style="margin:0">
+        <label>Nueva contraseña</label>
+        <input type="password" id="fcp-pass1" placeholder="Mínimo 6 caracteres" />
+      </div>
+      <div class="field" style="margin:0">
+        <label>Confirmar contraseña</label>
+        <input type="password" id="fcp-pass2" placeholder="Repite tu contraseña" />
+      </div>
+      <div id="fcp-error" style="color:#e2445c;font-size:12px;min-height:16px"></div>
+      <button class="btn btn-primary" onclick="submitForceChangePass()" style="width:100%;padding:11px">Guardar y entrar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════
      WELCOME SPLASH
