@@ -982,7 +982,25 @@
   .ssp-script-content li { margin-bottom: 3px; }
   .ssp-script-content blockquote { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--text2); margin: 10px 0; }
   .ssp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text2); gap: 8px; }
-  #btn-scripts-panel { display: none; }
+  #btn-scripts-panel {
+    display: none;
+    background: linear-gradient(135deg, #7c3aed, #0073ea);
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: .3px;
+    box-shadow: 0 0 12px rgba(120,75,209,.5);
+    animation: scripts-pulse 2.5s ease-in-out infinite;
+  }
+  #btn-scripts-panel:hover { opacity: 1; box-shadow: 0 0 20px rgba(120,75,209,.75); }
+  #btn-scripts-panel.active-panel {
+    background: linear-gradient(135deg, #0073ea, #7c3aed);
+    box-shadow: 0 0 18px rgba(0,115,234,.6);
+    animation: none;
+  }
+  @keyframes scripts-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(120,75,209,.45); }
+    50%       { box-shadow: 0 0 20px rgba(120,75,209,.85), 0 0 6px rgba(0,115,234,.4); }
+  }
 
   /* ── SCRIPTS PAGE ── */
   #scripts-page { display:none; flex:1; overflow:hidden; }
@@ -2936,7 +2954,7 @@ function toggleScriptsPanel() {
   _sspOpen = !_sspOpen;
   panel.classList.toggle('open', _sspOpen);
   const btn = document.getElementById('btn-scripts-panel');
-  if (btn) btn.style.background = _sspOpen ? 'rgba(0,115,234,.25)' : '';
+  if (btn) btn.classList.toggle('active-panel', _sspOpen);
   if (_sspOpen) {
     renderSspList();
     if (_sspCurrentId) selectSspScript(_sspCurrentId);
