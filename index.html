@@ -932,6 +932,70 @@
           <div id="lead-types-list"></div>
         </div>
 
+        <div class="settings-section" id="settings-account-section">
+          <h3>👤 Mi Cuenta</h3>
+          <p>Actualiza tu correo electrónico o contraseña de acceso.</p>
+
+          <!-- Cambiar correo -->
+          <div style="margin-bottom:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleAccountSection('email')">
+              <span style="font-size:12px;font-weight:600;color:var(--text)">Cambiar correo electrónico</span>
+              <span id="account-email-icon" style="font-size:14px;color:var(--text2)">🔒</span>
+            </div>
+            <div id="account-email-form" style="display:none;margin-top:12px">
+              <div style="background:rgba(226,68,92,.08);border:1px solid rgba(226,68,92,.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e2445c">
+                ⚠️ Necesitarás usar el nuevo correo para iniciar sesión.
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
+                <div class="field" style="margin:0">
+                  <label>Correo actual</label>
+                  <input type="email" id="acc-email-current" readonly style="opacity:.6;cursor:not-allowed" />
+                </div>
+                <div class="field" style="margin:0">
+                  <label>Nuevo correo</label>
+                  <input type="email" id="acc-email-new" placeholder="nuevo@ejemplo.com" />
+                </div>
+                <div class="field" style="margin:0">
+                  <label>Confirmar con tu contraseña</label>
+                  <input type="password" id="acc-email-pass" placeholder="••••••••" />
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-primary btn-sm" onclick="changeEmail()">Guardar correo</button>
+                  <button class="btn btn-secondary btn-sm" onclick="toggleAccountSection('email')">Cancelar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cambiar contraseña -->
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleAccountSection('pass')">
+              <span style="font-size:12px;font-weight:600;color:var(--text)">Cambiar contraseña</span>
+              <span id="account-pass-icon" style="font-size:14px;color:var(--text2)">🔒</span>
+            </div>
+            <div id="account-pass-form" style="display:none;margin-top:12px">
+              <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
+                <div class="field" style="margin:0">
+                  <label>Contraseña actual</label>
+                  <input type="password" id="acc-pass-current" placeholder="••••••••" />
+                </div>
+                <div class="field" style="margin:0">
+                  <label>Nueva contraseña</label>
+                  <input type="password" id="acc-pass-new" placeholder="Mínimo 6 caracteres" />
+                </div>
+                <div class="field" style="margin:0">
+                  <label>Confirmar nueva contraseña</label>
+                  <input type="password" id="acc-pass-confirm" placeholder="Repite la nueva contraseña" />
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-primary btn-sm" onclick="changePassword()">Guardar contraseña</button>
+                  <button class="btn btn-secondary btn-sm" onclick="toggleAccountSection('pass')">Cancelar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-section" id="settings-users-section">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
             <div>
@@ -2323,6 +2387,86 @@ function getActiveColumns(board) {
   (cfg.custom || []).forEach(c => cols.push({ key: c.key, label: c.label.toUpperCase(), customDef: c }));
   cols.push({ key: '_actions', label: '' });
   return cols;
+}
+
+// ── Mi Cuenta ──
+function toggleAccountSection(type) {
+  const form = document.getElementById('account-' + type + '-form');
+  const icon = document.getElementById('account-' + type + '-icon');
+  const open = form.style.display === 'none';
+  form.style.display = open ? 'block' : 'none';
+  icon.textContent   = open ? '🔓' : '🔒';
+  if (open && type === 'email') {
+    const session = getSession();
+    document.getElementById('acc-email-current').value = session ? session.email : '';
+    document.getElementById('acc-email-new').value = '';
+    document.getElementById('acc-email-pass').value = '';
+  }
+  if (open && type === 'pass') {
+    document.getElementById('acc-pass-current').value = '';
+    document.getElementById('acc-pass-new').value = '';
+    document.getElementById('acc-pass-confirm').value = '';
+  }
+}
+
+async function changeEmail() {
+  const session  = getSession();
+  if (!session) return;
+  const newEmail = document.getElementById('acc-email-new').value.trim().toLowerCase();
+  const pass     = document.getElementById('acc-email-pass').value;
+
+  if (!newEmail) { showToast('Ingresa el nuevo correo', 'error'); return; }
+  if (newEmail === session.email.toLowerCase()) { showToast('Es el mismo correo actual', 'error'); return; }
+  if (!pass) { showToast('Ingresa tu contraseña para confirmar', 'error'); return; }
+
+  // verify password
+  const ok = session.role === 'master'
+    ? pass === MASTER_USER.password
+    : loadUsers().find(u => u.id === session.id && u.password === pass);
+  if (!ok) { showToast('Contraseña incorrecta', 'error'); return; }
+
+  if (newEmail === MASTER_USER.email.toLowerCase()) { showToast('Ese correo no está disponible', 'error'); return; }
+  const users = loadUsers();
+  if (users.find(u => u.email === newEmail)) { showToast('Ese correo ya está en uso', 'error'); return; }
+
+  if (!confirm(`¿Cambiar tu correo a "${newEmail}"? Necesitarás usarlo para iniciar sesión.`)) return;
+
+  if (session.role !== 'master') {
+    const idx = users.findIndex(u => u.id === session.id);
+    if (idx !== -1) { users[idx].email = newEmail; await saveUsers(users); }
+  }
+  setSession({ ...session, email: newEmail });
+  toggleAccountSection('email');
+  showToast('Correo actualizado ✓', 'success');
+}
+
+async function changePassword() {
+  const session = getSession();
+  if (!session) return;
+  const current  = document.getElementById('acc-pass-current').value;
+  const newPass  = document.getElementById('acc-pass-new').value;
+  const confirm2 = document.getElementById('acc-pass-confirm').value;
+
+  if (!current) { showToast('Ingresa tu contraseña actual', 'error'); return; }
+  if (!newPass || newPass.length < 6) { showToast('La nueva contraseña debe tener al menos 6 caracteres', 'error'); return; }
+  if (newPass !== confirm2) { showToast('Las contraseñas no coinciden', 'error'); return; }
+
+  const ok = session.role === 'master'
+    ? current === MASTER_USER.password
+    : loadUsers().find(u => u.id === session.id && u.password === current);
+  if (!ok) { showToast('Contraseña actual incorrecta', 'error'); return; }
+
+  if (!confirm('¿Confirmas el cambio de contraseña?')) return;
+
+  if (session.role === 'master') {
+    showToast('El maestro tiene contraseña fija. Contacta al desarrollador.', 'error');
+    return;
+  }
+  const users = loadUsers();
+  const idx = users.findIndex(u => u.id === session.id);
+  if (idx !== -1) { users[idx].password = newPass; await saveUsers(users); }
+  toggleAccountSection('pass');
+  showToast('Contraseña actualizada ✓', 'success');
 }
 
 // settings page
