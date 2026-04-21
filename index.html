@@ -885,6 +885,22 @@
   .toggle-sw input:checked + .toggle-slider { background: var(--accent); }
   .toggle-sw input:checked + .toggle-slider::before { transform: translateX(18px); }
 
+  /* board editor */
+  .board-editor-row { display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .board-editor-row:last-child { border-bottom:none; }
+  .be-icon-inp { width:38px; text-align:center; font-size:16px; background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:5px 2px; outline:none; }
+  .be-icon-inp:focus { border-color:var(--accent); }
+  .be-name-inp { flex:1; min-width:0; }
+  .be-ord-btn { width:26px; height:26px; background:var(--card); border:1px solid var(--border); color:var(--text2); border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:11px; transition:all .12s; flex-shrink:0; }
+  .be-ord-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .be-ord-btn:disabled { opacity:.25; cursor:default; }
+  .be-save-btn { font-size:11px; padding:5px 10px; flex-shrink:0; }
+  /* column editor */
+  .col-editor-row { display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .col-editor-row:last-child { border-bottom:none; }
+  .ce-label-inp { flex:1; min-width:0; font-size:12px; }
+  .ce-fixed-badge { font-size:9px; color:var(--gray); background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:4px; padding:1px 5px; flex-shrink:0; }
+
   /* custom column builder */
   .custom-col-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 14px; }
   .custom-col-form .field { margin: 0; }
@@ -1307,13 +1323,29 @@
               </div>
             </div>
 
+            <!-- Board editor (master only) -->
+            <div class="st-card" id="board-editor-card" style="display:none">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-icon" style="background:rgba(0,115,234,.12)">📊</div>
+                  <div class="st-card-text">
+                    <div class="st-card-title">Editar Boards</div>
+                    <div class="st-card-desc">Cambia el nombre, ícono y orden de todos los boards.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body"><div id="board-editor-list"></div></div>
+            </div>
+
+            <!-- Column editor -->
             <div class="st-card">
               <div class="st-card-header">
                 <div class="st-card-header-left">
                   <div class="st-card-icon" style="background:rgba(0,200,117,.12)">👁</div>
                   <div class="st-card-text">
-                    <div class="st-card-title">Columnas visibles</div>
-                    <div class="st-card-desc">Activa o desactiva columnas. Las fijas no se pueden ocultar.</div>
+                    <div class="st-card-title">Columnas</div>
+                    <div class="st-card-desc">Activa, renombra y reordena columnas. Las fijas siempre están visibles.</div>
                   </div>
                 </div>
               </div>
@@ -3415,6 +3447,10 @@ function initResizers() {
         handle.classList.remove('dragging');
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
+        // persist widths
+        const cfg = loadColConfig();
+        cfg.widths = { ...(cfg.widths||{}), ...COL_WIDTHS };
+        saveColConfig(cfg);
       };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
@@ -3857,19 +3893,21 @@ function loadColConfig() {
 function saveColConfig(cfg) { localStorage.setItem(COL_CONFIG_KEY, JSON.stringify(cfg)); supaSync(COL_CONFIG_KEY, JSON.stringify(cfg)); }
 
 function getActiveColumns(board) {
-  const cfg = loadColConfig();
-  const fixed = ['_check','nombre','creacion','email','telefono','direccion','ubicacion'];
-  const cols = [
+  const cfg    = loadColConfig();
+  const labels = cfg.labels || {};
+  const cols   = [
     { key: '_check',    label: '' },
-    { key: 'nombre',    label: 'NOMBRE' },
-    { key: 'creacion',  label: 'REGISTRO CREACIÓN' },
-    { key: 'email',     label: 'EMAIL' },
-    { key: 'telefono',  label: 'TELÉFONO' },
-    { key: 'direccion', label: 'DIRECCIÓN' },
-    { key: 'ubicacion', label: 'UBICACIÓN' },
+    { key: 'nombre',    label: labels['nombre']    || 'NOMBRE' },
+    { key: 'creacion',  label: labels['creacion']  || 'REGISTRO CREACIÓN' },
+    { key: 'email',     label: labels['email']     || 'EMAIL' },
+    { key: 'telefono',  label: labels['telefono']  || 'TELÉFONO' },
+    { key: 'direccion', label: labels['direccion'] || 'DIRECCIÓN' },
+    { key: 'ubicacion', label: labels['ubicacion'] || 'UBICACIÓN' },
   ];
-  OPTIONAL_COLS.forEach(c => { if (cfg[c.key]) cols.push({ key: c.key, label: c.label }); });
-  (cfg.custom || []).forEach(c => cols.push({ key: c.key, label: c.label.toUpperCase(), customDef: c }));
+  getOrderedOptionalCols().forEach(c => {
+    if (cfg[c.key] !== false) cols.push({ key: c.key, label: labels[c.key] || c.label });
+  });
+  (cfg.custom || []).forEach(c => cols.push({ key: c.key, label: (labels[c.key] || c.label).toUpperCase(), customDef: c }));
   cols.push({ key: '_actions', label: '' });
   return cols;
 }
@@ -4004,6 +4042,14 @@ function showSettingsPage() {
   renderCustomColsList();
   _populateSettingsStats();
   _renderSettingsProfileCards();
+
+  // Board editor — master only
+  const boardEditorCard = document.getElementById('board-editor-card');
+  if (boardEditorCard) {
+    const isMaster = session && session.role === 'master';
+    boardEditorCard.style.display = isMaster ? '' : 'none';
+    if (isMaster) renderBoardEditor();
+  }
 }
 
 function _populateSettingsStats() {
@@ -4037,20 +4083,102 @@ function _renderSettingsProfileCards() {
   if (apc) apc.innerHTML = avatarHtml + infoHtml;
 }
 
-function renderColToggles() {
+const FIXED_COLS = [
+  { key: 'nombre',    label: 'NOMBRE' },
+  { key: 'creacion',  label: 'REGISTRO CREACIÓN' },
+  { key: 'email',     label: 'EMAIL' },
+  { key: 'telefono',  label: 'TELÉFONO' },
+  { key: 'direccion', label: 'DIRECCIÓN' },
+  { key: 'ubicacion', label: 'UBICACIÓN' },
+];
+
+function getColLabel(key) {
   const cfg = loadColConfig();
-  document.getElementById('col-toggles').innerHTML = OPTIONAL_COLS.map(c => `
-    <div class="col-toggle-row">
-      <div class="col-toggle-info">
-        <span class="col-toggle-name">${c.label}</span>
-        <span class="col-toggle-desc">${c.desc}</span>
-      </div>
-      <label class="toggle-sw">
-        <input type="checkbox" ${cfg[c.key] ? 'checked' : ''} onchange="toggleCol('${c.key}',this.checked)" />
+  return (cfg.labels && cfg.labels[key]) || null;
+}
+
+function getOrderedOptionalCols() {
+  const cfg = loadColConfig();
+  if (!cfg.colOrder || !cfg.colOrder.length) return OPTIONAL_COLS;
+  const ordered = cfg.colOrder.map(k => OPTIONAL_COLS.find(c => c.key === k)).filter(Boolean);
+  OPTIONAL_COLS.forEach(c => { if (!cfg.colOrder.includes(c.key)) ordered.push(c); });
+  return ordered;
+}
+
+function renderColToggles() {
+  const cfg     = loadColConfig();
+  const session = getSession();
+  const isMaster = session && session.role === 'master';
+  const orderedOpt = getOrderedOptionalCols();
+
+  let html = '';
+
+  // Fixed columns — label editable for master
+  FIXED_COLS.forEach(c => {
+    const displayLabel = (cfg.labels && cfg.labels[c.key]) || c.label;
+    html += `<div class="col-editor-row">
+      <span class="ce-fixed-badge">Fija</span>
+      ${isMaster
+        ? `<input class="ce-label-inp field-inp" id="cel-${c.key}" value="${esc(displayLabel)}" placeholder="${esc(c.label)}" /><button class="btn btn-primary be-save-btn" onclick="saveColLabel('${c.key}')">Guardar</button>`
+        : `<span style="flex:1;font-size:12px;font-weight:600;color:var(--text)">${esc(displayLabel)}</span>`
+      }
+    </div>`;
+  });
+
+  // Optional columns — label editable + toggle + reorder for master
+  orderedOpt.forEach((c, i) => {
+    const displayLabel = (cfg.labels && cfg.labels[c.key]) || c.label;
+    html += `<div class="col-editor-row">
+      ${isMaster ? `
+        <button class="be-ord-btn" onclick="moveColUp('${c.key}')"   ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button class="be-ord-btn" onclick="moveColDown('${c.key}')" ${i === orderedOpt.length-1 ? 'disabled' : ''}>▼</button>
+        <input class="ce-label-inp field-inp" id="cel-${c.key}" value="${esc(displayLabel)}" placeholder="${esc(c.label)}" />
+        <button class="btn btn-primary be-save-btn" onclick="saveColLabel('${c.key}')">Guardar</button>
+      ` : `<span style="flex:1;font-size:12px;font-weight:600;color:var(--text)">${esc(displayLabel)}</span>`}
+      <label class="toggle-sw" title="${esc(c.desc)}">
+        <input type="checkbox" ${cfg[c.key] !== false ? 'checked' : ''} onchange="toggleCol('${c.key}',this.checked)" />
         <span class="toggle-slider"></span>
       </label>
-    </div>
-  `).join('');
+    </div>`;
+  });
+
+  document.getElementById('col-toggles').innerHTML = html;
+}
+
+function saveColLabel(key) {
+  const inp = document.getElementById('cel-' + key);
+  if (!inp) return;
+  const val = inp.value.trim().toUpperCase();
+  if (!val) { showToast('El nombre no puede estar vacío', 'error'); return; }
+  const cfg = loadColConfig();
+  if (!cfg.labels) cfg.labels = {};
+  cfg.labels[key] = val;
+  saveColConfig(cfg);
+  showToast('Columna renombrada ✓', 'success');
+  if (currentBoardId) renderTable();
+}
+
+function moveColUp(key) {
+  const cfg  = loadColConfig();
+  const cols = getOrderedOptionalCols().map(c => c.key);
+  const i    = cols.indexOf(key);
+  if (i <= 0) return;
+  [cols[i-1], cols[i]] = [cols[i], cols[i-1]];
+  cfg.colOrder = cols;
+  saveColConfig(cfg);
+  renderColToggles();
+  if (currentBoardId) renderTable();
+}
+function moveColDown(key) {
+  const cfg  = loadColConfig();
+  const cols = getOrderedOptionalCols().map(c => c.key);
+  const i    = cols.indexOf(key);
+  if (i < 0 || i >= cols.length - 1) return;
+  [cols[i], cols[i+1]] = [cols[i+1], cols[i]];
+  cfg.colOrder = cols;
+  saveColConfig(cfg);
+  renderColToggles();
+  if (currentBoardId) renderTable();
 }
 
 function toggleCol(key, val) {
@@ -4132,18 +4260,89 @@ function saveCustomBoards(boards) {
   localStorage.setItem(CUSTOM_BOARDS_KEY, JSON.stringify(boards));
   supaSync(CUSTOM_BOARDS_KEY, JSON.stringify(boards));
 }
-const UBICACIONES_KEY = 'gew_ubicaciones';
+const UBICACIONES_KEY  = 'gew_ubicaciones';
+const BOARD_META_KEY   = 'gew_board_meta';
+const BOARD_ORDER_KEY  = 'gew_board_order';
+
 function loadUbicacionesOverrides() {
   try { return JSON.parse(localStorage.getItem(UBICACIONES_KEY)) || {}; } catch { return {}; }
 }
 function saveUbicacionesOverrides(obj) { localStorage.setItem(UBICACIONES_KEY, JSON.stringify(obj)); supaSync(UBICACIONES_KEY, JSON.stringify(obj)); }
 
+function loadBoardMeta()  { try { return JSON.parse(localStorage.getItem(BOARD_META_KEY))  || {}; } catch { return {}; } }
+function saveBoardMeta(m) { localStorage.setItem(BOARD_META_KEY, JSON.stringify(m)); supaSync(BOARD_META_KEY, JSON.stringify(m)); }
+
+function loadBoardOrder()    { try { return JSON.parse(localStorage.getItem(BOARD_ORDER_KEY)) || null; } catch { return null; } }
+function saveBoardOrder(ids) { localStorage.setItem(BOARD_ORDER_KEY, JSON.stringify(ids)); supaSync(BOARD_ORDER_KEY, JSON.stringify(ids)); }
+
 function refreshBoards() {
-  const overrides = loadUbicacionesOverrides();
-  BOARDS = [...DEFAULT_BOARDS, ...loadCustomBoards()].map(b => {
-    if (overrides[b.id]) return { ...b, ubicaciones: overrides[b.id] };
-    return b;
+  const ubOverrides = loadUbicacionesOverrides();
+  const meta        = loadBoardMeta();
+  let boards = [...DEFAULT_BOARDS, ...loadCustomBoards()].map(b => {
+    const m  = meta[b.id] || {};
+    const ub = ubOverrides[b.id];
+    return { ...b, name: m.name || b.name, icon: m.icon || b.icon, ubicaciones: ub || b.ubicaciones };
   });
+  const order = loadBoardOrder();
+  if (order && order.length) {
+    const map = Object.fromEntries(boards.map(b => [b.id, b]));
+    const ordered = order.map(id => map[id]).filter(Boolean);
+    boards.forEach(b => { if (!order.includes(b.id)) ordered.push(b); });
+    boards = ordered;
+  }
+  BOARDS = boards;
+}
+
+// ── Board Editor UI ──
+function renderBoardEditor() {
+  const el = document.getElementById('board-editor-list');
+  if (!el) return;
+  refreshBoards();
+  const boards = BOARDS;
+  el.innerHTML = boards.map((b, i) => `
+    <div class="board-editor-row">
+      <input class="be-icon-inp" id="be-icon-${b.id}" value="${esc(b.icon||'📋')}" title="Ícono (emoji)" />
+      <input class="be-name-inp field-inp" id="be-name-${b.id}" value="${esc(b.name)}" placeholder="Nombre del board" />
+      <button class="be-ord-btn" onclick="moveBoardUp('${b.id}')"   title="Subir"   ${i === 0 ? 'disabled' : ''}>▲</button>
+      <button class="be-ord-btn" onclick="moveBoardDown('${b.id}')" title="Bajar"   ${i === boards.length-1 ? 'disabled' : ''}>▼</button>
+      <button class="btn btn-primary be-save-btn" onclick="saveBoardRow('${b.id}')">Guardar</button>
+    </div>
+  `).join('');
+}
+
+function saveBoardRow(id) {
+  const icon = document.getElementById('be-icon-' + id)?.value.trim() || '📋';
+  const name = document.getElementById('be-name-' + id)?.value.trim().toUpperCase();
+  if (!name) { showToast('El nombre no puede estar vacío', 'error'); return; }
+  const meta  = loadBoardMeta();
+  meta[id]    = { ...(meta[id]||{}), name, icon };
+  saveBoardMeta(meta);
+  refreshBoards();
+  renderSidebar();
+  showToast('Board actualizado ✓', 'success');
+}
+
+function moveBoardUp(id) {
+  refreshBoards();
+  const ids = BOARDS.map(b => b.id);
+  const i   = ids.indexOf(id);
+  if (i <= 0) return;
+  [ids[i-1], ids[i]] = [ids[i], ids[i-1]];
+  saveBoardOrder(ids);
+  refreshBoards();
+  renderSidebar();
+  renderBoardEditor();
+}
+function moveBoardDown(id) {
+  refreshBoards();
+  const ids = BOARDS.map(b => b.id);
+  const i   = ids.indexOf(id);
+  if (i < 0 || i >= ids.length - 1) return;
+  [ids[i], ids[i+1]] = [ids[i+1], ids[i]];
+  saveBoardOrder(ids);
+  refreshBoards();
+  renderSidebar();
+  renderBoardEditor();
 }
 
 function openBoardModal() {
@@ -4442,6 +4641,10 @@ function doLogout() {
 function initApp(user) {
   renderTopbarUser(user);
   applyAppName();
+  // restore persisted column widths
+  const _cwCfg = loadColConfig();
+  if (_cwCfg.widths) Object.assign(COL_WIDTHS, _cwCfg.widths);
+  refreshBoards();
   document.getElementById('btn-scripts-panel').style.display = 'inline-flex';
   if (user.role === 'agent') {
     document.getElementById('sidebar').style.display = 'none';
