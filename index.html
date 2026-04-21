@@ -1362,11 +1362,26 @@ function getColumns(board) {
   return getActiveColumns(board);
 }
 
+function loadAgentLeads(agentName) {
+  const all = [];
+  BOARDS.forEach(b => loadLeads(b.id).forEach(l => {
+    if (l.asignado === agentName) all.push({ ...l, _boardId: b.id });
+  }));
+  return all;
+}
+
+function findLeadBoard(leadId) {
+  for (const b of BOARDS) {
+    if (loadLeads(b.id).some(l => l.id === leadId)) return b.id;
+  }
+  return null;
+}
+
 function renderTable() {
   if (!currentBoardId) return;
-  const board = getBoard(currentBoardId);
+  const board = getBoard(currentBoardId) || BOARDS[0];
   const cols  = getColumns(board);
-  const leads = loadLeads(currentBoardId);
+  const leads = currentBoardId === '__agent__' ? [] : loadLeads(currentBoardId);
 
   // header
   const thead = document.getElementById('thead-row');
@@ -1381,9 +1396,11 @@ function renderTable() {
 
 function applyFilters() {
   if (!currentBoardId) return;
-  const board   = getBoard(currentBoardId);
-  const leads   = loadLeads(currentBoardId);
   const session = getSession();
+  const board   = getBoard(currentBoardId) || BOARDS[0];
+  const leads   = currentBoardId === '__agent__'
+    ? loadAgentLeads(session ? session.name : '')
+    : loadLeads(currentBoardId);
   const q       = document.getElementById('search-input').value.toLowerCase();
   const fAsig   = document.getElementById('f-asignado').value;
   const fLead   = document.getElementById('f-lead').value;
@@ -1396,8 +1413,6 @@ function applyFilters() {
   selectedIds.clear();
   updateBulkBar();
   filteredLeads = leads.filter(l => {
-    // agents only see their own leads
-    if (session && session.role === 'agent' && l.asignado !== session.name) return false;
     if (q && ![ l.nombre, l.email, l.telefono ].some(v => (v||'').toLowerCase().includes(q))) return false;
     if (fAsig && l.asignado  !== fAsig) return false;
     if (fLead && l.lead      !== fLead) return false;
@@ -1616,8 +1631,9 @@ function saveLead() {
   const nombre = document.getElementById('f_nombre').value.trim();
   if (!nombre) { showToast('El nombre es requerido','error'); return; }
 
-  const board  = getBoard(currentBoardId);
-  const leads  = loadLeads(currentBoardId);
+  const saveBoardId = (currentBoardId === '__agent__' && editingLeadId) ? findLeadBoard(editingLeadId) : currentBoardId;
+  if (!saveBoardId) return;
+  const leads  = loadLeads(saveBoardId);
   const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
 
   const data = {
@@ -1649,12 +1665,12 @@ function saveLead() {
           merged.asignado = newAgent;
         }
         leads[idx] = merged;
-        saveLeads(currentBoardId, leads);
+        saveLeads(saveBoardId, leads);
         closeModal();
         renderTable();
         showToast('Lead transferido ✓', 'success');
       });
-      return; // wait for modal
+      return;
     }
     leads[idx] = { ...oldLead, ...data };
   } else {
@@ -1663,7 +1679,7 @@ function saveLead() {
     leads.unshift(data);
   }
 
-  saveLeads(currentBoardId, leads);
+  saveLeads(saveBoardId, leads);
   closeModal();
   renderTable();
   showToast(editingLeadId ? 'Lead actualizado ✓' : 'Lead agregado ✓', 'success');
@@ -2307,7 +2323,9 @@ function cancelReassign() {
 }
 
 function saveInlineField(sel, leadId, field) {
-  const leads = loadLeads(currentBoardId);
+  const boardId = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
+  if (!boardId) return;
+  const leads = loadLeads(boardId);
   const lead  = leads.find(l => l.id === leadId);
   if (!lead) return;
 
@@ -2315,7 +2333,7 @@ function saveInlineField(sel, leadId, field) {
     const newAgent = sel.value;
     checkReassign(lead, newAgent, (mode) => {
       applyReassignMode(lead, newAgent, mode);
-      saveLeads(currentBoardId, leads);
+      saveLeads(boardId, leads);
       const span = sel.previousElementSibling;
       const isEmpty = !newAgent;
       span.className = 'inline-display' + (isEmpty ? ' empty-val' : '');
@@ -2325,7 +2343,6 @@ function saveInlineField(sel, leadId, field) {
       sel.style.display = 'none'; span.style.display = '';
       showToast('Lead transferido ✓', 'success');
     });
-    // close dropdown visually while waiting
     sel.style.display = 'none';
     const span2 = sel.previousElementSibling;
     if (span2) span2.style.display = '';
@@ -2333,7 +2350,7 @@ function saveInlineField(sel, leadId, field) {
   }
 
   lead[field] = sel.value;
-  saveLeads(currentBoardId, leads);
+  saveLeads(boardId, leads);
   const span = sel.previousElementSibling;
   const displayVal = sel.value;
   span.className = 'inline-display' + (!displayVal ? ' empty-val' : '');
@@ -2912,6 +2929,7 @@ function doLogout() {
   document.getElementById('sidebar-admin').style.display  = 'none';
   document.getElementById('sidebar-master').style.display = 'none';
   document.getElementById('assign-strip').classList.add('hidden');
+  document.getElementById('board-list').style.display = '';
   document.getElementById('settings-page').classList.remove('visible');
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
@@ -2925,22 +2943,51 @@ function doLogout() {
 }
 
 function initApp(user) {
-  renderSidebar();
-  populateAgentFilter();
-  populateLeadFilter();
   renderTopbarUser(user);
   applyAppName();
-  if (user.role === 'admin' || user.role === 'master') {
-    document.getElementById('sidebar-admin').style.display = 'block';
-    document.getElementById('assign-strip').classList.remove('hidden');
+  if (user.role === 'agent') {
+    // agents: no board navigation, just their leads
+    document.getElementById('board-list').style.display = 'none';
+    const agentFilterWrap = document.getElementById('f-asignado');
+    if (agentFilterWrap) {
+      const fg = agentFilterWrap.closest('.filter-group');
+      if (fg) fg.style.display = 'none';
+    }
+    showAgentView();
+  } else {
+    document.getElementById('board-list').style.display = '';
+    renderSidebar();
+    populateAgentFilter();
+    populateLeadFilter();
+    if (user.role === 'admin' || user.role === 'master') {
+      document.getElementById('sidebar-admin').style.display = 'block';
+      document.getElementById('assign-strip').classList.remove('hidden');
+    }
+    if (user.role === 'master') {
+      document.getElementById('sidebar-master').style.display = 'block';
+    }
+    selectBoard('dallas');
   }
-  if (user.role === 'master') {
-    document.getElementById('sidebar-master').style.display = 'block';
-  }
-  // agents: hide the agent filter (they only see their own leads)
-  const agentFilterWrap = document.getElementById('f-asignado');
-  if (agentFilterWrap) agentFilterWrap.closest('.filter-group') && (agentFilterWrap.closest('.filter-group').style.display = user.role === 'agent' ? 'none' : '');
-  selectBoard('dallas');
+}
+
+function showAgentView() {
+  const session = getSession();
+  currentBoardId = '__agent__';
+  showBoardView();
+  document.getElementById('board-title').textContent = 'Mis Leads';
+  document.getElementById('assign-strip').classList.add('hidden');
+  document.getElementById('btn-new-lead').style.display = 'none';
+  document.getElementById('btn-export').style.display   = '';
+  // build header using default board columns
+  const board = BOARDS[0];
+  const cols  = getColumns(board);
+  const thead = document.getElementById('thead-row');
+  thead.innerHTML = cols.map(c =>
+    c.key === '_check'
+      ? `<th class="th-check" style="width:36px"><input type="checkbox" class="header-checkbox" id="check-all" onchange="toggleSelectAll(this)" /></th>`
+      : `<th style="width:${COL_WIDTHS[c.key]||130}px">${c.label}</th>`
+  ).join('');
+  applyFilters();
 }
 
 function loadAppName() {
