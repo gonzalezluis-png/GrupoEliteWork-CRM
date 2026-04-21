@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Grupo Elite Work — CRM</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -559,6 +560,9 @@
   }
   .login-btn:hover { opacity: .88; }
   .login-error { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; min-height: 18px; }
+  .login-divider { display:flex; align-items:center; gap:10px; margin:16px 0; color:var(--text2); font-size:11px; }
+  .login-divider::before, .login-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+  .login-google-wrap { display:flex; justify-content:center; margin-bottom:4px; }
 
   /* ── TOPBAR USER ── */
   .topbar-user { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
@@ -772,6 +776,8 @@
     </div>
     <button class="login-btn" onclick="doLogin()">Ingresar</button>
     <div class="login-error" id="login-error"></div>
+    <div class="login-divider">o</div>
+    <div class="login-google-wrap" id="google-signin-btn"></div>
     <div id="login-debug" style="display:none;margin-top:14px;padding:10px;background:rgba(0,115,234,.1);border:1px solid var(--accent);border-radius:8px;font-size:11px;color:var(--text2)"></div>
   </div>
 </div>
@@ -2969,6 +2975,11 @@ function deleteBoard(id) {
 const USERS_KEY   = 'gew_users';
 const SESSION_KEY = 'gew_session';
 
+// ── Google OAuth ─────────────────────────────────────────
+// Reemplaza este valor con tu Client ID de Google Cloud Console
+// Ve a: console.cloud.google.com → APIs & Services → Credentials
+const GOOGLE_CLIENT_ID = 'TU_GOOGLE_CLIENT_ID_AQUI';
+
 // Usuario Maestro — hardcoded, no editable ni visible desde UI
 const MASTER_USER = { id: 'master', name: 'Luis González', email: 'gonzalezluis@grupoelitework.com', password: '21241800', role: 'master' };
 
@@ -3060,6 +3071,57 @@ function doLogin() {
     document.getElementById('login-screen').classList.remove('hidden');
     err.textContent = 'Error al cargar la app. Contacta al administrador.';
   }
+}
+
+function handleGoogleSignIn(response) {
+  const err = document.getElementById('login-error');
+  try {
+    // Decode JWT payload (no verification needed — Google already validated it)
+    const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const email   = (payload.email || '').toLowerCase();
+
+    let user = null;
+    if (email === MASTER_USER.email.toLowerCase()) {
+      user = MASTER_USER;
+    } else {
+      user = loadUsers().find(u => u.email.toLowerCase() === email);
+    }
+
+    if (!user) {
+      err.textContent = 'Tu cuenta de Google (' + payload.email + ') no está registrada. Contacta al administrador.';
+      return;
+    }
+
+    err.textContent = '';
+    document.getElementById('login-debug').style.display = 'none';
+    setSession(user);
+    document.getElementById('login-screen').classList.add('hidden');
+    try { initApp(user); } catch(e) {
+      console.error('initApp error:', e);
+      document.getElementById('login-screen').classList.remove('hidden');
+      err.textContent = 'Error al cargar la app. Contacta al administrador.';
+    }
+  } catch(e) {
+    console.error('Google sign-in error:', e);
+    err.textContent = 'Error al iniciar sesión con Google. Intenta de nuevo.';
+  }
+}
+
+function initGoogleSignIn() {
+  if (GOOGLE_CLIENT_ID === 'TU_GOOGLE_CLIENT_ID_AQUI' || !GOOGLE_CLIENT_ID) return;
+  if (typeof google === 'undefined' || !google.accounts) {
+    setTimeout(initGoogleSignIn, 300);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback:  handleGoogleSignIn,
+    auto_select: false,
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('google-signin-btn'),
+    { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular', width: 300, locale: 'es' }
+  );
 }
 
 function doLogout() {
@@ -3789,6 +3851,7 @@ async function loadFromSupabase() {
   } else {
     populateAgentFilter();
     populateLeadFilter();
+    initGoogleSignIn();
   }
 })();
 </script>
