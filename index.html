@@ -936,6 +936,19 @@
   .trash-empty { text-align:center; padding:60px 20px; color:var(--text2); font-size:13px; }
   .trash-empty-icon { font-size:40px; margin-bottom:12px; }
   .trash-count-badge { background:rgba(226,68,92,.15); color:var(--red); font-size:11px; font-weight:700; padding:2px 9px; border-radius:10px; }
+
+  /* ── DELETED USERS HISTORY ── */
+  .del-users-section { margin-top:28px; }
+  .del-users-section-hdr { display:flex; align-items:center; gap:10px; padding:12px 0 10px; border-top:1px solid var(--border); margin-bottom:12px; }
+  .del-users-section-hdr span { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; }
+  .del-users-section-hdr em { font-size:10px; color:var(--gray); font-style:normal; margin-left:auto; }
+  .del-user-card { display:flex; align-items:center; gap:12px; background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:8px; opacity:.7; }
+  .del-user-avatar { width:36px; height:36px; border-radius:50%; background:var(--gray); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; text-decoration:line-through; }
+  .del-user-info { flex:1; min-width:0; }
+  .del-user-name { font-size:13px; font-weight:600; color:var(--text2); text-decoration:line-through; }
+  .del-user-email { font-size:11px; color:var(--gray); margin-top:1px; }
+  .del-user-meta { font-size:10px; color:var(--gray); margin-top:3px; }
+  .del-user-badge { display:inline-block; background:rgba(226,68,92,.12); color:var(--red); font-size:9px; font-weight:700; padding:1px 7px; border-radius:8px; text-transform:uppercase; letter-spacing:.3px; margin-left:6px; }
 </style>
 </head>
 <body>
@@ -2359,7 +2372,17 @@ function confirmDelete() {
 // ════════════════════════════════════════════
 //  TRASH (soft-delete)
 // ════════════════════════════════════════════
-const TRASH_KEY = 'gew_trash_leads';
+const TRASH_KEY        = 'gew_trash_leads';
+const DELETED_USERS_KEY = 'gew_deleted_users';
+
+function loadDeletedUsers() {
+  try { return JSON.parse(localStorage.getItem(DELETED_USERS_KEY)) || []; }
+  catch { return []; }
+}
+async function saveDeletedUsers(users) {
+  localStorage.setItem(DELETED_USERS_KEY, JSON.stringify(users));
+  supaSync(DELETED_USERS_KEY, JSON.stringify(users));
+}
 
 function loadDeletedLeads() {
   try { return JSON.parse(localStorage.getItem(TRASH_KEY)) || []; }
@@ -4182,6 +4205,43 @@ function renderUsersGrid() {
       <li>${orgNode(me, session)}<ul>${branch}</ul></li>
     </ul>`;
   }
+
+  // Append deleted users history
+  _renderDeletedUsersHistory(grid, session);
+}
+
+function _renderDeletedUsersHistory(grid, session) {
+  const allDel = loadDeletedUsers();
+  const visible = session.role === 'master'
+    ? allDel
+    : allDel.filter(u => u.orgAdminId === session.id || u.id === session.id);
+
+  if (visible.length === 0) return;
+
+  const roleLabel = r => ({ master:'Maestro', admin:'Administrador', master_manager:'Master Manager', manager:'Manager', agent:'Agente' }[r] || r);
+  const fmtDate  = iso => iso ? new Date(iso).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+
+  const cards = visible.map(u => {
+    const initials = (u.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    return `<div class="del-user-card">
+      <div class="del-user-avatar">${initials}</div>
+      <div class="del-user-info">
+        <div class="del-user-name">${esc(u.name)}<span class="del-user-badge">Eliminado</span></div>
+        <div class="del-user-email">${esc(u.email)}</div>
+        <div class="del-user-meta">${roleLabel(u.role)} · Eliminado por: ${esc(u._deletedBy||'—')} · ${fmtDate(u._deletedAt)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const section = document.createElement('div');
+  section.className = 'del-users-section';
+  section.innerHTML = `
+    <div class="del-users-section-hdr">
+      <span>Historial de usuarios eliminados</span>
+      <em>${visible.length} registro${visible.length !== 1 ? 's' : ''}</em>
+    </div>
+    ${cards}`;
+  grid.appendChild(section);
 }
 
 function onRolChange() {
@@ -4609,14 +4669,55 @@ async function deleteUser(userId) {
   if (!u) return;
   if (session.role === 'admin' && u.orgAdminId !== session.id) return;
 
+  // Count all leads assigned to this user across all boards
+  const leadCount = BOARDS.reduce((total, b) =>
+    total + loadLeads(b.id).filter(l => l.asignado === u.name).length, 0);
+
+  const leadWarning = leadCount > 0
+    ? `<div style="background:rgba(253,171,61,.08);border:1px solid rgba(253,171,61,.3);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--yellow);line-height:1.7">
+        ⚠️ <strong>Se recomienda mover los recursos antes de eliminar.</strong><br>
+        Este usuario tiene <strong>${leadCount} lead${leadCount !== 1 ? 's' : ''} asignado${leadCount !== 1 ? 's' : ''}</strong>. Al eliminarlo, todos pasarán automáticamente a la carpeta <strong>Eliminados</strong>.<br>
+        <span style="font-size:11px;opacity:.85">Considera reasignarlos a otro agente primero.</span>
+      </div>`
+    : `<div style="background:rgba(0,200,117,.06);border:1px solid rgba(0,200,117,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--green);line-height:1.5">
+        ✓ Este usuario no tiene leads asignados actualmente.
+      </div>`;
+
   requirePasswordForUserAction(
     '🗑 Eliminar Usuario',
-    `Estás a punto de eliminar a <strong>${esc(u.name)}</strong> (${esc(u.email)}).<br>Esta acción <strong>no se puede deshacer</strong>.`,
-    'Eliminar',
+    `${leadWarning}Estás a punto de eliminar a <strong>${esc(u.name)}</strong> (${esc(u.email)}).<br><span style="color:var(--red);font-size:12px">Esta acción <strong>no se puede deshacer</strong>.</span>`,
+    'Eliminar definitivamente',
     async () => {
+      // Soft-delete all leads belonging to this user across all boards
+      if (leadCount > 0) {
+        const trash = loadDeletedLeads();
+        const now   = new Date().toISOString();
+        BOARDS.forEach(b => {
+          const leads   = loadLeads(b.id);
+          const toTrash = leads.filter(l => l.asignado === u.name);
+          if (toTrash.length === 0) return;
+          toTrash.forEach(lead => trash.unshift({
+            ...lead,
+            _deletedAt:         now,
+            _deletedBy:         `${session.name} (usuario eliminado)`,
+            _originalBoardId:   b.id,
+            _originalBoardName: b.name
+          }));
+          saveLeads(b.id, leads.filter(l => l.asignado !== u.name));
+        });
+        await saveDeletedLeads(trash);
+        updateTrashBadge();
+      }
+
+      // Archive user to deleted users history
+      const delUsers = loadDeletedUsers();
+      delUsers.unshift({ ...u, _deletedAt: new Date().toISOString(), _deletedBy: session.name });
+      await saveDeletedUsers(delUsers);
+
+      // Remove from active users
       await saveUsers(loadUsers().filter(x => x.id !== userId));
       renderUsersGrid();
-      showToast('Usuario eliminado', 'error');
+      showToast(`Usuario eliminado${leadCount > 0 ? ` · ${leadCount} lead${leadCount !== 1 ? 's' : ''} movidos a Eliminados` : ''}`, 'error');
     }
   );
 }
