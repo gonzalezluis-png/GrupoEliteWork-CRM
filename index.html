@@ -1312,6 +1312,29 @@
                 </div>
               </div>
             </div>
+            <!-- T&C editor (admin/master only) -->
+            <div class="st-card" id="terms-editor-card" style="display:none">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-icon" style="background:rgba(0,200,117,.12)">📜</div>
+                  <div class="st-card-text">
+                    <div class="st-card-title">Términos y Condiciones</div>
+                    <div class="st-card-desc">Los usuarios deben aceptarlos al iniciar sesión por primera vez.</div>
+                  </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="toggleTermsEdit()"><span id="terms-edit-icon">✏️ Editar</span></button>
+              </div>
+              <div id="terms-edit-section" style="display:none">
+                <div class="st-card-divider"></div>
+                <div class="st-card-body">
+                  <textarea id="terms-textarea" style="width:100%;min-height:220px;resize:vertical;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:12px;font-family:var(--font);font-size:12px;line-height:1.7;outline:none" placeholder="Escribe los términos y condiciones de uso…"></textarea>
+                  <div style="display:flex;gap:8px;margin-top:10px">
+                    <button class="btn btn-primary btn-sm" onclick="saveTerms()">💾 Guardar</button>
+                    <button class="btn btn-secondary btn-sm" onclick="toggleTermsEdit()">Cancelar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- TAB: Boards & Columnas -->
@@ -2059,9 +2082,67 @@
         </div>
       </div>
 
+      <label class="terms-checkbox-row" style="margin-bottom:14px" id="reg-terms-row">
+        <input type="checkbox" id="reg-terms-check" />
+        <span style="font-size:11px;color:var(--text2)">He leído y acepto los <a href="#" onclick="showTermsPreview();return false;" style="color:var(--accent)">Términos y Condiciones</a> de uso.</span>
+      </label>
       <div class="reg-error" id="reg-error"></div>
       <button class="reg-submit-btn" onclick="submitRegisterRequest()">Enviar Solicitud →</button>
       <div class="reg-cancel-link" onclick="closeRegisterForm()">Cancelar</div>
+    </div>
+  </div>
+</div>
+
+<!-- TERMS & CONDITIONS ACCEPTANCE MODAL -->
+<style>
+  #terms-modal-overlay { align-items:center; justify-content:center; z-index:9000; }
+  .terms-modal-card {
+    width:100%; max-width:520px; background:var(--card);
+    border:1px solid var(--border); border-radius:18px;
+    box-shadow:0 40px 100px rgba(0,0,0,.75);
+    display:flex; flex-direction:column; max-height:88vh; overflow:hidden;
+  }
+  .terms-modal-hero {
+    background:linear-gradient(135deg,#0d1f3c 0%,#1a1040 50%,#0a1628 100%);
+    padding:24px 28px 20px; border-radius:18px 18px 0 0;
+    border-bottom:1px solid rgba(255,255,255,.07); flex-shrink:0;
+  }
+  .terms-modal-org { font-size:10px; font-weight:700; letter-spacing:2px; color:var(--accent); margin-bottom:6px; }
+  .terms-modal-title { font-size:18px; font-weight:800; color:#fff; }
+  .terms-modal-sub { font-size:11px; color:rgba(255,255,255,.45); margin-top:4px; }
+  .terms-modal-body { flex:1; overflow-y:auto; padding:20px 28px; }
+  .terms-modal-body::-webkit-scrollbar { width:5px; }
+  .terms-modal-body::-webkit-scrollbar-thumb { background:var(--border); border-radius:10px; }
+  .terms-text { font-size:12px; line-height:1.9; color:var(--text2); white-space:pre-wrap; }
+  .terms-modal-footer { padding:16px 28px 22px; border-top:1px solid var(--border); flex-shrink:0; }
+  .terms-checkbox-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:14px; cursor:pointer; }
+  .terms-checkbox-row input[type=checkbox] { width:16px; height:16px; margin-top:2px; accent-color:var(--accent); flex-shrink:0; cursor:pointer; }
+  .terms-checkbox-row span { font-size:12px; color:var(--text); line-height:1.5; }
+  .terms-accept-btn {
+    width:100%; padding:11px; border-radius:10px; border:none;
+    background:linear-gradient(135deg,var(--accent),#5b3fd1);
+    color:#fff; font-family:var(--font); font-size:14px; font-weight:700;
+    cursor:pointer; transition:opacity .15s; opacity:.45;
+  }
+  .terms-accept-btn.enabled { opacity:1; }
+  .terms-accept-btn.enabled:hover { opacity:.9; }
+</style>
+<div class="overlay" id="terms-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9000;align-items:center;justify-content:center">
+  <div class="terms-modal-card">
+    <div class="terms-modal-hero">
+      <div class="terms-modal-org" id="terms-modal-org"></div>
+      <div class="terms-modal-title">📜 Términos y Condiciones</div>
+      <div class="terms-modal-sub">Lee y acepta los términos antes de continuar</div>
+    </div>
+    <div class="terms-modal-body">
+      <div class="terms-text" id="terms-modal-text"></div>
+    </div>
+    <div class="terms-modal-footer">
+      <label class="terms-checkbox-row">
+        <input type="checkbox" id="terms-accept-check" onchange="onTermsCheckChange()" />
+        <span>He leído y acepto los <strong>Términos y Condiciones</strong> de uso de esta plataforma.</span>
+      </label>
+      <button class="terms-accept-btn" id="terms-accept-btn" onclick="confirmTermsAcceptance()" disabled>Acepto y Continuar →</button>
     </div>
   </div>
 </div>
@@ -4169,6 +4250,10 @@ function showSettingsPage() {
   _populateSettingsStats();
   _renderSettingsProfileCards();
 
+  // T&C editor — admin/master only
+  const termsCard = document.getElementById('terms-editor-card');
+  if (termsCard) termsCard.style.display = isAdminOrMaster ? '' : 'none';
+
   // Board editor — master only
   const boardEditorCard = document.getElementById('board-editor-card');
   if (boardEditorCard) {
@@ -4541,7 +4626,7 @@ const SESSION_KEY = 'gew_session';
 const GOOGLE_CLIENT_ID = '109274524960-a4vfb0q45fa1dqcre2579024plc2jntd.apps.googleusercontent.com';
 
 // Usuario Maestro — hardcoded, no editable ni visible desde UI
-const MASTER_USER = { id: 'master', name: 'Luis González', email: 'gonzalezluis@grupoelitework.com', password: '21241800', role: 'master' };
+const MASTER_USER = { id: 'master', name: 'Luis González', email: 'gonzalezluis@grupoelitework.com', password: '21241800', role: 'master', termsAccepted: true };
 
 function loadUsers() {
   try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; } catch { return []; }
@@ -4627,6 +4712,8 @@ function doLogin() {
   }
   document.getElementById('login-debug').style.display = 'none';
   err.textContent = '';
+  // Show T&C if not yet accepted
+  if (!user.termsAccepted) { showTermsModal(user); return; }
   setSession(user);
   document.getElementById('login-screen').classList.add('hidden');
   try {
@@ -4672,6 +4759,7 @@ function _handleGoogleLogin(response) {
     }
     err.textContent = '';
     document.getElementById('login-debug').style.display = 'none';
+    if (!user.termsAccepted) { showTermsModal(user); return; }
     setSession(user);
     document.getElementById('login-screen').classList.add('hidden');
     try { initApp(user); updatePendingBadge(); updateTrashBadge(); } catch(e) {
@@ -4831,6 +4919,115 @@ function showAgentView() {
 
 function loadAppName() {
   return localStorage.getItem('gew_appname') || 'GRUPO ELITE WORK';
+}
+
+// ════════════════════════════════════════════
+//  TERMS & CONDITIONS
+// ════════════════════════════════════════════
+const TERMS_KEY = 'gew_terms';
+const DEFAULT_TERMS = `TÉRMINOS Y CONDICIONES DE USO
+
+Al acceder y utilizar esta plataforma CRM, usted acepta los siguientes términos:
+
+1. USO AUTORIZADO
+Esta plataforma es de uso exclusivo para el personal autorizado de la organización. Queda prohibido compartir credenciales de acceso con terceros.
+
+2. CONFIDENCIALIDAD
+Toda la información contenida en este sistema, incluyendo datos de leads, clientes y usuarios, es confidencial y propiedad de la organización. Su divulgación no autorizada puede resultar en acciones legales.
+
+3. RESPONSABILIDAD DEL USUARIO
+Cada usuario es responsable de las acciones realizadas con su cuenta. Cualquier uso indebido, modificación o eliminación no autorizada de datos será responsabilidad del usuario.
+
+4. PRIVACIDAD DE DATOS
+La información personal de leads y clientes debe manejarse conforme a las leyes de privacidad aplicables. No está permitido exportar, compartir o utilizar dichos datos fuera del contexto de las actividades de la organización.
+
+5. PROPIEDAD INTELECTUAL
+El contenido, estructura y funcionalidades de esta plataforma son propiedad de la organización. No se permite su reproducción parcial o total sin autorización expresa.
+
+6. MODIFICACIONES
+La organización se reserva el derecho de actualizar estos términos en cualquier momento. El uso continuado de la plataforma implica la aceptación de los términos vigentes.
+
+7. ACEPTACIÓN
+Al marcar la casilla de aceptación, confirma que ha leído, comprendido y acepta cumplir con todos los términos y condiciones aquí descritos.`;
+
+function loadTerms() {
+  return localStorage.getItem(TERMS_KEY) || DEFAULT_TERMS;
+}
+async function saveTermsContent(text) {
+  localStorage.setItem(TERMS_KEY, text);
+  supaSync(TERMS_KEY, text);
+}
+
+function toggleTermsEdit() {
+  const sec  = document.getElementById('terms-edit-section');
+  const icon = document.getElementById('terms-edit-icon');
+  const open = sec.style.display === 'none' || !sec.style.display;
+  if (open) {
+    document.getElementById('terms-textarea').value = loadTerms();
+    sec.style.display  = 'block';
+    icon.textContent   = '✕ Cerrar';
+  } else {
+    sec.style.display  = 'none';
+    icon.textContent   = '✏️ Editar';
+  }
+}
+async function saveTerms() {
+  const text = document.getElementById('terms-textarea').value.trim();
+  if (!text) { showToast('Los términos no pueden estar vacíos', 'error'); return; }
+  await saveTermsContent(text);
+  toggleTermsEdit();
+  showToast('Términos guardados ✓', 'success');
+}
+
+// ── T&C acceptance on login ──
+let _pendingLoginUser = null;
+
+function showTermsModal(user) {
+  _pendingLoginUser = user;
+  const overlay = document.getElementById('terms-modal-overlay');
+  document.getElementById('terms-modal-org').textContent   = loadAppName();
+  document.getElementById('terms-modal-text').textContent  = loadTerms();
+  document.getElementById('terms-accept-check').checked    = false;
+  document.getElementById('terms-accept-btn').disabled     = true;
+  document.getElementById('terms-accept-btn').classList.remove('enabled');
+  overlay.style.display = 'flex';
+}
+function onTermsCheckChange() {
+  const checked = document.getElementById('terms-accept-check').checked;
+  const btn     = document.getElementById('terms-accept-btn');
+  btn.disabled  = !checked;
+  btn.classList.toggle('enabled', checked);
+}
+async function confirmTermsAcceptance() {
+  if (!_pendingLoginUser) return;
+  // Save acceptance on user record
+  if (_pendingLoginUser.role !== 'master') {
+    const users = loadUsers();
+    const idx   = users.findIndex(u => u.id === _pendingLoginUser.id);
+    if (idx !== -1) { users[idx].termsAccepted = true; await saveUsers(users); }
+  }
+  const user = { ..._pendingLoginUser, termsAccepted: true };
+  _pendingLoginUser = null;
+  document.getElementById('terms-modal-overlay').style.display = 'none';
+  setSession(user);
+  document.getElementById('login-screen').classList.add('hidden');
+  try { initApp(user); updatePendingBadge(); updateTrashBadge(); } catch(e) { console.error(e); }
+}
+
+// T&C preview from register form
+function showTermsPreview() {
+  const overlay = document.getElementById('terms-modal-overlay');
+  document.getElementById('terms-modal-org').textContent  = loadAppName();
+  document.getElementById('terms-modal-text').textContent = loadTerms();
+  document.getElementById('terms-accept-check').checked   = false;
+  const btn = document.getElementById('terms-accept-btn');
+  btn.disabled = true; btn.classList.remove('enabled');
+  // Replace button with close for preview context
+  btn.textContent  = 'Cerrar';
+  btn.classList.add('enabled');
+  btn.disabled     = false;
+  btn.onclick      = () => { overlay.style.display = 'none'; btn.textContent = 'Acepto y Continuar →'; btn.onclick = confirmTermsAcceptance; };
+  overlay.style.display = 'flex';
 }
 function applyAppName() {
   document.getElementById('appname-display').textContent = loadAppName();
@@ -5311,11 +5508,13 @@ async function submitRegisterRequest() {
   const state     = document.getElementById('reg-state').value;
   const err       = document.getElementById('reg-error');
 
-  const hasGoogleAuth = !!_googleRegisterPayload;
+  const hasGoogleAuth  = !!_googleRegisterPayload;
+  const termsChecked   = document.getElementById('reg-terms-check')?.checked;
   if (!name)  { err.textContent = 'El nombre es requerido.'; return; }
   if (!email) { err.textContent = 'El email es requerido.'; return; }
   if (!hasGoogleAuth && (!pass || pass.length < 6)) { err.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
   if (hasGoogleAuth && pass && pass.length > 0 && pass.length < 6) { err.textContent = 'Si pones contraseña, debe tener al menos 6 caracteres.'; return; }
+  if (!termsChecked) { err.textContent = 'Debes aceptar los Términos y Condiciones para continuar.'; return; }
 
   // Check not already a user
   if (email === MASTER_USER.email.toLowerCase() || loadUsers().some(u => u.email.toLowerCase() === email)) {
