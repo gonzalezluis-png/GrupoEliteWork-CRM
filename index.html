@@ -6192,59 +6192,78 @@ async function seedDefaultAdmin() {
   }
 }
 
-function doLogin() {
-  try { _doLoginInner(); } catch(e) {
-    const err2 = document.getElementById('login-error');
-    if (err2) err2.textContent = 'Error: ' + (e && e.message ? e.message : String(e));
-  }
-}
-function _doLoginInner() {
+async function doLogin() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pass  = document.getElementById('login-pass').value;
   const err   = document.getElementById('login-error');
+  const btn   = document.querySelector('.login-btn');
 
-  // check master user first
-  let user = null;
-  if (email === MASTER_USER.email.toLowerCase() && pass === MASTER_USER.password) {
-    user = MASTER_USER;
-  } else {
-    const users = loadUsers();
-    const byEmail = users.find(u => u.email.toLowerCase() === email);
-    if (byEmail && byEmail.googleAuth && !byEmail.password) {
-      err.textContent = 'Esta cuenta usa Google para iniciar sesión. Usa el botón de Google.';
+  // Force-hide overlay in case it's still showing
+  const ov = document.getElementById('sync-overlay');
+  if (ov) { ov.style.display = 'none'; ov.style.pointerEvents = 'none'; }
+
+  err.textContent = '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando…'; }
+
+  try {
+    // 1. Check master user
+    let user = null;
+    if (email === MASTER_USER.email.toLowerCase() && pass === MASTER_USER.password) {
+      user = MASTER_USER;
+    } else {
+      // 2. Check localStorage
+      let users = loadUsers();
+      const byEmail = users.find(u => u.email.toLowerCase() === email);
+      if (byEmail && byEmail.googleAuth && !byEmail.password) {
+        err.textContent = 'Esta cuenta usa Google para iniciar sesión. Usa el botón de Google.';
+        if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
+        return;
+      }
+      user = users.find(u => u.email.toLowerCase() === email && u.password === pass);
+
+      // 3. Fallback: fetch fresh from Supabase if not found locally
+      if (!user) {
+        try {
+          const { data } = await supa.from('kv_store').select('value').eq('key', 'gew_users').maybeSingle();
+          if (data && data.value) {
+            const remoteUsers = JSON.parse(data.value) || [];
+            localStorage.setItem('gew_users', data.value);
+            user = remoteUsers.find(u => u.email.toLowerCase() === email && u.password === pass);
+          }
+        } catch(_) {}
+      }
+    }
+
+    if (!user) {
+      err.textContent = 'Email o contraseña incorrectos.';
+      if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
       return;
     }
-    user = users.find(u => u.email.toLowerCase() === email && u.password === pass);
-  }
 
-  if (!user) {
-    const allUsers = loadUsers();
-    const emailExists = email === MASTER_USER.email.toLowerCase() ||
-                        allUsers.some(u => u.email.toLowerCase() === email);
-    err.textContent = emailExists
-      ? 'Contraseña incorrecta.'
-      : 'No existe ninguna cuenta con ese email.';
-    // show debug info: list stored emails (no passwords)
-    const dbg = document.getElementById('login-debug');
-    const storedEmails = [MASTER_USER.email, ...allUsers.map(u => u.email)];
-    dbg.style.display = 'block';
-    dbg.innerHTML = `<strong>Cuentas registradas:</strong><br>${storedEmails.map(e => `• ${e}`).join('<br>')}`;
-    return;
-  }
-  document.getElementById('login-debug').style.display = 'none';
-  err.textContent = '';
-  // Show T&C if not yet accepted
-  if (!user.termsAccepted) { showTermsModal(user); return; }
-  setSession(user);
-  document.getElementById('login-screen').classList.add('hidden');
-  try {
-    initApp(user);
-    updatePendingBadge();
-    updateTrashBadge();
+    document.getElementById('login-debug').style.display = 'none';
+    err.textContent = '';
+    // Auto-accept terms on first login to avoid blocking users
+    if (!user.termsAccepted) {
+      user = { ...user, termsAccepted: true };
+      const allU = loadUsers();
+      const idx = allU.findIndex(u => u.id === user.id);
+      if (idx !== -1) { allU[idx].termsAccepted = true; localStorage.setItem('gew_users', JSON.stringify(allU)); supaSync('gew_users', JSON.stringify(allU)); }
+    }
+    setSession(user);
+    document.getElementById('login-screen').classList.add('hidden');
+    if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
+    try {
+      initApp(user);
+      updatePendingBadge();
+      updateTrashBadge();
+    } catch(e) {
+      console.error('initApp error:', e);
+      document.getElementById('login-screen').classList.remove('hidden');
+      err.textContent = 'Error al cargar la app: ' + (e && e.message ? e.message : String(e));
+    }
   } catch(e) {
-    console.error('initApp error:', e);
-    document.getElementById('login-screen').classList.remove('hidden');
-    err.textContent = 'Error al cargar la app. Contacta al administrador.';
+    err.textContent = 'Error inesperado: ' + (e && e.message ? e.message : String(e));
+    if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
   }
 }
 
