@@ -1063,6 +1063,17 @@
   .del-user-meta { font-size:10px; color:var(--gray); margin-top:3px; }
   .del-user-badge { display:inline-block; background:rgba(226,68,92,.12); color:var(--red); font-size:9px; font-weight:700; padding:1px 7px; border-radius:8px; text-transform:uppercase; letter-spacing:.3px; margin-left:6px; }
 
+  /* ── CITA AGENDADA ROW ANIMATION ── */
+  @keyframes cita-flash {
+    0%   { background:transparent; box-shadow:none; }
+    18%  { background:rgba(0,200,117,.18); box-shadow:inset 0 0 0 1px rgba(0,200,117,.45), 0 0 18px rgba(0,200,117,.15); }
+    45%  { background:rgba(0,200,117,.10); box-shadow:inset 0 0 0 1px rgba(0,200,117,.25); }
+    100% { background:transparent; box-shadow:none; }
+  }
+  tr.cita-anim td {
+    animation: cita-flash 1.1s cubic-bezier(.4,0,.2,1) forwards;
+  }
+
   /* ── ACTIVITY LOG ── */
   .act-entry {
     display:flex; align-items:flex-start; gap:12px;
@@ -4282,6 +4293,15 @@ function saveInlineField(sel, leadId, field) {
   lead[field] = newValue;
   saveLeads(boardId, leads);
   if (spanEl) { spanEl.className = 'inline-display' + (!newValue ? ' empty-val' : ''); spanEl.innerHTML = esc(newValue || '—') + ' <span class="caret">▾</span>'; }
+  if (field === 'resultado' && newValue === 'CITA AGENDADA') {
+    const row = sel.closest('tr');
+    if (row) {
+      row.classList.remove('cita-anim');
+      void row.offsetWidth; // reflow to restart animation
+      row.classList.add('cita-anim');
+      row.addEventListener('animationend', () => row.classList.remove('cita-anim'), { once: true });
+    }
+  }
   showToast('Guardado ✓', 'success');
 }
 
