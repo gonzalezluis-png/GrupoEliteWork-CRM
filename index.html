@@ -2435,6 +2435,79 @@
   </div>
 </div>
 
+<!-- CITA AGENDADA MODAL -->
+<div class="overlay" id="cita-modal-overlay" onclick="if(event.target===this)closeCitaModal()" style="display:none;align-items:center;justify-content:center;z-index:8000">
+  <div id="cita-modal-box" style="
+    background:var(--card); border:1px solid var(--border); border-radius:20px;
+    width:100%; max-width:400px; padding:0; overflow:hidden;
+    box-shadow:0 40px 100px rgba(0,0,0,.7);
+    animation:cita-modal-in .35s cubic-bezier(.34,1.56,.64,1) both;
+  ">
+    <div style="background:linear-gradient(135deg,#0a2a1a 0%,#0d3320 60%,#081f14 100%);padding:22px 24px 18px;border-bottom:1px solid rgba(0,200,117,.15)">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(0,200,117,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📅</div>
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#00c875">¡Cita Agendada!</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px" id="cita-lead-name-label">Registra los detalles de la cita</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+      <div class="field" style="margin:0">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Fecha de la cita</label>
+        <input type="date" id="cita-fecha" style="width:100%" />
+      </div>
+      <div class="field" style="margin:0">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Hora</label>
+        <input type="time" id="cita-hora" style="width:100%" />
+      </div>
+      <div class="field" style="margin:0">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Notas adicionales</label>
+        <textarea id="cita-notas" rows="3" placeholder="Ej: Cliente interesado en plan familiar, llamar antes de confirmar…" style="width:100%;resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-secondary btn-sm" onclick="closeCitaModal()" style="flex:1">Omitir</button>
+        <button onclick="saveCitaDetails()" style="flex:2;padding:9px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#00c875,#00a65e);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">💾 Guardar cita</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CITA CONGRATS OVERLAY -->
+<div id="cita-congrats" style="display:none;position:fixed;inset:0;z-index:9500;pointer-events:none;align-items:center;justify-content:center">
+  <div id="cita-congrats-card" style="
+    background:linear-gradient(135deg,#0a2a1a,#0d3320);
+    border:1px solid rgba(0,200,117,.3); border-radius:20px;
+    padding:32px 40px; text-align:center;
+    box-shadow:0 20px 80px rgba(0,200,117,.25);
+    animation: congrats-pop .45s cubic-bezier(.34,1.56,.64,1) both;
+  ">
+    <div style="font-size:44px;margin-bottom:8px;animation:congrats-bounce .6s .1s cubic-bezier(.34,1.56,.64,1) both">🎉</div>
+    <div style="font-size:20px;font-weight:800;color:#00c875;margin-bottom:4px">¡Felicitaciones!</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.5">Cita agendada con éxito.<br>¡Sigue así, campeón!</div>
+  </div>
+  <canvas id="cita-confetti-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+</div>
+
+<style>
+@keyframes cita-modal-in {
+  from { opacity:0; transform:translateY(20px) scale(.96); }
+  to   { opacity:1; transform:translateY(0)    scale(1);   }
+}
+@keyframes congrats-pop {
+  from { opacity:0; transform:scale(.6); }
+  to   { opacity:1; transform:scale(1);  }
+}
+@keyframes congrats-bounce {
+  0%,100% { transform:scale(1); }
+  40%     { transform:scale(1.35) rotate(-8deg); }
+  70%     { transform:scale(.9)  rotate(5deg);  }
+}
+@keyframes congrats-out {
+  to { opacity:0; transform:scale(.9) translateY(-16px); }
+}
+</style>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -4297,12 +4370,116 @@ function saveInlineField(sel, leadId, field) {
     const row = sel.closest('tr');
     if (row) {
       row.classList.remove('cita-anim');
-      void row.offsetWidth; // reflow to restart animation
+      void row.offsetWidth;
       row.classList.add('cita-anim');
       row.addEventListener('animationend', () => row.classList.remove('cita-anim'), { once: true });
     }
+    openCitaModal(leadId, boardId, lead.nombre || lead.email || '');
+    return;
   }
   showToast('Guardado ✓', 'success');
+}
+
+// ════════════════════════════════════════════
+//  CITA AGENDADA MODAL
+// ════════════════════════════════════════════
+let _citaLeadId = null, _citaBoardId = null;
+
+function openCitaModal(leadId, boardId, leadName) {
+  _citaLeadId  = leadId;
+  _citaBoardId = boardId;
+  const today  = new Date().toISOString().slice(0, 10);
+  document.getElementById('cita-fecha').value = today;
+  document.getElementById('cita-hora').value  = '';
+  document.getElementById('cita-notas').value = '';
+  document.getElementById('cita-lead-name-label').textContent = leadName || 'Registra los detalles de la cita';
+  const ov = document.getElementById('cita-modal-overlay');
+  ov.style.display = 'flex';
+}
+
+function closeCitaModal() {
+  document.getElementById('cita-modal-overlay').style.display = 'none';
+  _citaLeadId = null; _citaBoardId = null;
+  showToast('Cita agendada ✓', 'success');
+}
+
+function saveCitaDetails() {
+  if (!_citaLeadId || !_citaBoardId) { closeCitaModal(); return; }
+  const fecha = document.getElementById('cita-fecha').value;
+  const hora  = document.getElementById('cita-hora').value;
+  const notas = document.getElementById('cita-notas').value.trim();
+  const leads = loadLeads(_citaBoardId);
+  const lead  = leads.find(l => l.id === _citaLeadId);
+  if (lead) {
+    lead.citaFecha = fecha;
+    lead.citaHora  = hora;
+    if (notas) lead.notas = (lead.notas ? lead.notas + '\n\n' : '') + `📅 Cita ${fecha}${hora?' a las '+hora:''}: ${notas}`;
+    saveLeads(_citaBoardId, leads);
+  }
+  document.getElementById('cita-modal-overlay').style.display = 'none';
+  _citaLeadId = null; _citaBoardId = null;
+  showCongratsAnimation();
+}
+
+function showCongratsAnimation() {
+  const el = document.getElementById('cita-congrats');
+  el.style.display = 'flex';
+  launchConfetti();
+  setTimeout(() => {
+    const card = document.getElementById('cita-congrats-card');
+    if (card) card.style.animation = 'congrats-out .4s ease forwards';
+    setTimeout(() => {
+      el.style.display = 'none';
+      if (card) card.style.animation = 'congrats-pop .45s cubic-bezier(.34,1.56,.64,1) both';
+      const canvas = document.getElementById('cita-confetti-canvas');
+      if (canvas) { const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+    }, 420);
+  }, 2800);
+}
+
+function launchConfetti() {
+  const canvas = document.getElementById('cita-confetti-canvas');
+  if (!canvas) return;
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx     = canvas.getContext('2d');
+  const pieces  = Array.from({ length: 90 }, () => ({
+    x:     Math.random() * canvas.width,
+    y:     -10 - Math.random() * 80,
+    r:     Math.random() * 6 + 3,
+    d:     Math.random() * 2 + 1,
+    color: ['#00c875','#0073ea','#fdab3d','#a78bfa','#00b7c3','#fff'][Math.floor(Math.random()*6)],
+    tilt:  Math.random() * 10 - 5,
+    tiltV: Math.random() * .15 + .05,
+    shape: Math.random() > .5 ? 'circle' : 'rect',
+  }));
+  let frame;
+  const draw = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.tilt * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = .85;
+      if (p.shape === 'circle') {
+        ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI*2); ctx.fill();
+      } else {
+        ctx.fillRect(-p.r, -p.r/2, p.r*2, p.r);
+      }
+      ctx.restore();
+      p.y     += p.d + 1.5;
+      p.x     += Math.sin(p.y * .02) * 1.2;
+      p.tilt  += p.tiltV;
+    });
+    if (pieces.some(p => p.y < canvas.height + 20)) {
+      frame = requestAnimationFrame(draw);
+    } else {
+      cancelAnimationFrame(frame);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+  draw();
 }
 
 // ════════════════════════════════════════════
