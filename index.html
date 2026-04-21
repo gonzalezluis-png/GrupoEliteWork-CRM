@@ -2503,7 +2503,11 @@ const MASTER_USER = { id: 'master', name: 'Luis González', email: 'gonzalezluis
 function loadUsers() {
   try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; } catch { return []; }
 }
-function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); supaSync(USERS_KEY, JSON.stringify(users)); }
+async function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  const ok = await supaSync(USERS_KEY, JSON.stringify(users));
+  if (!ok) showToast('Advertencia: no se pudo sincronizar con la nube', 'error');
+}
 function getSession() {
   try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; }
 }
@@ -2537,11 +2541,11 @@ function seedTestLeads() {
   });
 }
 
-function seedDefaultAdmin() {
+async function seedDefaultAdmin() {
   const users = loadUsers();
   if (users.length === 0) {
     users.push({ id: uid(), name: 'Administrador', email: 'admin@grupoelitework.com', password: 'admin123', role: 'admin', createdAt: today() });
-    saveUsers(users);
+    await saveUsers(users);
   }
 }
 
@@ -2831,7 +2835,7 @@ function closeUserModal() {
   editingUserId = null;
 }
 
-function saveUser() {
+async function saveUser() {
   const name    = document.getElementById('u-nombre').value.trim();
   const email   = document.getElementById('u-email').value.trim().toLowerCase();
   const pass    = document.getElementById('u-pass').value;
@@ -2881,21 +2885,20 @@ function saveUser() {
     users.push({ id: uid(), name, email, password: pass, role, orgAdminId, createdAt: today() });
   }
 
-  saveUsers(users);
+  await saveUsers(users);
   closeUserModal();
   showToast(editingUserId ? 'Usuario actualizado ✓' : 'Usuario creado ✓', 'success');
   try { renderUsersGrid(); } catch(e) { console.error('renderUsersGrid error:', e); }
 }
 
-function deleteUser(userId) {
+async function deleteUser(userId) {
   const session = getSession();
   const users   = loadUsers();
   const u       = users.find(x => x.id === userId);
   if (!u) return;
-  // admin can only delete their own agents
   if (session.role === 'admin' && u.orgAdminId !== session.id) return;
   if (!confirm(`¿Eliminar al usuario "${u.name}"?`)) return;
-  saveUsers(users.filter(x => x.id !== userId));
+  await saveUsers(users.filter(x => x.id !== userId));
   renderUsersGrid();
   showToast('Usuario eliminado', 'error');
 }
@@ -2908,9 +2911,15 @@ const SUPA_URL = 'https://vpwbczzmonboirjckpmy.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwd2Jjenptb25ib2lyamNrcG15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MjAwMDUsImV4cCI6MjA5MjI5NjAwNX0._JCs7b6xMKgqskbCAdg6j9nW6UdMfPRPcwScLp9YCZM';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-function supaSync(key, value) {
-  supa.from('kv_store').upsert({ key, value }, { onConflict: 'key' })
-    .then(({ error }) => { if (error) console.error('supaSync error:', key, error.message); });
+async function supaSync(key, value) {
+  try {
+    const { error } = await supa.from('kv_store').upsert({ key, value }, { onConflict: 'key' });
+    if (error) { console.error('supaSync error:', key, error.message); return false; }
+    return true;
+  } catch(e) {
+    console.error('supaSync exception:', key, e);
+    return false;
+  }
 }
 
 async function loadFromSupabase() {
@@ -2918,7 +2927,20 @@ async function loadFromSupabase() {
     const { data, error } = await supa.from('kv_store').select('key, value');
     if (error) { console.error('Supabase load error:', error.message); return; }
     if (data && data.length > 0) {
-      data.forEach(row => localStorage.setItem(row.key, row.value));
+      data.forEach(row => {
+        // For users key: merge — keep whichever has more entries to avoid losing locally-created users
+        if (row.key === USERS_KEY) {
+          try {
+            const remote = JSON.parse(row.value) || [];
+            const local  = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+            const merged = [...remote];
+            local.forEach(lu => { if (!merged.find(ru => ru.id === lu.id)) merged.push(lu); });
+            localStorage.setItem(row.key, JSON.stringify(merged));
+          } catch { localStorage.setItem(row.key, row.value); }
+        } else {
+          localStorage.setItem(row.key, row.value);
+        }
+      });
     }
   } catch(e) {
     console.error('Supabase unreachable:', e);
@@ -2942,7 +2964,7 @@ async function loadFromSupabase() {
 
   syncEl.classList.add('hidden');
 
-  seedDefaultAdmin();
+  await seedDefaultAdmin();
   refreshBoards();
   seedTestLeads();
   const _session = getSession();
