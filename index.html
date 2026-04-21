@@ -766,6 +766,10 @@
       <span id="board-title">Selecciona un board</span>
       <button class="btn btn-primary" id="btn-new-lead" onclick="openModal()">＋ Nuevo Lead</button>
       <button class="btn btn-secondary" id="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
+      <div id="sync-status" title="Estado de sincronización con la nube" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);user-select:none">
+        <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;transition:background .3s"></span>
+        <span id="sync-label">Guardado</span>
+      </div>
       <div class="topbar-user" id="topbar-user"></div>
     </div>
 
@@ -1146,11 +1150,26 @@ function loadLeads(boardId) {
   try { return JSON.parse(localStorage.getItem('gew_leads_' + boardId)) || []; }
   catch { return []; }
 }
-function saveLeads(boardId, leads) {
+function setSyncStatus(state) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (!dot || !lbl) return;
+  if (state === 'saving') {
+    dot.style.background = 'var(--yellow)'; lbl.textContent = 'Guardando…';
+  } else if (state === 'saved') {
+    dot.style.background = 'var(--green)'; lbl.textContent = 'Guardado ☁';
+  } else {
+    dot.style.background = 'var(--red)'; lbl.textContent = 'Error al guardar';
+  }
+}
+
+async function saveLeads(boardId, leads) {
   const key = 'gew_leads_' + boardId;
   localStorage.setItem(key, JSON.stringify(leads));
-  supaSync(key, JSON.stringify(leads));
   updateSidebarCount(boardId);
+  setSyncStatus('saving');
+  const ok = await supaSync(key, JSON.stringify(leads));
+  setSyncStatus(ok ? 'saved' : 'error');
 }
 function allBoards() {
   BOARDS.forEach(b => updateSidebarCount(b.id));
