@@ -1069,8 +1069,8 @@
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">
-      <h1>GRUPO ELITE WORK</h1>
-      <span>CRM · Gestión de Leads</span>
+      <h1 id="login-org-name">GRUPO ELITE WORK</h1>
+      <span style="font-size:10px;color:var(--gray);letter-spacing:.5px">Grupo Elite Developers</span>
     </div>
     <div class="field">
       <label>Email</label>
@@ -5050,6 +5050,8 @@ function saveAppName() {
   if (val) {
     localStorage.setItem('gew_appname', val); supaSync('gew_appname', val);
     document.getElementById('appname-display').textContent = val;
+    const loginOrgEl = document.getElementById('login-org-name');
+    if (loginOrgEl) loginOrgEl.textContent = val;
     showToast('Nombre actualizado ✓', 'success');
     document.getElementById('orgname-edit-section').style.display = 'none';
     document.getElementById('orgname-lock-icon').textContent = '✏️ Editar';
@@ -5943,6 +5945,9 @@ async function loadFromSupabase() {
   await seedDefaultAdmin();
   refreshBoards();
   seedTestLeads();
+  // show org name on login screen
+  const _loginOrgEl = document.getElementById('login-org-name');
+  if (_loginOrgEl) _loginOrgEl.textContent = loadAppName();
   initGoogleSignIn();
   const _session = getSession();
   if (_session) {
