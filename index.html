@@ -3379,8 +3379,21 @@ async function saveNotesResultado() {
   const leads = loadLeads(_notesBoardId);
   const lead  = leads.find(l => l.id === _notesLeadId);
   if (!lead) return;
+  const prev = lead.resultado || '';
+  if (prev === val) return;
   lead.resultado = val;
+  // auto-log the change as a note
+  const session = getSession();
+  const notes = parseNotes(lead._notes);
+  notes.push({
+    text:   `Resultado cambiado: ${prev || 'Sin resultado'} → ${val || 'Sin resultado'}`,
+    author: session ? session.name : 'Usuario',
+    date:   new Date().toISOString(),
+    system: true
+  });
+  lead._notes = JSON.stringify(notes);
   await saveLeads(_notesBoardId, leads);
+  _renderNotesJournal(lead);
   showToast('Resultado guardado ✓', 'success');
 }
 
@@ -3391,7 +3404,13 @@ function _renderNotesJournal(lead) {
     el.innerHTML = `<div style="color:var(--text2);font-size:12px;text-align:center;padding:20px 0">Sin notas aún. Sé el primero en agregar una.</div>`;
     return;
   }
-  el.innerHTML = notes.map(n => `
+  el.innerHTML = notes.map(n => n.system ? `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(0,115,234,.07);border:1px solid rgba(0,115,234,.18);border-radius:6px">
+      <span style="font-size:11px;color:var(--text2)">🔄</span>
+      <span style="font-size:11px;color:var(--text2);flex:1">${esc(n.text)}</span>
+      <span style="font-size:10px;color:var(--gray)">${esc(n.author)} · ${n.date ? formatNoteDate(n.date) : ''}</span>
+    </div>
+  ` : `
     <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
       <div style="font-size:11px;color:var(--text2);margin-bottom:6px;display:flex;gap:8px;align-items:center">
         <strong style="color:var(--accent)">${esc(n.author)}</strong>
