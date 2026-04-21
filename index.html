@@ -4672,6 +4672,10 @@ function doLogout() {
   document.getElementById('login-pass').value  = '';
   document.getElementById('login-error').textContent = '';
   document.getElementById('login-screen').classList.remove('hidden');
+  // re-render Google button so it appears after logout
+  const gsBtn = document.getElementById('google-signin-btn');
+  if (gsBtn) gsBtn.innerHTML = '';
+  initGoogleSignIn();
 }
 
 function initApp(user) {
@@ -5648,6 +5652,7 @@ async function loadFromSupabase() {
   await seedDefaultAdmin();
   refreshBoards();
   seedTestLeads();
+  initGoogleSignIn();
   const _session = getSession();
   if (_session) {
     document.getElementById('login-screen').classList.add('hidden');
@@ -5656,7 +5661,6 @@ async function loadFromSupabase() {
   } else {
     populateAgentFilter();
     populateLeadFilter();
-    initGoogleSignIn();
   }
 })();
 </script>
