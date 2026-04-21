@@ -949,6 +949,45 @@
   .del-user-email { font-size:11px; color:var(--gray); margin-top:1px; }
   .del-user-meta { font-size:10px; color:var(--gray); margin-top:3px; }
   .del-user-badge { display:inline-block; background:rgba(226,68,92,.12); color:var(--red); font-size:9px; font-weight:700; padding:1px 7px; border-radius:8px; text-transform:uppercase; letter-spacing:.3px; margin-left:6px; }
+
+  /* ── SCRIPTS PAGE ── */
+  #scripts-page { display:none; flex:1; overflow:hidden; }
+  #scripts-page.visible { display:flex; }
+  .scripts-layout { display:flex; width:100%; height:100%; overflow:hidden; }
+  .scripts-list-panel { width:250px; min-width:250px; background:var(--sidebar); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+  .scripts-list-hdr { padding:16px 14px 12px; border-bottom:1px solid var(--border); }
+  .scripts-list-hdr-title { font-size:12px; font-weight:700; color:#fff; letter-spacing:.3px; text-transform:uppercase; }
+  .scripts-list-scroll { flex:1; overflow-y:auto; padding:6px; }
+  .script-item { display:flex; align-items:center; gap:8px; padding:9px 10px; border-radius:7px; cursor:pointer; font-size:12px; font-weight:500; color:var(--text2); transition:all .12s; margin-bottom:2px; }
+  .script-item:hover { background:rgba(255,255,255,.06); color:var(--text); }
+  .script-item.active { background:rgba(0,115,234,.14); color:var(--accent); font-weight:600; }
+  .script-item-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .scripts-list-footer { padding:8px; border-top:1px solid var(--border); }
+  .scripts-content { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
+  .scripts-view-hdr { display:flex; align-items:center; gap:10px; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--card2); flex-shrink:0; }
+  .scripts-view-hdr-title { font-size:14px; font-weight:700; color:#fff; flex:1; }
+  .scripts-toolbar { display:flex; align-items:center; gap:2px; padding:6px 12px; border-bottom:1px solid var(--border); background:var(--card2); flex-wrap:wrap; flex-shrink:0; }
+  .stb-btn { min-width:28px; height:28px; padding:0 5px; border:none; background:transparent; color:var(--text2); cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; transition:all .1s; }
+  .stb-btn:hover { background:rgba(255,255,255,.1); color:var(--text); }
+  .stb-sep { width:1px; height:20px; background:var(--border); margin:0 3px; flex-shrink:0; }
+  .stb-sel { background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:5px; padding:0 6px; font-size:11px; height:28px; cursor:pointer; outline:none; }
+  .stb-color { width:26px; height:26px; padding:1px; border:1px solid var(--border); border-radius:5px; background:transparent; cursor:pointer; }
+  .scripts-body { flex:1; overflow-y:auto; padding:36px 56px; }
+  .script-title-inp { width:100%; background:transparent; border:none; border-bottom:2px solid var(--border); color:#fff; font-size:20px; font-weight:700; padding:4px 0 8px; outline:none; margin-bottom:20px; transition:border-color .15s; }
+  .script-title-inp:focus { border-bottom-color:var(--accent); }
+  .script-title-inp::placeholder { color:var(--text2); font-weight:400; }
+  .script-editor { min-height:500px; outline:none; font-size:14px; line-height:1.8; color:var(--text); }
+  .script-editor:focus { outline:none; }
+  .script-editor[contenteditable="false"] { cursor:default; user-select:text; }
+  .script-editor h1 { font-size:22px; font-weight:700; margin:16px 0 8px; color:#fff; }
+  .script-editor h2 { font-size:17px; font-weight:700; margin:14px 0 6px; color:#fff; }
+  .script-editor h3 { font-size:14px; font-weight:700; margin:12px 0 5px; }
+  .script-editor p { margin:0 0 10px; }
+  .script-editor ul, .script-editor ol { padding-left:22px; margin:0 0 10px; }
+  .script-editor li { margin-bottom:3px; }
+  .script-editor blockquote { border-left:3px solid var(--accent); padding-left:14px; color:var(--text2); margin:10px 0; }
+  .scripts-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text2); gap:10px; }
+  .scripts-empty-icon { font-size:42px; opacity:.4; }
 </style>
 </head>
 <body>
@@ -994,6 +1033,9 @@
     </div>
     <div class="sidebar-label">Boards</div>
     <div id="board-list"></div>
+    <div id="sidebar-scripts" style="display:none">
+      <div class="sidebar-item" id="nav-scripts" onclick="showScriptsPage()">📋 <span>Scripts de Llamada</span></div>
+    </div>
     <div class="sidebar-admin" id="sidebar-admin" style="display:none">
       <div class="sidebar-item" id="nav-trash" onclick="showTrashPage()">🗑 <span>Eliminados</span><span id="sidebar-trash-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
@@ -1472,6 +1514,94 @@
         </div>
       </div>
     </div>
+
+    <!-- SCRIPTS PAGE -->
+    <div id="scripts-page">
+      <div class="scripts-layout">
+
+        <!-- Left: script list -->
+        <div class="scripts-list-panel">
+          <div class="scripts-list-hdr">
+            <div class="scripts-list-hdr-title">📋 Scripts de Llamada</div>
+          </div>
+          <div class="scripts-list-scroll" id="scripts-list"></div>
+          <div class="scripts-list-footer" id="scripts-add-wrap" style="display:none">
+            <button class="btn btn-primary btn-sm" style="width:100%" onclick="newScript()">＋ Nuevo Script</button>
+          </div>
+        </div>
+
+        <!-- Right: editor / viewer -->
+        <div class="scripts-content">
+
+          <!-- Admin toolbar (edit mode) -->
+          <div class="scripts-toolbar" id="scripts-toolbar" style="display:none">
+            <select class="stb-sel" id="stb-heading" onchange="stbHeading(this.value)" title="Estilo">
+              <option value="">Párrafo</option>
+              <option value="h1">Título 1</option>
+              <option value="h2">Título 2</option>
+              <option value="h3">Título 3</option>
+            </select>
+            <select class="stb-sel" id="stb-fontsize" onchange="stbExec('fontSize',this.value)" title="Tamaño">
+              <option value="1">Muy pequeño</option>
+              <option value="2">Pequeño</option>
+              <option value="3" selected>Normal</option>
+              <option value="4">Mediano</option>
+              <option value="5">Grande</option>
+              <option value="6">Muy grande</option>
+              <option value="7">Extra grande</option>
+            </select>
+            <div class="stb-sep"></div>
+            <button class="stb-btn" onclick="stbExec('bold')" title="Negrita (Ctrl+B)"><strong>B</strong></button>
+            <button class="stb-btn" onclick="stbExec('italic')" title="Cursiva (Ctrl+I)"><em>I</em></button>
+            <button class="stb-btn" onclick="stbExec('underline')" title="Subrayado (Ctrl+U)"><u>U</u></button>
+            <button class="stb-btn" onclick="stbExec('strikeThrough')" title="Tachado"><s>S</s></button>
+            <div class="stb-sep"></div>
+            <button class="stb-btn" onclick="stbExec('justifyLeft')" title="Izquierda" style="font-size:14px">≡</button>
+            <button class="stb-btn" onclick="stbExec('justifyCenter')" title="Centro" style="font-size:14px">☰</button>
+            <button class="stb-btn" onclick="stbExec('justifyRight')" title="Derecha" style="font-size:14px">≡</button>
+            <button class="stb-btn" onclick="stbExec('justifyFull')" title="Justificado" style="font-size:14px">▤</button>
+            <div class="stb-sep"></div>
+            <button class="stb-btn" onclick="stbExec('insertUnorderedList')" title="Lista con viñetas">• —</button>
+            <button class="stb-btn" onclick="stbExec('insertOrderedList')" title="Lista numerada">1.</button>
+            <button class="stb-btn" onclick="stbExec('indent')" title="Sangría →">⇥</button>
+            <button class="stb-btn" onclick="stbExec('outdent')" title="Quitar sangría ←">⇤</button>
+            <div class="stb-sep"></div>
+            <button class="stb-btn" onclick="stbExec('insertHorizontalRule')" title="Línea divisoria">—</button>
+            <div class="stb-sep"></div>
+            <label title="Color de texto" style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--text2);cursor:pointer">
+              A <input type="color" class="stb-color" id="stb-fcolor" value="#e0e2f0" oninput="stbExec('foreColor',this.value)" title="Color de texto">
+            </label>
+            <label title="Resaltado" style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--text2);cursor:pointer">
+              ◧ <input type="color" class="stb-color" id="stb-bcolor" value="#fdab3d" oninput="stbExec('hiliteColor',this.value)" title="Color de fondo">
+            </label>
+            <div style="flex:1"></div>
+            <button class="btn btn-primary btn-sm" onclick="saveCurrentScript()">💾 Guardar</button>
+            <button class="btn btn-sm" style="background:rgba(226,68,92,.15);color:var(--red);border:1px solid rgba(226,68,92,.3)" onclick="deleteCurrentScript()">🗑 Eliminar</button>
+          </div>
+
+          <!-- Read-only header bar -->
+          <div class="scripts-view-hdr" id="scripts-view-hdr" style="display:none">
+            <div class="scripts-view-hdr-title" id="scripts-view-hdr-title"></div>
+            <span id="scripts-view-mode-label" style="font-size:11px;color:var(--text2);background:var(--border);padding:3px 8px;border-radius:10px"></span>
+          </div>
+
+          <!-- Content area -->
+          <div class="scripts-body" id="scripts-body">
+            <div class="scripts-empty" id="scripts-empty">
+              <div class="scripts-empty-icon">📋</div>
+              <div style="font-size:14px;font-weight:600;color:var(--text2)">Selecciona un script</div>
+              <div style="font-size:12px;color:var(--gray)">Elige uno de la lista izquierda</div>
+            </div>
+            <div id="scripts-editor-wrap" style="display:none">
+              <input type="text" id="script-title-inp" class="script-title-inp" placeholder="Título del script…" />
+              <div id="scripts-editor" class="script-editor" contenteditable="true" spellcheck="true"
+                   onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='s'){event.preventDefault();saveCurrentScript();}"></div>
+            </div>
+          </div>
+
+        </div><!-- /.scripts-content -->
+      </div><!-- /.scripts-layout -->
+    </div><!-- /#scripts-page -->
 
     <!-- USERS PAGE (kept for compatibility but hidden) -->
     <div id="users-page" style="display:none"></div>
@@ -2559,6 +2689,185 @@ async function permanentDeleteLead(leadId) {
   updateTrashBadge();
   renderTrashTable();
   showToast('Lead eliminado permanentemente', 'error');
+}
+
+// ════════════════════════════════════════════
+//  SCRIPTS DE LLAMADA
+// ════════════════════════════════════════════
+const SCRIPTS_KEY = 'gew_scripts';
+
+function loadScripts() {
+  try { return JSON.parse(localStorage.getItem(SCRIPTS_KEY)) || []; }
+  catch { return []; }
+}
+async function saveScripts(scripts) {
+  localStorage.setItem(SCRIPTS_KEY, JSON.stringify(scripts));
+  supaSync(SCRIPTS_KEY, JSON.stringify(scripts));
+}
+
+let _currentScriptId = null;
+
+function getOrgScripts() {
+  const session = getSession();
+  if (!session) return [];
+  const all = loadScripts();
+  if (session.role === 'master') return all;
+  // admin owns org scripts; all other roles in the same org see the same scripts
+  const orgAdminId = session.role === 'admin' ? session.id : (session.orgAdminId || session.id);
+  return all.filter(s => s.orgAdminId === orgAdminId);
+}
+
+function showScriptsPage() {
+  const session = getSession();
+  if (!session) return;
+
+  // hide all other views
+  document.getElementById('settings-page').classList.remove('visible');
+  document.getElementById('trash-page').classList.remove('visible');
+  document.getElementById('table-wrap').style.display   = 'none';
+  document.getElementById('toolbar').style.display      = 'none';
+  document.getElementById('btn-new-lead').style.display = 'none';
+  document.getElementById('btn-export').style.display   = 'none';
+  document.getElementById('assign-strip').classList.add('hidden');
+  document.getElementById('bulk-bar').classList.remove('visible');
+
+  // clear other nav actives
+  document.querySelectorAll('.board-item, .sidebar-item').forEach(el => el.classList.remove('active'));
+  const navScripts = document.getElementById('nav-scripts');
+  if (navScripts) navScripts.classList.add('active');
+
+  document.getElementById('board-title').textContent = 'Scripts de Llamada';
+
+  // show/hide toolbar and add button based on role
+  const canEdit = session.role === 'admin' || session.role === 'master';
+  document.getElementById('scripts-toolbar').style.display   = canEdit ? 'flex' : 'none';
+  document.getElementById('scripts-add-wrap').style.display  = canEdit ? ''     : 'none';
+
+  document.getElementById('scripts-page').classList.add('visible');
+  currentBoardId = null;
+  _currentScriptId = null;
+
+  renderScriptsList();
+  // show empty state by default
+  _showScriptsEmpty();
+}
+
+function _showScriptsEmpty() {
+  document.getElementById('scripts-view-hdr').style.display = 'none';
+  document.getElementById('scripts-editor-wrap').style.display = 'none';
+  document.getElementById('scripts-empty').style.display = '';
+}
+
+function renderScriptsList() {
+  const scripts = getOrgScripts();
+  const list    = document.getElementById('scripts-list');
+  if (!list) return;
+  if (scripts.length === 0) {
+    list.innerHTML = '<div style="padding:14px 10px;color:var(--text2);font-size:11px;text-align:center">Sin scripts aún</div>';
+    return;
+  }
+  list.innerHTML = scripts.map(s => `
+    <div class="script-item ${s.id === _currentScriptId ? 'active' : ''}" onclick="selectScript('${s.id}')">
+      <span class="script-item-icon">📄</span>
+      <span class="script-item-name">${esc(s.title || 'Sin título')}</span>
+    </div>
+  `).join('');
+}
+
+function selectScript(id) {
+  const session = getSession();
+  const scripts = getOrgScripts();
+  const script  = scripts.find(s => s.id === id);
+  if (!script) return;
+
+  _currentScriptId = id;
+  renderScriptsList();
+
+  const canEdit = session && (session.role === 'admin' || session.role === 'master');
+
+  // populate fields
+  document.getElementById('script-title-inp').value = script.title || '';
+  document.getElementById('scripts-editor').innerHTML = script.body || '';
+
+  // toggle edit vs read-only
+  document.getElementById('script-title-inp').readOnly = !canEdit;
+  document.getElementById('scripts-editor').contentEditable = canEdit ? 'true' : 'false';
+  document.getElementById('scripts-toolbar').style.display  = canEdit ? 'flex' : 'none';
+
+  // show header bar with role label
+  const hdr = document.getElementById('scripts-view-hdr');
+  hdr.style.display = '';
+  document.getElementById('scripts-view-hdr-title').textContent = script.title || 'Sin título';
+  document.getElementById('scripts-view-mode-label').textContent = canEdit ? '✏️ Editando' : '👁 Solo lectura';
+
+  document.getElementById('scripts-editor-wrap').style.display = '';
+  document.getElementById('scripts-empty').style.display = 'none';
+}
+
+function newScript() {
+  const session = getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'master')) return;
+  const orgAdminId = session.role === 'admin' ? session.id : (session.orgAdminId || session.id);
+  const script = {
+    id:         'sc_' + Date.now() + Math.random().toString(36).slice(2,7),
+    orgAdminId,
+    title:      'Nuevo Script',
+    body:       '',
+    createdAt:  new Date().toISOString(),
+    updatedAt:  new Date().toISOString()
+  };
+  const all = loadScripts();
+  all.unshift(script);
+  saveScripts(all);
+  _currentScriptId = script.id;
+  renderScriptsList();
+  selectScript(script.id);
+  setTimeout(() => {
+    const inp = document.getElementById('script-title-inp');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 50);
+}
+
+async function saveCurrentScript() {
+  if (!_currentScriptId) return;
+  const title = document.getElementById('script-title-inp').value.trim() || 'Sin título';
+  const body  = document.getElementById('scripts-editor').innerHTML;
+  const all   = loadScripts();
+  const idx   = all.findIndex(s => s.id === _currentScriptId);
+  if (idx === -1) return;
+  all[idx].title     = title;
+  all[idx].body      = body;
+  all[idx].updatedAt = new Date().toISOString();
+  await saveScripts(all);
+  document.getElementById('scripts-view-hdr-title').textContent = title;
+  renderScriptsList();
+  showToast('Script guardado ✓', 'success');
+}
+
+async function deleteCurrentScript() {
+  if (!_currentScriptId) return;
+  if (!confirm('¿Eliminar este script? Esta acción no se puede deshacer.')) return;
+  const all     = loadScripts().filter(s => s.id !== _currentScriptId);
+  await saveScripts(all);
+  _currentScriptId = null;
+  renderScriptsList();
+  _showScriptsEmpty();
+  showToast('Script eliminado', 'error');
+}
+
+function stbExec(cmd, value) {
+  document.getElementById('scripts-editor').focus();
+  document.execCommand(cmd, false, value || null);
+}
+
+function stbHeading(value) {
+  document.getElementById('scripts-editor').focus();
+  if (!value) {
+    document.execCommand('formatBlock', false, 'p');
+  } else {
+    document.execCommand('formatBlock', false, value);
+  }
+  document.getElementById('stb-heading').value = value;
 }
 
 // ════════════════════════════════════════════
@@ -3987,8 +4296,10 @@ function initGoogleRegisterButton() {
 function doLogout() {
   clearSession();
   // reset all UI state so the next user logs in clean
-  document.getElementById('sidebar-admin').style.display  = 'none';
-  document.getElementById('sidebar-master').style.display = 'none';
+  document.getElementById('sidebar-admin').style.display   = 'none';
+  document.getElementById('sidebar-master').style.display  = 'none';
+  document.getElementById('sidebar-scripts').style.display = 'none';
+  document.getElementById('scripts-page').classList.remove('visible');
   document.getElementById('assign-strip').classList.add('hidden');
   document.getElementById('sidebar').style.display = '';
   const agBanner = document.getElementById('agent-org-banner');
@@ -4030,6 +4341,8 @@ function initApp(user) {
       document.getElementById('sidebar-admin').style.display = 'none';
       document.getElementById('assign-strip').classList.add('hidden');
     }
+    // All non-agent roles see Scripts de Llamada
+    document.getElementById('sidebar-scripts').style.display = 'block';
     if (user.role === 'master') {
       document.getElementById('sidebar-master').style.display = 'block';
     }
@@ -4119,6 +4432,7 @@ function showUsersPage() {
 function showBoardView() {
   document.getElementById('settings-page').classList.remove('visible');
   document.getElementById('trash-page').classList.remove('visible');
+  document.getElementById('scripts-page').classList.remove('visible');
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
   document.getElementById('btn-new-lead').style.display = '';
