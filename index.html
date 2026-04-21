@@ -4445,11 +4445,7 @@ function initApp(user) {
   document.getElementById('btn-scripts-panel').style.display = 'inline-flex';
   if (user.role === 'agent') {
     document.getElementById('sidebar').style.display = 'none';
-    const agentFilterWrap = document.getElementById('f-asignado');
-    if (agentFilterWrap) {
-      const fg = agentFilterWrap.closest('.filter-group');
-      if (fg) fg.style.display = 'none';
-    }
+    document.getElementById('f-asignado').style.display = 'none';
     showAgentView();
   } else {
     document.getElementById('sidebar').style.display = '';
