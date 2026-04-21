@@ -1928,9 +1928,40 @@
         <label>Contraseña <span id="reg-pass-note" style="font-weight:400;color:var(--text2)">(opcional si usas Google)</span></label>
         <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" />
       </div>
-      <div class="field">
-        <label>Mensaje (opcional)</label>
-        <textarea id="reg-msg" placeholder="¿Por qué necesitas acceso?" style="width:100%;min-height:70px;resize:vertical;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"></textarea>
+      <div style="display:flex;gap:10px">
+        <div class="field" style="flex:1;margin-bottom:12px">
+          <label>Número de Agente</label>
+          <input type="text" id="reg-agent-num" placeholder="Ej: A-1042" />
+        </div>
+        <div class="field" style="flex:1;margin-bottom:12px">
+          <label>Teléfono</label>
+          <input type="tel" id="reg-phone" placeholder="(555) 000-0000" />
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div class="field" style="flex:1;margin-bottom:12px">
+          <label>Ciudad</label>
+          <input type="text" id="reg-city" placeholder="Tu ciudad" />
+        </div>
+        <div class="field" style="flex:1;margin-bottom:12px">
+          <label>Estado</label>
+          <select id="reg-state" style="width:100%">
+            <option value="">— Selecciona —</option>
+            <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+            <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+            <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+            <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+            <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+            <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+            <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+            <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+            <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+            <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+            <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
+            <option>Wisconsin</option><option>Wyoming</option>
+          </select>
+        </div>
       </div>
       <div id="reg-error" style="color:var(--red);font-size:12px;min-height:18px"></div>
     </div>
@@ -5151,7 +5182,10 @@ function openRegisterForm() {
   document.getElementById('reg-name').value        = '';
   document.getElementById('reg-email').value       = '';
   document.getElementById('reg-pass').value        = '';
-  document.getElementById('reg-msg').value         = '';
+  document.getElementById('reg-agent-num').value   = '';
+  document.getElementById('reg-phone').value       = '';
+  document.getElementById('reg-city').value        = '';
+  document.getElementById('reg-state').value       = '';
   document.getElementById('reg-error').textContent = '';
   document.getElementById('reg-name').readOnly     = false;
   document.getElementById('reg-email').readOnly    = false;
@@ -5167,11 +5201,14 @@ function closeRegisterForm() {
 }
 
 async function submitRegisterRequest() {
-  const name  = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim().toLowerCase();
-  const pass  = document.getElementById('reg-pass').value;
-  const msg   = document.getElementById('reg-msg').value.trim();
-  const err   = document.getElementById('reg-error');
+  const name      = document.getElementById('reg-name').value.trim();
+  const email     = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass      = document.getElementById('reg-pass').value;
+  const agentNum  = document.getElementById('reg-agent-num').value.trim();
+  const phone     = document.getElementById('reg-phone').value.trim();
+  const city      = document.getElementById('reg-city').value.trim();
+  const state     = document.getElementById('reg-state').value;
+  const err       = document.getElementById('reg-error');
 
   const hasGoogleAuth = !!_googleRegisterPayload;
   if (!name)  { err.textContent = 'El nombre es requerido.'; return; }
@@ -5190,7 +5227,7 @@ async function submitRegisterRequest() {
     return;
   }
 
-  pending.push({ id: uid(), name, email, password: pass || null, googleAuth: hasGoogleAuth, message: msg, requestedAt: new Date().toISOString() });
+  pending.push({ id: uid(), name, email, password: pass || null, googleAuth: hasGoogleAuth, agentNum, phone, city, state, requestedAt: new Date().toISOString() });
   await savePendingUsers(pending);
   closeRegisterForm();
   showToast('¡Solicitud enviada! Un administrador la revisará pronto.', 'success');
@@ -5219,7 +5256,11 @@ function renderPendingList() {
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:700;color:#fff">${esc(u.name)} ${u.googleAuth ? '<span style="font-size:10px;background:rgba(0,200,117,.15);color:var(--green);padding:1px 7px;border-radius:8px;font-weight:600">Google</span>' : ''}</div>
         <div style="font-size:11px;color:var(--text2)">${esc(u.email)}</div>
-        ${u.message ? `<div style="font-size:11px;color:var(--text2);margin-top:3px;font-style:italic">"${esc(u.message)}"</div>` : ''}
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;display:flex;flex-wrap:wrap;gap:8px">
+          ${u.agentNum ? `<span>🪪 ${esc(u.agentNum)}</span>` : ''}
+          ${u.phone    ? `<span>📞 ${esc(u.phone)}</span>`    : ''}
+          ${u.city || u.state ? `<span>📍 ${esc([u.city, u.state].filter(Boolean).join(', '))}</span>` : ''}
+        </div>
         <div style="font-size:10px;color:var(--gray);margin-top:2px">${new Date(u.requestedAt).toLocaleString('es')}</div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0">
@@ -5236,7 +5277,10 @@ function openApproveModal(pendingId) {
   if (!u) return;
   _approvingId = pendingId;
   document.getElementById('approve-user-info').innerHTML =
-    `<strong>${esc(u.name)}</strong> &middot; ${esc(u.email)}${u.message ? `<br><span style="color:var(--text2)">"${esc(u.message)}"</span>` : ''}`;
+    `<strong>${esc(u.name)}</strong> &middot; ${esc(u.email)}
+     ${u.agentNum ? `<br>🪪 Agente: ${esc(u.agentNum)}` : ''}
+     ${u.phone    ? `<br>📞 ${esc(u.phone)}` : ''}
+     ${(u.city||u.state) ? `<br>📍 ${esc([u.city,u.state].filter(Boolean).join(', '))}` : ''}`;
   document.getElementById('approve-rol').value = 'agent';
   onApproveRolChange();
   document.getElementById('approve-overlay').classList.add('open');
