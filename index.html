@@ -1239,14 +1239,19 @@
 </div>
 
 <!-- REGISTER REQUEST MODAL -->
-<div class="overlay" id="register-overlay" onclick="if(event.target===this)closeRegisterForm()">
+<div class="overlay" id="register-overlay" style="z-index:6000" onclick="if(event.target===this)closeRegisterForm()">
   <div class="modal" style="max-width:440px">
     <div class="modal-header">
       <h2>Solicitar Acceso</h2>
       <button class="modal-close" onclick="closeRegisterForm()">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">Completa el formulario. Un administrador revisará tu solicitud y te dará acceso.</p>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Completa el formulario. Un administrador revisará tu solicitud y te dará acceso.</p>
+      <div style="display:flex;justify-content:center;margin-bottom:12px" id="google-register-btn"></div>
+      <div id="reg-google-info" style="display:none;background:rgba(0,200,117,.08);border:1px solid rgba(0,200,117,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--green);margin-bottom:12px">
+        ✓ Cuenta Google conectada — iniciarás sesión con Google
+      </div>
+      <div class="login-divider" id="reg-divider">o llena manualmente</div>
       <div class="field">
         <label>Nombre completo</label>
         <input type="text" id="reg-name" placeholder="Tu nombre completo" />
@@ -1255,8 +1260,8 @@
         <label>Email</label>
         <input type="email" id="reg-email" placeholder="correo@ejemplo.com" />
       </div>
-      <div class="field">
-        <label>Contraseña</label>
+      <div class="field" id="reg-pass-wrap">
+        <label>Contraseña <span id="reg-pass-note" style="font-weight:400;color:var(--text2)">(opcional si usas Google)</span></label>
         <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" />
       </div>
       <div class="field">
@@ -3127,6 +3132,11 @@ function doLogin() {
     user = MASTER_USER;
   } else {
     const users = loadUsers();
+    const byEmail = users.find(u => u.email.toLowerCase() === email);
+    if (byEmail && byEmail.googleAuth && !byEmail.password) {
+      err.textContent = 'Esta cuenta usa Google para iniciar sesión. Usa el botón de Google.';
+      return;
+    }
     user = users.find(u => u.email.toLowerCase() === email && u.password === pass);
   }
 
@@ -3158,25 +3168,36 @@ function doLogin() {
   }
 }
 
-function handleGoogleSignIn(response) {
+let _googleRegisterMode = false;
+let _googleRegisterPayload = null;
+
+function _decodeGoogleJwt(credential) {
+  return JSON.parse(atob(credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+}
+
+function handleGoogleCallback(response) {
+  if (_googleRegisterMode) {
+    _handleGoogleRegisterFill(response);
+  } else {
+    _handleGoogleLogin(response);
+  }
+}
+
+function _handleGoogleLogin(response) {
   const err = document.getElementById('login-error');
   try {
-    // Decode JWT payload (no verification needed — Google already validated it)
-    const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const payload = _decodeGoogleJwt(response.credential);
     const email   = (payload.email || '').toLowerCase();
-
     let user = null;
     if (email === MASTER_USER.email.toLowerCase()) {
       user = MASTER_USER;
     } else {
       user = loadUsers().find(u => u.email.toLowerCase() === email);
     }
-
     if (!user) {
-      err.textContent = 'Tu cuenta de Google (' + payload.email + ') no está registrada. Contacta al administrador.';
+      err.textContent = 'Tu cuenta de Google (' + payload.email + ') no está registrada. Usa el enlace de abajo para solicitar acceso.';
       return;
     }
-
     err.textContent = '';
     document.getElementById('login-debug').style.display = 'none';
     setSession(user);
@@ -3192,21 +3213,56 @@ function handleGoogleSignIn(response) {
   }
 }
 
+function _handleGoogleRegisterFill(response) {
+  try {
+    const payload = _decodeGoogleJwt(response.credential);
+    _googleRegisterPayload = payload;
+    document.getElementById('reg-name').value  = payload.name  || '';
+    document.getElementById('reg-email').value = payload.email || '';
+    document.getElementById('reg-email').readOnly = true;
+    document.getElementById('reg-name').readOnly  = true;
+    document.getElementById('reg-google-info').style.display = '';
+    document.getElementById('reg-pass').placeholder = 'Opcional (ya usas Google)';
+    document.getElementById('reg-error').textContent = '';
+  } catch(e) {
+    console.error('Google register error:', e);
+  } finally {
+    _googleRegisterMode = false;
+  }
+}
+
 function initGoogleSignIn() {
-  if (GOOGLE_CLIENT_ID === 'TU_GOOGLE_CLIENT_ID_AQUI' || !GOOGLE_CLIENT_ID) return;
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'TU_GOOGLE_CLIENT_ID_AQUI') return;
   if (typeof google === 'undefined' || !google.accounts) {
     setTimeout(initGoogleSignIn, 300);
     return;
   }
   google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback:  handleGoogleSignIn,
+    client_id:   GOOGLE_CLIENT_ID,
+    callback:    handleGoogleCallback,
     auto_select: false,
   });
   google.accounts.id.renderButton(
     document.getElementById('google-signin-btn'),
     { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular', width: 300, locale: 'es' }
   );
+}
+
+function initGoogleRegisterButton() {
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'TU_GOOGLE_CLIENT_ID_AQUI') {
+    document.getElementById('google-register-btn').style.display = 'none';
+    document.getElementById('reg-divider').textContent = '';
+    return;
+  }
+  if (typeof google === 'undefined' || !google.accounts) { setTimeout(initGoogleRegisterButton, 300); return; }
+  google.accounts.id.renderButton(
+    document.getElementById('google-register-btn'),
+    { theme: 'filled_black', size: 'large', text: 'signup_with', shape: 'rectangular', width: 300, locale: 'es' }
+  );
+  // Override the button click to set register mode first
+  document.getElementById('google-register-btn').addEventListener('click', () => {
+    _googleRegisterMode = true;
+  }, true);
 }
 
 function doLogout() {
@@ -3693,14 +3749,23 @@ async function savePendingUsers(list) {
 }
 
 function openRegisterForm() {
-  document.getElementById('reg-name').value  = '';
-  document.getElementById('reg-email').value = '';
-  document.getElementById('reg-pass').value  = '';
-  document.getElementById('reg-msg').value   = '';
+  _googleRegisterMode    = false;
+  _googleRegisterPayload = null;
+  document.getElementById('reg-name').value        = '';
+  document.getElementById('reg-email').value       = '';
+  document.getElementById('reg-pass').value        = '';
+  document.getElementById('reg-msg').value         = '';
   document.getElementById('reg-error').textContent = '';
+  document.getElementById('reg-name').readOnly     = false;
+  document.getElementById('reg-email').readOnly    = false;
+  document.getElementById('reg-google-info').style.display = 'none';
+  document.getElementById('reg-pass').placeholder  = 'Mínimo 6 caracteres';
   document.getElementById('register-overlay').classList.add('open');
+  initGoogleRegisterButton();
 }
 function closeRegisterForm() {
+  _googleRegisterMode    = false;
+  _googleRegisterPayload = null;
   document.getElementById('register-overlay').classList.remove('open');
 }
 
@@ -3711,9 +3776,11 @@ async function submitRegisterRequest() {
   const msg   = document.getElementById('reg-msg').value.trim();
   const err   = document.getElementById('reg-error');
 
-  if (!name)              { err.textContent = 'El nombre es requerido.'; return; }
-  if (!email)             { err.textContent = 'El email es requerido.'; return; }
-  if (!pass || pass.length < 6) { err.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+  const hasGoogleAuth = !!_googleRegisterPayload;
+  if (!name)  { err.textContent = 'El nombre es requerido.'; return; }
+  if (!email) { err.textContent = 'El email es requerido.'; return; }
+  if (!hasGoogleAuth && (!pass || pass.length < 6)) { err.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+  if (hasGoogleAuth && pass && pass.length > 0 && pass.length < 6) { err.textContent = 'Si pones contraseña, debe tener al menos 6 caracteres.'; return; }
 
   // Check not already a user
   if (email === MASTER_USER.email.toLowerCase() || loadUsers().some(u => u.email.toLowerCase() === email)) {
@@ -3726,7 +3793,7 @@ async function submitRegisterRequest() {
     return;
   }
 
-  pending.push({ id: uid(), name, email, password: pass, message: msg, requestedAt: new Date().toISOString() });
+  pending.push({ id: uid(), name, email, password: pass || null, googleAuth: hasGoogleAuth, message: msg, requestedAt: new Date().toISOString() });
   await savePendingUsers(pending);
   closeRegisterForm();
   showToast('¡Solicitud enviada! Un administrador la revisará pronto.', 'success');
@@ -3755,7 +3822,7 @@ function renderPendingList() {
     <div style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
       <div style="width:36px;height:36px;border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#1a1a1a;flex-shrink:0">${esc(u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase())}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;color:#fff">${esc(u.name)}</div>
+        <div style="font-size:13px;font-weight:700;color:#fff">${esc(u.name)} ${u.googleAuth ? '<span style="font-size:10px;background:rgba(0,200,117,.15);color:var(--green);padding:1px 7px;border-radius:8px;font-weight:600">Google</span>' : ''}</div>
         <div style="font-size:11px;color:var(--text2)">${esc(u.email)}</div>
         ${u.message ? `<div style="font-size:11px;color:var(--text2);margin-top:3px;font-style:italic">"${esc(u.message)}"</div>` : ''}
         <div style="font-size:10px;color:var(--gray);margin-top:2px">${new Date(u.requestedAt).toLocaleString('es')}</div>
@@ -3827,7 +3894,7 @@ async function approveRequest() {
   if (users.some(x => x.email.toLowerCase() === u.email.toLowerCase())) {
     showToast('Ese email ya tiene una cuenta activa.', 'error'); return;
   }
-  users.push({ id: uid(), name: u.name, email: u.email, password: u.password, role, orgAdminId, orgMasterManagerId, orgManagerId, createdAt: today() });
+  users.push({ id: uid(), name: u.name, email: u.email, password: u.password || null, googleAuth: u.googleAuth || false, role, orgAdminId, orgMasterManagerId, orgManagerId, createdAt: today() });
   await saveUsers(users);
 
   const remaining = loadPendingUsers().filter(x => x.id !== _approvingId);
