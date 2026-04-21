@@ -3013,16 +3013,20 @@ function updateBulkBar() {
   // populate ubicacion options for current board
   const board = getBoard(currentBoardId);
   const ubSel = document.getElementById('bulk-ubicacion');
-  const ubOpts = board.ubicaciones.length > 0
-    ? board.ubicaciones
-    : BOARDS.flatMap(b2 => b2.ubicaciones).filter((x,i,a) => a.indexOf(x)===i);
-  ubSel.innerHTML = '<option value="">— Sin cambio —</option>' +
-    ubOpts.map(u => `<option value="${esc(u)}">${u}</option>`).join('');
+  if (ubSel && board) {
+    const ubOpts = board.ubicaciones && board.ubicaciones.length > 0
+      ? board.ubicaciones
+      : BOARDS.flatMap(b2 => b2.ubicaciones).filter((x,i,a) => a.indexOf(x)===i);
+    ubSel.innerHTML = '<option value="">— Sin cambio —</option>' +
+      ubOpts.map(u => `<option value="${esc(u)}">${u}</option>`).join('');
+  }
 
   // populate asignado
   const agSel = document.getElementById('bulk-asignado');
-  agSel.innerHTML = '<option value="">— Sin cambio —</option>' +
-    getAgents().map(a => `<option value="${esc(a)}">${a}</option>`).join('');
+  if (agSel) {
+    agSel.innerHTML = '<option value="">— Sin cambio —</option>' +
+      getAgents().map(a => `<option value="${esc(a)}">${a}</option>`).join('');
+  }
 }
 
 function applyBulkEdit() {
@@ -3035,34 +3039,38 @@ function applyBulkEdit() {
     showToast('Selecciona al menos un campo a editar', 'error'); return;
   }
 
-  const leads = loadLeads(currentBoardId);
-  const toReassign = asignado ? leads.filter(l => selectedIds.has(l.id) && l.asignado && l.asignado !== asignado) : [];
+  // Snapshot selected IDs immediately so re-renders don't wipe them
+  const snapshotIds = new Set(selectedIds);
+  const boardId     = currentBoardId;
+  const leads       = loadLeads(boardId);
+  const reassignSet = new Set(
+    asignado
+      ? leads.filter(l => snapshotIds.has(l.id) && l.asignado && l.asignado !== asignado).map(l => l.id)
+      : []
+  );
 
   const doApply = (mode) => {
     let changed = 0;
     leads.forEach(l => {
-      if (!selectedIds.has(l.id)) return;
-      if (asignado) {
-        applyReassignMode(l, asignado, (toReassign.find(r => r.id === l.id) ? mode : 'full'));
-      }
+      if (!snapshotIds.has(l.id)) return;
+      if (asignado) applyReassignMode(l, asignado, reassignSet.has(l.id) ? mode : 'full');
       if (ubicacion) l.ubicacion = ubicacion;
       if (resultado) l.resultado = resultado;
       changed++;
     });
-    saveLeads(currentBoardId, leads);
+    saveLeads(boardId, leads);
     clearSelection();
     renderTable();
     showToast(`${changed} lead${changed !== 1 ? 's' : ''} actualizados ✓`, 'success');
   };
 
-  if (toReassign.length > 0) {
-    const firstOld = toReassign[0].asignado;
+  if (reassignSet.size > 0) {
     _reassignPending = {
-      lead: { asignado: `${toReassign.length} lead(s) con agente previo` },
+      lead: { asignado: `${reassignSet.size} lead(s) con agente previo` },
       newAgent: asignado,
       onConfirm: doApply
     };
-    document.getElementById('reassign-old-name').textContent = `${toReassign.length} lead(s) ya asignados`;
+    document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
     document.getElementById('reassign-new-name').textContent = asignado;
     document.getElementById('reassign-modal-overlay').classList.add('open');
   } else {
