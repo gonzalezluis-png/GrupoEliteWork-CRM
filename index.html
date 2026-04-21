@@ -1138,7 +1138,7 @@ function getAgents() {
   if (session && session.role === 'admin') {
     agents = agents.filter(u => u.orgAdminId === session.id);
   }
-  return agents.map(u => u.name).concat(['Sin asignar']);
+  return agents.map(u => u.name);
 }
 // legacy alias used in some places — replaced dynamically below
 const AGENTS = [];
@@ -1340,21 +1340,23 @@ function renderTable() {
 
 function applyFilters() {
   if (!currentBoardId) return;
-  const board  = getBoard(currentBoardId);
-  const leads  = loadLeads(currentBoardId);
-  const q      = document.getElementById('search-input').value.toLowerCase();
-  const fAsig  = document.getElementById('f-asignado').value;
-  const fLead  = document.getElementById('f-lead').value;
-  const fRes   = document.getElementById('f-resultado').value;
-  const fDesde = document.getElementById('f-fecha-desde').value;
-  const fHasta = document.getElementById('f-fecha-hasta').value;
-  // show/hide clear button
+  const board   = getBoard(currentBoardId);
+  const leads   = loadLeads(currentBoardId);
+  const session = getSession();
+  const q       = document.getElementById('search-input').value.toLowerCase();
+  const fAsig   = document.getElementById('f-asignado').value;
+  const fLead   = document.getElementById('f-lead').value;
+  const fRes    = document.getElementById('f-resultado').value;
+  const fDesde  = document.getElementById('f-fecha-desde').value;
+  const fHasta  = document.getElementById('f-fecha-hasta').value;
   const clearBtn = document.getElementById('btn-clear-dates');
   if (clearBtn) clearBtn.classList.toggle('visible', !!(fDesde || fHasta));
 
   selectedIds.clear();
   updateBulkBar();
   filteredLeads = leads.filter(l => {
+    // agents only see their own leads
+    if (session && session.role === 'agent' && l.asignado !== session.name) return false;
     if (q && ![ l.nombre, l.email, l.telefono ].some(v => (v||'').toLowerCase().includes(q))) return false;
     if (fAsig && l.asignado  !== fAsig) return false;
     if (fLead && l.lead      !== fLead) return false;
@@ -1442,11 +1444,15 @@ function renderRows(board, leads) {
         </td>`;
       }
       if (c.key === 'asignado') {
+        const sess = getSession();
+        const displayVal = l.asignado || '';
+        const emptyClass = (displayVal && displayVal !== 'Sin asignar') ? '' : ' empty-val';
+        if (sess && sess.role === 'agent') {
+          return `<td><span style="font-size:12px">${esc(displayVal||'Sin asignar')}</span></td>`;
+        }
         const agOpts = ['', ...getAgents()].map(a =>
           `<option value="${esc(a)}"${l.asignado===a?' selected':''}>${a||'— Sin asignar —'}</option>`
         ).join('');
-        const displayVal = l.asignado || '';
-        const emptyClass = (displayVal && displayVal !== 'Sin asignar') ? '' : ' empty-val';
         return `<td class="td-inline" onclick="event.stopPropagation()">
           <span class="inline-display${emptyClass}" onclick="openInlineSel(this)">${esc(displayVal||'Sin asignar')} <span class="caret">▾</span></span>
           <select class="inline-select" style="display:none"
@@ -1550,7 +1556,9 @@ function buildForm(board, lead) {
     </div>
     <div class="field">
       <label>Asignado A</label>
-      <select id="f_asignado"><option value="">— Seleccionar —</option>${selAgents}</select>
+      ${(getSession() && getSession().role === 'agent')
+        ? `<input type="text" id="f_asignado" value="${esc(v('asignado'))}" readonly style="opacity:.6;cursor:not-allowed" />`
+        : `<select id="f_asignado"><option value="">— Seleccionar —</option>${selAgents}</select>`}
     </div>
     <div class="field">
       <label>Resultado</label>
@@ -2796,6 +2804,9 @@ function initApp(user) {
   if (user.role === 'master') {
     document.getElementById('sidebar-master').style.display = 'block';
   }
+  // agents: hide the agent filter (they only see their own leads)
+  const agentFilterWrap = document.getElementById('f-asignado');
+  if (agentFilterWrap) agentFilterWrap.closest('.filter-group') && (agentFilterWrap.closest('.filter-group').style.display = user.role === 'agent' ? 'none' : '');
   selectBoard('dallas');
 }
 
