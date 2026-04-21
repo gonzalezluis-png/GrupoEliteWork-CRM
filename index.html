@@ -2026,6 +2026,19 @@ function findLeadBoard(leadId) {
   return null;
 }
 
+function renderTableKeepSelection() {
+  const saved = new Set(selectedIds);
+  renderTable();
+  if (saved.size > 0) {
+    saved.forEach(id => selectedIds.add(id));
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+      if (saved.has(cb.dataset.id)) { cb.checked = true; cb.closest('tr').classList.add('selected-row'); }
+    });
+    syncHeaderCheckbox();
+    updateBulkBar();
+  }
+}
+
 function renderTable() {
   if (!currentBoardId) return;
   const board = getBoard(currentBoardId) || BOARDS[0];
@@ -3084,8 +3097,7 @@ function applyBulkEdit() {
       changed++;
     });
     saveLeads(boardId, leads);
-    clearSelection();
-    renderTable();
+    renderTableKeepSelection();
     showToast(`${changed} lead${changed !== 1 ? 's' : ''} actualizados ✓`, 'success');
   };
 
@@ -3194,7 +3206,7 @@ function saveInlineField(sel, leadId, field) {
           applyReassignMode(l, newValue, reassignSet.has(l.id) ? mode : 'full');
         });
         saveLeads(boardId, leads);
-        renderTable();
+        renderTableKeepSelection();
         showToast(`${snapshotIds.size} lead${snapshotIds.size !== 1 ? 's' : ''} transferidos ✓`, 'success');
       };
       if (reassignSet.size > 0) {
@@ -3227,7 +3239,7 @@ function saveInlineField(sel, leadId, field) {
   if (isMulti) {
     leads.forEach(l => { if (snapshotIds.has(l.id)) l[field] = newValue; });
     saveLeads(boardId, leads);
-    renderTable();
+    renderTableKeepSelection();
     showToast(`${snapshotIds.size} lead${snapshotIds.size !== 1 ? 's' : ''} actualizados ✓`, 'success');
     return;
   }
