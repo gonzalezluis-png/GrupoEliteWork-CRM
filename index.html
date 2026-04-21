@@ -1066,6 +1066,27 @@
   </div>
 </div>
 
+<!-- NOTES PANEL -->
+<div class="overlay" id="notes-panel-overlay" onclick="if(event.target===this)closeNotesPanel()">
+  <div class="modal" style="max-width:580px;max-height:88vh;display:flex;flex-direction:column;padding:0">
+    <div class="modal-header" style="padding:16px 20px;flex-shrink:0">
+      <div>
+        <h2 id="notes-panel-name" style="font-size:15px;margin:0"></h2>
+        <div id="notes-panel-meta" style="font-size:11px;color:var(--text2);margin-top:3px"></div>
+      </div>
+      <button class="modal-close" onclick="closeNotesPanel()">✕</button>
+    </div>
+    <div id="notes-lead-summary" style="padding:0 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;flex-wrap:wrap;gap:10px"></div>
+    <div id="notes-journal" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;min-height:120px"></div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+      <textarea id="notes-new-input" placeholder="Escribe una nota…" style="width:100%;min-height:90px;resize:vertical;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-family:var(--font);font-size:13px;line-height:1.5"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-primary" onclick="submitNote()">Agregar nota</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- BOARD MODAL -->
 <div class="overlay" id="board-modal-overlay" onclick="if(event.target===this)closeBoardModal()">
   <div class="modal" style="max-width:480px">
@@ -1464,10 +1485,19 @@ function renderRows(board, leads) {
     const rowClass = isUnassigned ? 'unassigned-row' : '';
     const cells = cols.map(c => {
       if (c.key === '_check') return `<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-checkbox" data-id="${l.id}" onchange="toggleRowSelect(this,'${l.id}')" ${selectedIds.has(l.id)?'checked':''} /></td>`;
-      if (c.key === '_actions') return `<td><div class="row-actions">
-        <button class="row-btn" onclick="event.stopPropagation();openModal('${l.id}')" title="Editar">✏️</button>
-        <button class="row-btn del" onclick="event.stopPropagation();askDelete('${l.id}')" title="Eliminar">🗑</button>
-      </div></td>`;
+      if (c.key === '_actions') {
+        const sess2 = getSession();
+        if (sess2 && sess2.role === 'agent') {
+          return `<td><div class="row-actions">
+            <button class="row-btn" onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas">📝</button>
+          </div></td>`;
+        }
+        return `<td><div class="row-actions">
+          <button class="row-btn" onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas">📝</button>
+          <button class="row-btn" onclick="event.stopPropagation();openModal('${l.id}')" title="Editar">✏️</button>
+          <button class="row-btn del" onclick="event.stopPropagation();askDelete('${l.id}')" title="Eliminar">🗑</button>
+        </div></td>`;
+      }
       if (c.key === 'nombre') return `<td class="td-name"><span title="${esc(l.nombre||'')}">${esc(l.nombre||'—')}</span></td>`;
       if (c.key === 'lead')   return `<td><span class="pill pill-lead">${esc(l.lead||'')}</span></td>`;
       if (c.key === 'estado') {
@@ -1532,7 +1562,7 @@ function renderRows(board, leads) {
       }
       return `<td>${esc(l[c.key]||'')}</td>`;
     }).join('');
-    return `<tr class="${rowClass}">${cells}</tr>`;
+    return `<tr class="${rowClass}" onclick="openNotesPanel('${l.id}')" style="cursor:pointer">${cells}</tr>`;
   }).join('');
 }
 
@@ -3280,6 +3310,107 @@ async function deleteUser(userId) {
   showToast('Usuario eliminado', 'error');
 }
 
+
+// ════════════════════════════════════════════
+//  NOTES PANEL
+// ════════════════════════════════════════════
+let _notesBoardId = null;
+let _notesLeadId  = null;
+
+function parseNotes(raw) {
+  if (!raw) return [];
+  try {
+    const p = JSON.parse(raw);
+    if (Array.isArray(p)) return p;
+  } catch {}
+  // legacy plain string — show as a single note without date/author
+  return raw.trim() ? [{ text: raw, author: 'Sistema', date: '' }] : [];
+}
+
+function formatNoteDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-US', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    + ' ' + d.toLocaleTimeString('es-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function openNotesPanel(leadId) {
+  const boardId = (currentBoardId === '__agent__') ? findLeadBoard(leadId) : currentBoardId;
+  if (!boardId) return;
+  const lead = loadLeads(boardId).find(l => l.id === leadId);
+  if (!lead) return;
+  _notesBoardId = boardId;
+  _notesLeadId  = leadId;
+
+  document.getElementById('notes-panel-name').textContent = lead.nombre || '—';
+  document.getElementById('notes-panel-meta').textContent =
+    [lead.lead, lead.email, lead.telefono].filter(Boolean).join(' · ');
+
+  // summary chips
+  const chips = [
+    lead.ubicacion && `📍 ${lead.ubicacion}`,
+    lead.asignado  && `👤 ${lead.asignado}`,
+    lead.resultado && `✅ ${lead.resultado}`,
+    lead.direccion && `🏠 ${lead.direccion}`,
+  ].filter(Boolean);
+  document.getElementById('notes-lead-summary').innerHTML = chips.map(c =>
+    `<span style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--text2)">${esc(c)}</span>`
+  ).join('');
+
+  _renderNotesJournal(lead);
+  document.getElementById('notes-new-input').value = '';
+  document.getElementById('notes-panel-overlay').classList.add('open');
+}
+
+function _renderNotesJournal(lead) {
+  const notes = parseNotes(lead._notes);
+  const el = document.getElementById('notes-journal');
+  if (!notes.length) {
+    el.innerHTML = `<div style="color:var(--text2);font-size:12px;text-align:center;padding:20px 0">Sin notas aún. Sé el primero en agregar una.</div>`;
+    return;
+  }
+  el.innerHTML = notes.map(n => `
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px;display:flex;gap:8px;align-items:center">
+        <strong style="color:var(--accent)">${esc(n.author)}</strong>
+        <span>${n.date ? formatNoteDate(n.date) : ''}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.6">${esc(n.text)}</div>
+    </div>
+  `).join('');
+  // scroll to bottom so latest note is visible
+  el.scrollTop = el.scrollHeight;
+}
+
+function closeNotesPanel() {
+  document.getElementById('notes-panel-overlay').classList.remove('open');
+  _notesBoardId = null;
+  _notesLeadId  = null;
+}
+
+async function submitNote() {
+  const text = document.getElementById('notes-new-input').value.trim();
+  if (!text) { showToast('Escribe algo antes de guardar', 'error'); return; }
+  const session = getSession();
+  if (!_notesBoardId || !_notesLeadId) return;
+
+  const leads = loadLeads(_notesBoardId);
+  const lead  = leads.find(l => l.id === _notesLeadId);
+  if (!lead) return;
+
+  const notes = parseNotes(lead._notes);
+  notes.push({
+    text,
+    author: session ? session.name : 'Usuario',
+    date:   new Date().toISOString()
+  });
+  lead._notes = JSON.stringify(notes);
+
+  await saveLeads(_notesBoardId, leads);
+  document.getElementById('notes-new-input').value = '';
+  _renderNotesJournal(lead);
+  showToast('Nota guardada ✓', 'success');
+}
 
 // ════════════════════════════════════════════
 //  SUPABASE
