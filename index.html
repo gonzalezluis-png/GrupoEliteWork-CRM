@@ -1196,6 +1196,112 @@
   .scripts-empty-icon { font-size:42px; opacity:.4; }
 
 /* ══════════════════════════════════════════
+   CALENDAR
+══════════════════════════════════════════ */
+#cal-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px; border-bottom:1px solid var(--border);
+  background:var(--card2); flex-wrap:wrap; gap:10px; flex-shrink:0;
+}
+.cal-nav-btn {
+  background:rgba(255,255,255,.07); border:1px solid var(--border);
+  color:var(--text); border-radius:8px; padding:6px 14px;
+  cursor:pointer; font-size:16px; font-family:var(--font);
+  transition:background .15s;
+}
+.cal-nav-btn:hover { background:rgba(255,255,255,.12); }
+
+.cal-weekdays {
+  display:grid; grid-template-columns:repeat(7,1fr);
+  gap:1px; margin-bottom:2px; padding-top:12px;
+}
+.cal-weekday-lbl {
+  text-align:center; font-size:10px; font-weight:700;
+  color:var(--text2); text-transform:uppercase; letter-spacing:.5px;
+  padding:6px 0;
+}
+.cal-grid {
+  display:grid; grid-template-columns:repeat(7,1fr);
+  gap:3px;
+}
+.cal-cell {
+  min-height:88px; background:var(--card); border:1px solid var(--border);
+  border-radius:8px; padding:6px; cursor:pointer;
+  transition:background .15s, border-color .15s;
+  position:relative; overflow:hidden;
+}
+.cal-cell:hover { background:var(--card2); border-color:rgba(255,255,255,.15); }
+.cal-cell.today { border-color:var(--accent); background:rgba(0,115,234,.08); }
+.cal-cell.selected { border-color:#a78bfa; background:rgba(120,75,209,.1); }
+.cal-cell.other-month { opacity:.35; }
+.cal-cell-day {
+  font-size:12px; font-weight:700; color:var(--text2); margin-bottom:4px;
+}
+.cal-cell.today .cal-cell-day { color:var(--accent); }
+.cal-cell.selected .cal-cell-day { color:#a78bfa; }
+.cal-event-pill {
+  display:block; font-size:9.5px; font-weight:600;
+  padding:2px 6px; border-radius:4px; margin-bottom:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  cursor:pointer;
+}
+.cal-event-pill.type-cita_agendada   { background:rgba(0,200,117,.2); color:#00c875; }
+.cal-event-pill.type-llamada_vuelta  { background:rgba(0,115,234,.2); color:#3b9eff; }
+.cal-event-pill.type-recordatorio   { background:rgba(253,171,61,.15); color:#fdab3d; }
+.cal-event-pill.type-otro           { background:rgba(120,75,209,.15); color:#a78bfa; }
+.cal-more-badge {
+  font-size:9px; color:var(--text2); padding:1px 4px;
+}
+
+/* Day panel */
+.cal-day-panel {
+  width:300px; min-width:300px; background:var(--card);
+  border-left:1px solid var(--border);
+  display:flex; flex-direction:column;
+  transition:width .2s ease;
+}
+.cal-day-panel.hidden { width:0; min-width:0; overflow:hidden; border:none; }
+.cal-day-panel-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+
+/* Event card in day panel */
+.cal-evt-card {
+  background:var(--card2); border:1px solid var(--border);
+  border-radius:10px; padding:10px 12px; margin-bottom:8px;
+  cursor:pointer; transition:background .15s;
+  border-left:3px solid transparent;
+}
+.cal-evt-card:hover { background:rgba(255,255,255,.04); }
+.cal-evt-card.type-cita_agendada  { border-left-color:#00c875; }
+.cal-evt-card.type-llamada_vuelta { border-left-color:#3b9eff; }
+.cal-evt-card.type-recordatorio  { border-left-color:#fdab3d; }
+.cal-evt-card.type-otro          { border-left-color:#a78bfa; }
+.cal-evt-title { font-size:12px; font-weight:700; color:var(--text); }
+.cal-evt-meta  { font-size:10px; color:var(--text2); margin-top:3px; }
+.cal-evt-user  { font-size:10px; color:var(--accent); margin-top:2px; }
+
+/* Event type buttons */
+.evt-type-btn {
+  padding:6px 12px; border-radius:20px; border:1px solid var(--border);
+  background:var(--card2); color:var(--text2); font-size:11px; font-weight:600;
+  cursor:pointer; font-family:var(--font); transition:all .15s;
+}
+.evt-type-btn:hover  { border-color:rgba(255,255,255,.2); color:var(--text); }
+.evt-type-btn.active { background:rgba(0,115,234,.2); color:#3b9eff; border-color:rgba(0,115,234,.4); }
+
+/* Mobile calendar */
+@media (max-width:768px) {
+  .cal-day-panel { position:fixed; bottom:0; left:0; right:0; width:100% !important; min-width:unset !important; max-height:65vh; border-radius:20px 20px 0 0; border-left:none; border-top:1px solid var(--border); z-index:800; transform:translateY(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); }
+  .cal-day-panel.open { transform:translateY(0); }
+  .cal-cell { min-height:60px; padding:4px; }
+  .cal-cell-day { font-size:11px; }
+  .cal-event-pill { font-size:8.5px; }
+  #cal-header { padding:10px 14px; }
+}
+
+/* ══════════════════════════════════════════
    MOBILE & TABLET RESPONSIVE
 ══════════════════════════════════════════ */
 
@@ -1408,6 +1514,7 @@
     </div>
     <div class="sidebar-admin" id="sidebar-admin" style="display:none">
       <div class="sidebar-item" id="nav-trash" onclick="showTrashPage()">🗑 <span>Eliminados</span><span id="sidebar-trash-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
+      <div class="sidebar-item" id="nav-calendar" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
       <div class="sidebar-item" id="nav-activity" onclick="showActivityPage()">📊 <span>Actividad</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
     </div>
@@ -1961,6 +2068,46 @@
         <div id="trash-empty" class="trash-empty" style="display:none">
           <div class="trash-empty-icon">🗑</div>
           <div>No hay leads eliminados</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR PAGE -->
+    <div id="calendar-page" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+
+      <!-- Cal Header -->
+      <div id="cal-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="cal-nav-btn" onclick="calChangeMonth(-1)">‹</button>
+          <span id="cal-month-label" style="font-size:17px;font-weight:800;color:#fff;min-width:180px;text-align:center"></span>
+          <button class="cal-nav-btn" onclick="calChangeMonth(1)">›</button>
+          <button class="cal-nav-btn" onclick="calGoToday()" style="font-size:11px;padding:5px 12px;border-radius:20px">Hoy</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <select id="cal-user-filter" class="filter-select" style="min-width:150px;display:none" onchange="renderCalendar()">
+            <option value="">Todos los usuarios</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openEventModal()">＋ Nuevo evento</button>
+        </div>
+      </div>
+
+      <!-- Cal body -->
+      <div style="flex:1;display:flex;overflow:hidden">
+        <!-- Month grid -->
+        <div style="flex:1;overflow-y:auto;padding:0 16px 16px">
+          <div id="cal-weekdays" class="cal-weekdays"></div>
+          <div id="cal-grid" class="cal-grid"></div>
+        </div>
+        <!-- Day detail panel -->
+        <div id="cal-day-panel" class="cal-day-panel">
+          <div class="cal-day-panel-header">
+            <span id="cal-day-panel-title" style="font-size:14px;font-weight:700;color:#fff">Selecciona un día</span>
+            <button onclick="closeDayPanel()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:0 4px">×</button>
+          </div>
+          <div id="cal-day-events" style="flex:1;overflow-y:auto;padding:12px"></div>
+          <div style="padding:12px;border-top:1px solid var(--border)">
+            <button class="btn btn-primary btn-sm" style="width:100%" onclick="openEventModal(_calSelectedDate)">＋ Agregar evento</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2670,6 +2817,53 @@
 }
 </style>
 
+<!-- CALENDAR EVENT MODAL -->
+<div class="overlay" id="event-modal-overlay" onclick="if(event.target===this)closeEventModal()" style="z-index:7500">
+  <div id="event-modal-box" style="background:var(--card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:460px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.7)">
+    <div style="padding:20px 22px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:15px;font-weight:800;color:#fff" id="event-modal-title">Nuevo Evento</div>
+      <button onclick="closeEventModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">×</button>
+    </div>
+    <div style="padding:18px 22px;display:flex;flex-direction:column;gap:13px">
+      <div class="field" style="margin:0">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Tipo de evento</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="event-type-btns">
+          <button class="evt-type-btn active" data-type="cita_agendada" onclick="selectEventType(this)">📅 Cita agendada</button>
+          <button class="evt-type-btn" data-type="llamada_vuelta" onclick="selectEventType(this)">📞 Llamada de vuelta</button>
+          <button class="evt-type-btn" data-type="recordatorio" onclick="selectEventType(this)">🔔 Recordatorio</button>
+          <button class="evt-type-btn" data-type="otro" onclick="selectEventType(this)">📌 Otro</button>
+        </div>
+      </div>
+      <div class="field" style="margin:0">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Título</label>
+        <input type="text" id="evt-titulo" placeholder="Ej: Llamar a Juan García" style="width:100%" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field" style="margin:0">
+          <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Fecha</label>
+          <input type="date" id="evt-fecha" style="width:100%" />
+        </div>
+        <div class="field" style="margin:0">
+          <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Hora</label>
+          <input type="time" id="evt-hora" style="width:100%" />
+        </div>
+      </div>
+      <div class="field" style="margin:0" id="evt-assignee-wrap">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Asignar a</label>
+        <select id="evt-assignee" style="width:100%"></select>
+      </div>
+      <div class="field" style="margin:0">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Notas</label>
+        <textarea id="evt-notas" rows="2" placeholder="Detalles adicionales…" style="width:100%;resize:vertical"></textarea>
+      </div>
+    </div>
+    <div style="padding:14px 22px 18px;display:flex;gap:8px">
+      <button class="btn btn-secondary btn-sm" onclick="closeEventModal()" style="flex:1">Cancelar</button>
+      <button onclick="saveCalEvent()" style="flex:2;padding:9px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#0073ea,#7c3aed);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -3333,6 +3527,297 @@ function updateTrashBadge() {
   const count = loadDeletedLeads().length;
   const badge = document.getElementById('sidebar-trash-badge');
   if (badge) { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
+}
+
+// ════════════════════════════════════════════
+//  CALENDAR
+// ════════════════════════════════════════════
+const CAL_KEY = 'gew_calendar';
+let _calYear  = new Date().getFullYear();
+let _calMonth = new Date().getMonth(); // 0-based
+let _calSelectedDate = null;
+let _editingEventId  = null;
+
+const EVT_TYPES = {
+  cita_agendada:  { label:'Cita agendada',     icon:'📅', color:'#00c875' },
+  llamada_vuelta: { label:'Llamada de vuelta',  icon:'📞', color:'#3b9eff' },
+  recordatorio:   { label:'Recordatorio',       icon:'🔔', color:'#fdab3d' },
+  otro:           { label:'Otro',               icon:'📌', color:'#a78bfa' },
+};
+
+function loadCalEvents()  { try { return JSON.parse(localStorage.getItem(CAL_KEY)) || []; } catch { return []; } }
+async function saveCalEvents(evts) {
+  localStorage.setItem(CAL_KEY, JSON.stringify(evts));
+  supaSync(CAL_KEY, JSON.stringify(evts));
+}
+
+function _calVisibleEvents() {
+  const session = getSession();
+  if (!session) return [];
+  const all     = loadCalEvents();
+  const fUser   = document.getElementById('cal-user-filter')?.value || '';
+  if (session.role === 'master' || session.role === 'admin') {
+    return fUser ? all.filter(e => e.userId === fUser) : all;
+  }
+  if (session.role === 'manager') {
+    const agentNames = getManagerAgentNames(session.id);
+    const allowed    = [session.id, ...loadUsers().filter(u => agentNames.includes(u.name)).map(u => u.id)];
+    return all.filter(e => allowed.includes(e.userId));
+  }
+  if (session.role === 'master_manager') {
+    const agentNames = getMasterManagerAgentNames(session.id);
+    const allowed    = [session.id, ...loadUsers().filter(u => agentNames.includes(u.name)).map(u => u.id)];
+    return all.filter(e => allowed.includes(e.userId));
+  }
+  return all.filter(e => e.userId === session.id);
+}
+
+function showCalendarPage() {
+  showBoardView();
+  document.getElementById('table-wrap').style.display    = 'none';
+  document.getElementById('toolbar').style.display       = 'none';
+  document.getElementById('bulk-bar').classList.remove('visible');
+  document.getElementById('btn-new-lead').style.display  = 'none';
+  document.getElementById('btn-export').style.display    = 'none';
+  document.getElementById('assign-strip').classList.add('hidden');
+  document.getElementById('calendar-page').style.display = 'flex';
+  document.getElementById('board-title').textContent     = 'Calendario';
+  document.querySelectorAll('.board-item, .sidebar-item').forEach(el => el.classList.remove('active'));
+  const nav = document.getElementById('nav-calendar');
+  if (nav) nav.classList.add('active');
+  currentBoardId = null;
+  _populateCalUserFilter();
+  renderCalendar();
+}
+
+function _populateCalUserFilter() {
+  const session = getSession();
+  const sel     = document.getElementById('cal-user-filter');
+  if (!sel) return;
+  const canFilter = session && (session.role === 'master' || session.role === 'admin' || session.role === 'manager' || session.role === 'master_manager');
+  sel.style.display = canFilter ? '' : 'none';
+  if (!canFilter) return;
+  const users   = loadUsers();
+  let options   = [];
+  if (session.role === 'master' || session.role === 'admin') {
+    options = users.filter(u => u.role !== 'master');
+  } else if (session.role === 'manager') {
+    const names = getManagerAgentNames(session.id);
+    options = users.filter(u => names.includes(u.name));
+  } else if (session.role === 'master_manager') {
+    const names = getMasterManagerAgentNames(session.id);
+    options = users.filter(u => names.includes(u.name));
+  }
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>' +
+    options.map(u => `<option value="${u.id}"${u.id===cur?' selected':''}>${esc(u.name)}</option>`).join('');
+}
+
+function renderCalendar() {
+  const DAYS   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('cal-month-label').textContent = `${MONTHS[_calMonth]} ${_calYear}`;
+
+  // Weekday headers
+  document.getElementById('cal-weekdays').innerHTML =
+    DAYS.map(d => `<div class="cal-weekday-lbl">${d}</div>`).join('');
+
+  const evts   = _calVisibleEvents();
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const first  = new Date(_calYear, _calMonth, 1);
+  const last   = new Date(_calYear, _calMonth + 1, 0);
+  const startDow = first.getDay(); // 0=Sun
+  const totalCells = Math.ceil((startDow + last.getDate()) / 7) * 7;
+
+  let html = '';
+  for (let i = 0; i < totalCells; i++) {
+    const d    = new Date(_calYear, _calMonth, i - startDow + 1);
+    const iso  = d.toISOString().slice(0, 10);
+    const isToday    = d.getTime() === today.getTime();
+    const isSelected = iso === _calSelectedDate;
+    const isOther    = d.getMonth() !== _calMonth;
+    const dayEvts    = evts.filter(e => e.fecha === iso).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+    const max        = 3;
+    const pills      = dayEvts.slice(0, max).map(e =>
+      `<span class="cal-event-pill type-${e.type}" title="${esc(e.titulo)}" onclick="event.stopPropagation();openDayPanel('${iso}')">${EVT_TYPES[e.type]?.icon||'📌'} ${esc(e.titulo)}</span>`
+    ).join('');
+    const more       = dayEvts.length > max ? `<span class="cal-more-badge">+${dayEvts.length - max} más</span>` : '';
+    html += `<div class="cal-cell${isToday?' today':''}${isSelected?' selected':''}${isOther?' other-month':''}" onclick="openDayPanel('${iso}')">
+      <div class="cal-cell-day">${d.getDate()}</div>
+      ${pills}${more}
+    </div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+
+  // Refresh day panel if open
+  if (_calSelectedDate) renderDayPanel(_calSelectedDate);
+}
+
+function calChangeMonth(dir) {
+  _calMonth += dir;
+  if (_calMonth > 11) { _calMonth = 0; _calYear++; }
+  if (_calMonth < 0)  { _calMonth = 11; _calYear--; }
+  renderCalendar();
+}
+function calGoToday() {
+  const n   = new Date();
+  _calYear  = n.getFullYear();
+  _calMonth = n.getMonth();
+  renderCalendar();
+}
+
+function openDayPanel(iso) {
+  _calSelectedDate = iso;
+  const panel = document.getElementById('cal-day-panel');
+  panel.classList.remove('hidden');
+  if (window.innerWidth <= 768) panel.classList.add('open');
+  renderCalendar();
+}
+function closeDayPanel() {
+  const panel = document.getElementById('cal-day-panel');
+  panel.classList.remove('open');
+  _calSelectedDate = null;
+  renderCalendar();
+}
+
+function renderDayPanel(iso) {
+  const d      = new Date(iso + 'T00:00:00');
+  const label  = d.toLocaleDateString('es-US', { weekday:'long', month:'long', day:'numeric' });
+  document.getElementById('cal-day-panel-title').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+
+  const evts   = _calVisibleEvents().filter(e => e.fecha === iso).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+  const el     = document.getElementById('cal-day-events');
+  if (!evts.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px 10px;color:var(--text2);font-size:12px">Sin eventos este día.<br>¡Agrega uno!</div>';
+    return;
+  }
+  const session = getSession();
+  el.innerHTML = evts.map(e => {
+    const cfg   = EVT_TYPES[e.type] || EVT_TYPES.otro;
+    const canDel= session && (session.role === 'master' || session.role === 'admin' || e.userId === session.id);
+    return `<div class="cal-evt-card type-${e.type}" onclick="openEventModal('${iso}','${e.id}')">
+      <div class="cal-evt-title">${cfg.icon} ${esc(e.titulo)}</div>
+      <div class="cal-evt-meta">${cfg.label}${e.hora ? ' · '+e.hora : ''}${e.notas ? '<br><span style="opacity:.7">'+esc(e.notas.slice(0,60))+(e.notas.length>60?'…':'')+'</span>' : ''}</div>
+      ${e.userName && e.userId !== session?.id ? `<div class="cal-evt-user">👤 ${esc(e.userName)}</div>` : ''}
+      ${canDel ? `<div style="margin-top:6px;display:flex;justify-content:flex-end"><button onclick="event.stopPropagation();deleteCalEvent('${e.id}')" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;padding:0">🗑 Eliminar</button></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Event Modal ──────────────────────────────
+let _editEventId = null;
+
+function openEventModal(isoDate, eventId) {
+  _editEventId = eventId || null;
+  const session = getSession();
+  const today   = (isoDate && isoDate.length === 10) ? isoDate : new Date().toISOString().slice(0,10);
+
+  // Reset form
+  document.getElementById('evt-titulo').value = '';
+  document.getElementById('evt-fecha').value  = today;
+  document.getElementById('evt-hora').value   = '';
+  document.getElementById('evt-notas').value  = '';
+  document.querySelectorAll('.evt-type-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.evt-type-btn[data-type="cita_agendada"]').classList.add('active');
+
+  // Assignee dropdown
+  const wrap = document.getElementById('evt-assignee-wrap');
+  const sel  = document.getElementById('evt-assignee');
+  const canAssign = session && (session.role === 'master' || session.role === 'admin' || session.role === 'manager' || session.role === 'master_manager');
+  wrap.style.display = canAssign ? '' : 'none';
+  if (canAssign) {
+    const users = loadUsers();
+    let opts = [];
+    if (session.role === 'master' || session.role === 'admin') {
+      opts = users.filter(u => u.role !== 'master');
+    } else {
+      const names = session.role === 'manager' ? getManagerAgentNames(session.id) : getMasterManagerAgentNames(session.id);
+      opts = users.filter(u => names.includes(u.name));
+    }
+    sel.innerHTML = `<option value="${session.id}">${esc(session.name)} (yo)</option>` +
+      opts.filter(u => u.id !== session.id).map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join('');
+  }
+
+  // If editing, populate
+  if (_editEventId) {
+    const evt = loadCalEvents().find(e => e.id === _editEventId);
+    if (evt) {
+      document.getElementById('event-modal-title').textContent = 'Editar Evento';
+      document.getElementById('evt-titulo').value = evt.titulo;
+      document.getElementById('evt-fecha').value  = evt.fecha;
+      document.getElementById('evt-hora').value   = evt.hora || '';
+      document.getElementById('evt-notas').value  = evt.notas || '';
+      document.querySelectorAll('.evt-type-btn').forEach(b => b.classList.remove('active'));
+      const tb = document.querySelector(`.evt-type-btn[data-type="${evt.type}"]`);
+      if (tb) tb.classList.add('active');
+      if (canAssign && evt.userId) sel.value = evt.userId;
+    }
+  } else {
+    document.getElementById('event-modal-title').textContent = 'Nuevo Evento';
+  }
+
+  document.getElementById('event-modal-overlay').classList.add('open');
+}
+
+function closeEventModal() {
+  document.getElementById('event-modal-overlay').classList.remove('open');
+  _editEventId = null;
+}
+
+function selectEventType(btn) {
+  document.querySelectorAll('.evt-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function saveCalEvent() {
+  const titulo = document.getElementById('evt-titulo').value.trim();
+  const fecha  = document.getElementById('evt-fecha').value;
+  if (!titulo) { showToast('El título es requerido', 'error'); return; }
+  if (!fecha)  { showToast('La fecha es requerida', 'error'); return; }
+
+  const session  = getSession();
+  const type     = document.querySelector('.evt-type-btn.active')?.dataset.type || 'otro';
+  const hora     = document.getElementById('evt-hora').value;
+  const notas    = document.getElementById('evt-notas').value.trim();
+  const wrap     = document.getElementById('evt-assignee-wrap');
+  const sel      = document.getElementById('evt-assignee');
+  let   userId   = session.id;
+  let   userName = session.name;
+
+  if (wrap.style.display !== 'none' && sel.value) {
+    userId = sel.value;
+    const u = loadUsers().find(u => u.id === userId);
+    userName = u ? u.name : session.name;
+  }
+
+  const evts = loadCalEvents();
+  if (_editEventId) {
+    const idx = evts.findIndex(e => e.id === _editEventId);
+    if (idx !== -1) {
+      evts[idx] = { ...evts[idx], titulo, type, fecha, hora, notas, userId, userName };
+    }
+  } else {
+    evts.push({ id: 'evt_' + Date.now(), titulo, type, fecha, hora, notas, userId, userName, createdAt: new Date().toISOString(), createdBy: session.id });
+  }
+  await saveCalEvents(evts);
+  closeEventModal();
+  if (fecha !== _calSelectedDate) {
+    _calSelectedDate = fecha;
+    const d = new Date(fecha + 'T00:00:00');
+    _calYear  = d.getFullYear();
+    _calMonth = d.getMonth();
+  }
+  renderCalendar();
+  if (_calSelectedDate) openDayPanel(_calSelectedDate);
+  showToast('Evento guardado ✓', 'success');
+}
+
+async function deleteCalEvent(id) {
+  if (!confirm('¿Eliminar este evento?')) return;
+  await saveCalEvents(loadCalEvents().filter(e => e.id !== id));
+  renderCalendar();
+  if (_calSelectedDate) renderDayPanel(_calSelectedDate);
+  showToast('Evento eliminado');
 }
 
 // ════════════════════════════════════════════
@@ -4565,7 +5050,7 @@ function closeCitaModal() {
   showToast('Cita agendada ✓', 'success');
 }
 
-function saveCitaDetails() {
+async function saveCitaDetails() {
   if (!_citaLeadId || !_citaBoardId) { closeCitaModal(); return; }
   const fecha = document.getElementById('cita-fecha').value;
   const hora  = document.getElementById('cita-hora').value;
@@ -4577,6 +5062,17 @@ function saveCitaDetails() {
     lead.citaHora  = hora;
     if (notas) lead.notas = (lead.notas ? lead.notas + '\n\n' : '') + `📅 Cita ${fecha}${hora?' a las '+hora:''}: ${notas}`;
     saveLeads(_citaBoardId, leads);
+    // Auto-create calendar event
+    const session = getSession();
+    const evts = loadCalEvents();
+    evts.push({
+      id: 'evt_' + Date.now(), type: 'cita_agendada',
+      titulo: `Cita: ${lead.nombre || lead.email || 'Lead'}`,
+      fecha, hora, notas,
+      userId: session?.id, userName: session?.name,
+      leadId: _citaLeadId, createdAt: new Date().toISOString(), createdBy: session?.id
+    });
+    await saveCalEvents(evts);
   }
   document.getElementById('cita-modal-overlay').style.display = 'none';
   _citaLeadId = null; _citaBoardId = null;
@@ -6089,8 +6585,11 @@ function showBoardView() {
   document.getElementById('trash-page').classList.remove('visible');
   document.getElementById('scripts-page').classList.remove('visible');
   document.getElementById('activity-page').style.display  = 'none';
+  document.getElementById('calendar-page').style.display  = 'none';
   const navAct = document.getElementById('nav-activity');
   if (navAct) navAct.classList.remove('active');
+  const navCal = document.getElementById('nav-calendar');
+  if (navCal) navCal.classList.remove('active');
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
   document.getElementById('btn-new-lead').style.display = '';
