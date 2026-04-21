@@ -983,7 +983,7 @@
   .ssp-script-content blockquote { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--text2); margin: 10px 0; }
   .ssp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text2); gap: 8px; }
   #btn-scripts-panel {
-    display: none;
+    display: none; /* shown via JS after login */
     background: linear-gradient(135deg, #7c3aed, #0073ea);
     color: #fff;
     font-weight: 700;
@@ -4442,6 +4442,7 @@ function doLogout() {
 function initApp(user) {
   renderTopbarUser(user);
   applyAppName();
+  document.getElementById('btn-scripts-panel').style.display = 'inline-flex';
   if (user.role === 'agent') {
     document.getElementById('sidebar').style.display = 'none';
     const agentFilterWrap = document.getElementById('f-asignado');
