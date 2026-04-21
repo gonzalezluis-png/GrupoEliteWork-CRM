@@ -705,8 +705,9 @@
   .user-card-bottom { display: flex; align-items: center; justify-content: space-between; }
   .role-badge { padding: 3px 9px; border-radius: 10px; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
   .role-admin          { background: rgba(0,115,234,.2); color: #4da8ff; }
-  .role-master_manager { background: rgba(0,183,195,.2); color: #00b7c3; }
-  .role-manager        { background: rgba(0,200,117,.2); color: #00c875; }
+  .role-master_manager    { background: rgba(0,183,195,.2); color: #00b7c3; }
+  .role-manager           { background: rgba(0,200,117,.2); color: #00c875; }
+  .role-supervisor_agent  { background: rgba(255,140,0,.2); color: #ff8c00; }
   .role-agent          { background: rgba(120,75,209,.2); color: #a97ff2; }
   .user-card-actions { display: flex; gap: 6px; }
   .user-card-actions button { background: var(--border); border: none; color: var(--text2); padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 12px; transition: background .15s, color .15s; }
@@ -744,11 +745,12 @@
     vertical-align:middle;
   }
   .org-node:hover { border-color: var(--accent); }
-  .org-node-master         { border-color: var(--yellow); }
-  .org-node-admin          { border-color: var(--accent); }
-  .org-node-master_manager { border-color: #00b7c3; }
-  .org-node-manager        { border-color: var(--green); }
-  .org-node-agent          { border-color: var(--border); }
+  .org-node-master            { border-color: var(--yellow); }
+  .org-node-admin             { border-color: var(--accent); }
+  .org-node-master_manager    { border-color: #00b7c3; }
+  .org-node-manager           { border-color: var(--green); }
+  .org-node-supervisor_agent  { border-color: #ff8c00; }
+  .org-node-agent             { border-color: var(--border); }
   .org-node-info { flex:1; min-width:0; }
   .org-node-name  { font-size:12px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .org-node-email { font-size:10px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1923,11 +1925,15 @@ setTimeout(function(){
               </div>
               <div class="st-stat" style="--stat-color:#00b7c3">
                 <div class="st-stat-val" id="tstat-mms">—</div>
-                <div class="st-stat-lbl">Master Managers</div>
+                <div class="st-stat-lbl">MGA</div>
               </div>
               <div class="st-stat" style="--stat-color:var(--green)">
                 <div class="st-stat-val" id="tstat-mgrs">—</div>
-                <div class="st-stat-lbl">Managers</div>
+                <div class="st-stat-lbl">GA</div>
+              </div>
+              <div class="st-stat" style="--stat-color:#ff8c00">
+                <div class="st-stat-val" id="tstat-sas">—</div>
+                <div class="st-stat-lbl">SA</div>
               </div>
               <div class="st-stat" style="--stat-color:var(--purple)">
                 <div class="st-stat-val" id="tstat-agents">—</div>
@@ -2530,8 +2536,9 @@ setTimeout(function(){
           <label>Rol</label>
           <select id="u-rol" onchange="onRolChange()">
             <option value="agent">Agente</option>
-            <option value="manager">Manager</option>
-            <option value="master_manager">Master Manager</option>
+            <option value="supervisor_agent">SA - Supervisor Agent</option>
+            <option value="manager">GA - General Agent</option>
+            <option value="master_manager">MGA - Master General Agent</option>
             <option value="admin">Administrador</option>
           </select>
         </div>
@@ -2542,15 +2549,21 @@ setTimeout(function(){
           </select>
         </div>
         <div class="field" id="u-masterManager-wrap" style="display:none">
-          <label>Asignar a Master Manager</label>
+          <label>Asignar a MGA (Master General Agent)</label>
           <select id="u-masterManager" onchange="onMasterManagerChange()">
-            <option value="">— Sin Master Manager —</option>
+            <option value="">— Sin MGA —</option>
           </select>
         </div>
         <div class="field" id="u-manager-wrap" style="display:none">
-          <label>Asignar a Manager</label>
+          <label>Asignar a GA (General Agent)</label>
           <select id="u-manager">
-            <option value="">— Sin manager —</option>
+            <option value="">— Sin GA (directo) —</option>
+          </select>
+        </div>
+        <div class="field" id="u-supervisor-wrap" style="display:none">
+          <label>Asignar a SA (Supervisor Agent)</label>
+          <select id="u-supervisor">
+            <option value="">— Sin SA (directo) —</option>
           </select>
         </div>
       </div>
@@ -2793,8 +2806,9 @@ setTimeout(function(){
         <label>Rol</label>
         <select id="approve-rol" onchange="onApproveRolChange()">
           <option value="agent">Agente</option>
-          <option value="manager">Manager</option>
-          <option value="master_manager">Master Manager</option>
+          <option value="supervisor_agent">SA - Supervisor Agent</option>
+          <option value="manager">GA - General Agent</option>
+          <option value="master_manager">MGA - Master General Agent</option>
           <option value="admin">Administrador</option>
         </select>
       </div>
@@ -2803,12 +2817,16 @@ setTimeout(function(){
         <select id="approve-org"><option value="">— Sin organización —</option></select>
       </div>
       <div class="field" id="approve-mm-wrap" style="display:none">
-        <label>Asignar a Master Manager</label>
-        <select id="approve-mm"><option value="">— Sin Master Manager —</option></select>
+        <label>Asignar a MGA (Master General Agent)</label>
+        <select id="approve-mm"><option value="">— Sin MGA —</option></select>
       </div>
       <div class="field" id="approve-mgr-wrap" style="display:none">
-        <label>Asignar a Manager</label>
-        <select id="approve-mgr"><option value="">— Sin manager —</option></select>
+        <label>Asignar a GA (General Agent)</label>
+        <select id="approve-mgr"><option value="">— Sin GA (directo) —</option></select>
+      </div>
+      <div class="field" id="approve-supervisor-wrap" style="display:none">
+        <label>Asignar a SA (Supervisor Agent)</label>
+        <select id="approve-supervisor"><option value="">— Sin SA (directo) —</option></select>
       </div>
     </div>
     <div class="modal-footer">
@@ -2990,20 +3008,32 @@ function getAgents() {
   } else if (session && session.role === 'manager') {
     const agentNames = getManagerAgentNames(session.id);
     agents = agents.filter(u => agentNames.includes(u.name));
+  } else if (session && session.role === 'supervisor_agent') {
+    const agentNames = getSupervisorAgentNames(session.id);
+    agents = agents.filter(u => agentNames.includes(u.name));
   }
   return agents.map(u => u.name);
 }
 
-function getManagerAgentNames(managerId) {
+function getSupervisorAgentNames(supId) {
   return loadUsers()
-    .filter(u => u.role === 'agent' && u.orgManagerId === managerId)
+    .filter(u => u.role === 'agent' && u.orgSupervisorId === supId)
+    .map(u => u.name);
+}
+
+function getManagerAgentNames(managerId) {
+  const users = loadUsers();
+  const supIds = users.filter(u => u.role === 'supervisor_agent' && u.orgManagerId === managerId).map(u => u.id);
+  return users
+    .filter(u => u.role === 'agent' && (u.orgManagerId === managerId || supIds.includes(u.orgSupervisorId)))
     .map(u => u.name);
 }
 function getMasterManagerAgentNames(mmId) {
   const users  = loadUsers();
   const mgrIds = users.filter(u => u.role === 'manager' && u.orgMasterManagerId === mmId).map(u => u.id);
+  const supIds = users.filter(u => u.role === 'supervisor_agent' && (mgrIds.includes(u.orgManagerId) || u.orgMasterManagerId === mmId)).map(u => u.id);
   return users
-    .filter(u => u.role === 'agent' && (mgrIds.includes(u.orgManagerId) || u.orgMasterManagerId === mmId))
+    .filter(u => u.role === 'agent' && (mgrIds.includes(u.orgManagerId) || u.orgMasterManagerId === mmId || supIds.includes(u.orgSupervisorId)))
     .map(u => u.name);
 }
 // legacy alias used in some places — replaced dynamically below
@@ -3130,21 +3160,25 @@ function formatDate(str) {
 // ════════════════════════════════════════════
 function renderSidebar() {
   const session = getSession();
-  const isMaster        = session && session.role === 'master';
-  const isAgent         = session && session.role === 'agent';
-  const isManager       = session && session.role === 'manager';
-  const isMasterManager = session && session.role === 'master_manager';
+  const isMaster           = session && session.role === 'master';
+  const isAgent            = session && session.role === 'agent';
+  const isManager          = session && session.role === 'manager';
+  const isMasterManager    = session && session.role === 'master_manager';
+  const isSupervisorAgent  = session && session.role === 'supervisor_agent';
   const list = document.getElementById('board-list');
   const defaultIds = new Set(DEFAULT_BOARDS.map(b => b.id));
 
-  const mgrAgentNames   = isManager       ? getManagerAgentNames(session.id)       : [];
-  const mmAgentNames    = isMasterManager ? getMasterManagerAgentNames(session.id)  : [];
+  const mgrAgentNames   = isManager          ? getManagerAgentNames(session.id)       : [];
+  const mmAgentNames    = isMasterManager    ? getMasterManagerAgentNames(session.id)  : [];
+  const saAgentNames    = isSupervisorAgent  ? getSupervisorAgentNames(session.id)     : [];
   const visibleBoards = isAgent
     ? BOARDS.filter(b => loadLeads(b.id).some(l => l.asignado === session.name))
     : isManager
       ? BOARDS.filter(b => loadLeads(b.id).some(l => mgrAgentNames.includes(l.asignado)))
     : isMasterManager
       ? BOARDS.filter(b => loadLeads(b.id).some(l => mmAgentNames.includes(l.asignado)))
+    : isSupervisorAgent
+      ? BOARDS.filter(b => loadLeads(b.id).some(l => saAgentNames.includes(l.asignado)))
       : BOARDS;
 
   list.innerHTML = visibleBoards.map(b => {
@@ -3259,8 +3293,9 @@ function applyFilters() {
     ? loadAgentLeads(session ? session.name : '')
     : loadLeads(currentBoardId);
 
-  const mgrAgents = (session && session.role === 'manager')       ? getManagerAgentNames(session.id)      :
-                    (session && session.role === 'master_manager') ? getMasterManagerAgentNames(session.id) : null;
+  const mgrAgents = (session && session.role === 'manager')          ? getManagerAgentNames(session.id)      :
+                    (session && session.role === 'master_manager')    ? getMasterManagerAgentNames(session.id) :
+                    (session && session.role === 'supervisor_agent')  ? getSupervisorAgentNames(session.id)   : null;
   const q       = document.getElementById('search-input').value.toLowerCase();
   const fAsig   = document.getElementById('f-asignado').value;
   const fLead   = document.getElementById('f-lead').value;
@@ -3379,7 +3414,7 @@ function renderRows(board, leads) {
         const dot        = isAssigned
           ? '<span style="width:6px;height:6px;border-radius:50%;background:#00c875;flex-shrink:0"></span>'
           : '<span style="width:6px;height:6px;border-radius:50%;background:#3b9eff;flex-shrink:0"></span>';
-        const canAssign = sess && (sess.role === 'master' || sess.role === 'admin');
+        const canAssign = sess && (sess.role === 'master' || sess.role === 'admin' || sess.role === 'manager' || sess.role === 'master_manager' || sess.role === 'supervisor_agent');
         if (!canAssign) {
           return `<td><span style="${pillStyle}">${dot}${esc(displayVal||'Sin Asignar')}</span></td>`;
         }
@@ -3489,7 +3524,7 @@ function buildForm(board, lead) {
     </div>
     <div class="field">
       <label>Asignado A</label>
-      ${(() => { const r = getSession()?.role; return (r === 'master' || r === 'admin'); })()
+      ${(() => { const r = getSession()?.role; return (r === 'master' || r === 'admin' || r === 'manager' || r === 'master_manager' || r === 'supervisor_agent'); })()
         ? `<select id="f_asignado"><option value="">— Seleccionar —</option>${selAgents}</select>`
         : `<input type="text" id="f_asignado" value="${esc(v('asignado'))}" readonly style="opacity:.6;cursor:not-allowed" />`}
     </div>
@@ -3676,6 +3711,11 @@ function _calVisibleEvents() {
     const allowed    = [session.id, ...loadUsers().filter(u => agentNames.includes(u.name)).map(u => u.id)];
     return all.filter(e => allowed.includes(e.userId));
   }
+  if (session.role === 'supervisor_agent') {
+    const agentNames = getSupervisorAgentNames(session.id);
+    const allowed    = [session.id, ...loadUsers().filter(u => agentNames.includes(u.name)).map(u => u.id)];
+    return all.filter(e => allowed.includes(e.userId));
+  }
   return all.filter(e => e.userId === session.id);
 }
 
@@ -3701,7 +3741,7 @@ function _populateCalUserFilter() {
   const session = getSession();
   const sel     = document.getElementById('cal-user-filter');
   if (!sel) return;
-  const canFilter = session && (session.role === 'master' || session.role === 'admin' || session.role === 'manager' || session.role === 'master_manager');
+  const canFilter = session && (session.role === 'master' || session.role === 'admin' || session.role === 'manager' || session.role === 'master_manager' || session.role === 'supervisor_agent');
   sel.style.display = canFilter ? '' : 'none';
   if (!canFilter) return;
   const users   = loadUsers();
@@ -3713,6 +3753,9 @@ function _populateCalUserFilter() {
     options = users.filter(u => names.includes(u.name));
   } else if (session.role === 'master_manager') {
     const names = getMasterManagerAgentNames(session.id);
+    options = users.filter(u => names.includes(u.name));
+  } else if (session.role === 'supervisor_agent') {
+    const names = getSupervisorAgentNames(session.id);
     options = users.filter(u => names.includes(u.name));
   }
   const cur = sel.value;
@@ -3830,7 +3873,7 @@ function openEventModal(isoDate, eventId) {
   // Assignee dropdown
   const wrap = document.getElementById('evt-assignee-wrap');
   const sel  = document.getElementById('evt-assignee');
-  const canAssign = session && (session.role === 'master' || session.role === 'admin' || session.role === 'manager' || session.role === 'master_manager');
+  const canAssign = session && (session.role === 'master' || session.role === 'admin' || session.role === 'manager' || session.role === 'master_manager' || session.role === 'supervisor_agent');
   wrap.style.display = canAssign ? '' : 'none';
   if (canAssign) {
     const users = loadUsers();
@@ -3838,7 +3881,7 @@ function openEventModal(isoDate, eventId) {
     if (session.role === 'master' || session.role === 'admin') {
       opts = users.filter(u => u.role !== 'master');
     } else {
-      const names = session.role === 'manager' ? getManagerAgentNames(session.id) : getMasterManagerAgentNames(session.id);
+      const names = session.role === 'manager' ? getManagerAgentNames(session.id) : session.role === 'master_manager' ? getMasterManagerAgentNames(session.id) : getSupervisorAgentNames(session.id);
       opts = users.filter(u => names.includes(u.name));
     }
     sel.innerHTML = `<option value="${session.id}">${esc(session.name)} (yo)</option>` +
@@ -4038,7 +4081,7 @@ function renderActivityPage() {
     return;
   }
 
-  const ROLE_LABELS = { master:'Maestro', admin:'Administrador', manager:'Manager', master_manager:'Master Manager', agent:'Agente' };
+  const ROLE_LABELS = { master:'Maestro', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente' };
 
   let html = '';
   let lastDay = '';
@@ -5840,13 +5883,14 @@ function _populateSettingsStats() {
   set('tstat-admins', users.filter(u => u.role === 'admin').length);
   set('tstat-mms',    users.filter(u => u.role === 'master_manager').length);
   set('tstat-mgrs',   users.filter(u => u.role === 'manager').length);
+  set('tstat-sas',    users.filter(u => u.role === 'supervisor_agent').length);
   set('tstat-agents', agents);
 }
 
 function _renderSettingsProfileCards() {
   if (!session) return;
   const initials = (session.name || session.email || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  const roleLabel = { master: 'Master', admin: 'Administrador', master_manager: 'Master Manager', manager: 'Manager', agent: 'Agente' }[session.role] || session.role;
+  const roleLabel = { master: 'Master', admin: 'Administrador', master_manager: 'MGA', manager: 'GA', supervisor_agent: 'SA', agent: 'Agente' }[session.role] || session.role;
   const avatarHtml = `<div style="width:52px;height:52px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>`;
   const infoHtml   = `<div><div style="font-size:15px;font-weight:600;color:var(--text)">${session.name || '—'}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${session.email || ''}</div><div style="margin-top:6px;display:inline-block;background:rgba(0,115,234,.15);color:var(--accent);font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px">${roleLabel}</div></div>`;
 
@@ -6505,7 +6549,7 @@ function doLogout() {
 }
 
 function initApp(user) {
-  logActivity('login', 'Inicio de sesión', `Accedió como ${({ master:'Maestro', admin:'Administrador', manager:'Manager', master_manager:'Master Manager', agent:'Agente' }[user.role] || user.role)}`);
+  logActivity('login', 'Inicio de sesión', `Accedió como ${({ master:'Maestro', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente' }[user.role] || user.role)}`);
   if (typeof showWelcomeSplash === 'function') showWelcomeSplash(user);
   renderTopbarUser(user);
   applyAppName();
@@ -6527,8 +6571,8 @@ function initApp(user) {
       document.getElementById('sidebar-admin').style.display = 'block';
       document.getElementById('assign-strip').classList.remove('hidden');
     }
-    // master_manager sees boards but cannot assign — manager filter also scoped
-    if (user.role === 'master_manager' || user.role === 'manager') {
+    // master_manager, manager, supervisor_agent see boards but cannot assign
+    if (user.role === 'master_manager' || user.role === 'manager' || user.role === 'supervisor_agent') {
       document.getElementById('sidebar-admin').style.display = 'none';
       document.getElementById('assign-strip').classList.add('hidden');
     }
@@ -6699,7 +6743,7 @@ function saveAppName() {
 
 function renderTopbarUser(user) {
   const initials = user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-  const roleLabel = user.role === 'master' ? 'Maestro' : user.role === 'admin' ? 'Administrador' : user.role === 'master_manager' ? 'Master Manager' : user.role === 'manager' ? 'Manager' : 'Agente';
+  const roleLabel = user.role === 'master' ? 'Maestro' : user.role === 'admin' ? 'Administrador' : user.role === 'master_manager' ? 'MGA' : user.role === 'manager' ? 'GA' : user.role === 'supervisor_agent' ? 'SA' : 'Agente';
   document.getElementById('topbar-user').innerHTML = `
     <div class="topbar-avatar">${initials}</div>
     <div class="topbar-user-info">
@@ -6754,8 +6798,8 @@ function showBoardView() {
 function userCard(u, session) {
   const initials  = u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatarCls = u.role === 'admin' ? 'avatar-admin' : 'avatar-agent';
-  const roleCls   = u.role === 'admin' ? 'role-admin' : u.role === 'master_manager' ? 'role-master_manager' : u.role === 'manager' ? 'role-manager' : 'role-agent';
-  const roleLabel = u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'Master Manager' : u.role === 'manager' ? 'Manager' : 'Agente';
+  const roleCls   = u.role === 'admin' ? 'role-admin' : u.role === 'master_manager' ? 'role-master_manager' : u.role === 'manager' ? 'role-manager' : u.role === 'supervisor_agent' ? 'role-supervisor_agent' : 'role-agent';
+  const roleLabel = u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'MGA' : u.role === 'manager' ? 'GA' : u.role === 'supervisor_agent' ? 'SA' : 'Agente';
   const isSelf    = session && session.id === u.id;
   const canEdit   = session && (session.role === 'master' ||
                     (session.role === 'admin' && (u.orgAdminId === session.id || u.id === session.id)));
@@ -6779,11 +6823,11 @@ function userCard(u, session) {
 }
 
 function orgNode(u, session) {
-  const roleCls   = u.role === 'master' ? 'role-master' : u.role === 'admin' ? 'role-admin' : u.role === 'master_manager' ? 'role-master_manager' : u.role === 'manager' ? 'role-manager' : 'role-agent';
-  const roleLabel = u.role === 'master' ? 'Maestro' : u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'Master Manager' : u.role === 'manager' ? 'Manager' : 'Agente';
+  const roleCls   = u.role === 'master' ? 'role-master' : u.role === 'admin' ? 'role-admin' : u.role === 'master_manager' ? 'role-master_manager' : u.role === 'manager' ? 'role-manager' : u.role === 'supervisor_agent' ? 'role-supervisor_agent' : 'role-agent';
+  const roleLabel = u.role === 'master' ? 'Maestro' : u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'MGA' : u.role === 'manager' ? 'GA' : u.role === 'supervisor_agent' ? 'SA' : 'Agente';
   const nodeClass = `org-node org-node-${u.role}`;
   const initials  = (u.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const avatarBg  = u.role==='master'?'var(--yellow)':u.role==='admin'?'var(--accent)':u.role==='master_manager'?'#00b7c3':u.role==='manager'?'var(--green)':'var(--purple)';
+  const avatarBg  = u.role==='master'?'var(--yellow)':u.role==='admin'?'var(--accent)':u.role==='master_manager'?'#00b7c3':u.role==='manager'?'var(--green)':u.role==='supervisor_agent'?'#ff8c00':'var(--purple)';
   const canEdit   = session.role === 'master' || (session.role === 'admin' && u.orgAdminId === session.id && u.role !== 'admin');
   const editBtn   = canEdit && u.role !== 'master' ? `<button onclick="openUserModal('${u.id}')" title="Editar">✏️</button>` : '';
   const delBtn    = canEdit && u.role !== 'master' && u.id !== session.id ? `<button class="del" onclick="deleteUser('${u.id}')" title="Eliminar">🗑</button>` : '';
@@ -6798,11 +6842,19 @@ function orgNode(u, session) {
   </div>`;
 }
 
-function buildManagerBranch(mgr, allAgents, admId, session) {
-  const mgrAgents  = allAgents.filter(u => u.orgManagerId === mgr.id);
-  const agentItems = mgrAgents.map(ag => `<li>${orgNode(ag, session)}</li>`).join('');
-  const addAgent   = `<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar agente</button></li>`;
-  return `<li>${orgNode(mgr, session)}<ul>${agentItems}${addAgent}</ul></li>`;
+function buildManagerBranch(mgr, allUsers, admId, session) {
+  const allAgents      = allUsers.filter(u => u.role === 'agent');
+  const supervisors    = allUsers.filter(u => u.role === 'supervisor_agent' && u.orgManagerId === mgr.id);
+  const directAgents   = allAgents.filter(u => u.orgManagerId === mgr.id && !u.orgSupervisorId);
+  let items = '';
+  supervisors.forEach(sup => {
+    const supAgents = allAgents.filter(u => u.orgSupervisorId === sup.id);
+    const supAgentItems = supAgents.map(ag => `<li>${orgNode(ag, session)}</li>`).join('');
+    items += `<li>${orgNode(sup, session)}<ul>${supAgentItems}<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar agente</button></li></ul></li>`;
+  });
+  directAgents.forEach(ag => { items += `<li>${orgNode(ag, session)}</li>`; });
+  const addAgent = `<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar agente</button></li>`;
+  return `<li>${orgNode(mgr, session)}<ul>${items}${addAgent}</ul></li>`;
 }
 
 function buildOrgBranch(admId, allUsers, session) {
@@ -6811,11 +6863,11 @@ function buildOrgBranch(admId, allUsers, session) {
   const agents     = allUsers.filter(u => u.role === 'agent'          && u.orgAdminId === admId);
   let li = '';
 
-  // master_managers → their managers → agents; plus direct agents under master_manager
+  // master_managers → their managers → supervisors → agents; plus direct agents under master_manager
   masterMgrs.forEach(mm => {
     const mmManagers     = managers.filter(u => u.orgMasterManagerId === mm.id);
-    const mmDirectAgents = agents.filter(u => u.orgMasterManagerId === mm.id && !u.orgManagerId);
-    let mmItems = mmManagers.map(mgr => buildManagerBranch(mgr, agents, admId, session)).join('');
+    const mmDirectAgents = agents.filter(u => u.orgMasterManagerId === mm.id && !u.orgManagerId && !u.orgSupervisorId);
+    let mmItems = mmManagers.map(mgr => buildManagerBranch(mgr, allUsers, admId, session)).join('');
     mmDirectAgents.forEach(ag => { mmItems += `<li>${orgNode(ag, session)}</li>`; });
     mmItems += `<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar usuario</button></li>`;
     li += `<li>${orgNode(mm, session)}<ul>${mmItems}</ul></li>`;
@@ -6823,11 +6875,11 @@ function buildOrgBranch(admId, allUsers, session) {
 
   // managers directly under admin (no master_manager)
   managers.filter(u => !u.orgMasterManagerId).forEach(mgr => {
-    li += buildManagerBranch(mgr, agents, admId, session);
+    li += buildManagerBranch(mgr, allUsers, admId, session);
   });
 
-  // agents directly under admin (no master_manager, no manager)
-  agents.filter(u => !u.orgManagerId && !u.orgMasterManagerId).forEach(ag => {
+  // agents directly under admin (no master_manager, no manager, no supervisor)
+  agents.filter(u => !u.orgManagerId && !u.orgMasterManagerId && !u.orgSupervisorId).forEach(ag => {
     li += `<li>${orgNode(ag, session)}</li>`;
   });
 
@@ -6879,7 +6931,7 @@ function _renderDeletedUsersHistory(grid, session) {
 
   if (visible.length === 0) return;
 
-  const roleLabel = r => ({ master:'Maestro', admin:'Administrador', master_manager:'Master Manager', manager:'Manager', agent:'Agente' }[r] || r);
+  const roleLabel = r => ({ master:'Maestro', admin:'Administrador', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
   const fmtDate  = iso => iso ? new Date(iso).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric' }) : '—';
 
   const cards = visible.map(u => {
@@ -6921,23 +6973,35 @@ function onRolChange() {
   const orgId   = isAdminSess ? session.id : (document.getElementById('u-org').value || null);
   const editingUser = editingUserId ? users.find(u => u.id === editingUserId) : null;
 
-  // "Asignar a Master Manager" — for manager and agent (optional in both)
-  if (role === 'manager' || role === 'agent') {
+  const supWrap = document.getElementById('u-supervisor-wrap');
+
+  // "Asignar a MGA" — for manager, supervisor_agent and agent (optional)
+  if (role === 'manager' || role === 'agent' || role === 'supervisor_agent') {
     mmWrap.style.display = '';
     const masterManagers = users.filter(u => u.role === 'master_manager' && (!orgId || u.orgAdminId === orgId));
     document.getElementById('u-masterManager').innerHTML =
-      `<option value="">— Sin Master Manager (directo al admin) —</option>` +
+      `<option value="">— Sin MGA (directo al admin) —</option>` +
       masterManagers.map(m => `<option value="${m.id}"${editingUser && editingUser.orgMasterManagerId === m.id ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
   } else {
     mmWrap.style.display = 'none';
   }
 
-  // "Asignar a Manager" — only for agent (optional, filtered by selected master_manager)
-  if (role === 'agent') {
+  // "Asignar a GA" — for supervisor_agent and agent (optional, filtered by selected MGA)
+  if (role === 'agent' || role === 'supervisor_agent') {
     mgrWrap.style.display = '';
     _populateManagerDropdown(users, orgId, editingUser);
   } else {
     mgrWrap.style.display = 'none';
+  }
+
+  // "Asignar a SA" — only for agent (optional)
+  if (role === 'agent') {
+    if (supWrap) {
+      supWrap.style.display = '';
+      _populateSupervisorDropdown(users, orgId, editingUser);
+    }
+  } else {
+    if (supWrap) supWrap.style.display = 'none';
   }
 }
 
@@ -6954,18 +7018,40 @@ function _populateManagerDropdown(users, orgId, editingUser) {
     (!mmId  || u.orgMasterManagerId === mmId)
   );
   document.getElementById('u-manager').innerHTML =
-    `<option value="">— Sin manager (directo) —</option>` +
+    `<option value="">— Sin GA (directo) —</option>` +
     managers.map(m => `<option value="${m.id}"${editingUser && editingUser.orgManagerId === m.id ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+}
+
+function _populateSupervisorDropdown(users, orgId, editingUser) {
+  if (!users) users = loadUsers();
+  if (!orgId) {
+    const session = getSession();
+    orgId = session && session.role === 'admin' ? session.id : (document.getElementById('u-org') ? document.getElementById('u-org').value || null : null);
+  }
+  const mmId  = document.getElementById('u-masterManager') ? (document.getElementById('u-masterManager').value || null) : null;
+  const mgrId = document.getElementById('u-manager') ? (document.getElementById('u-manager').value || null) : null;
+  const supEl = document.getElementById('u-supervisor');
+  if (!supEl) return;
+  const supervisors = users.filter(u =>
+    u.role === 'supervisor_agent' &&
+    (!orgId || u.orgAdminId === orgId) &&
+    (!mmId  || u.orgMasterManagerId === mmId) &&
+    (!mgrId || u.orgManagerId === mgrId)
+  );
+  supEl.innerHTML =
+    `<option value="">— Sin SA (directo) —</option>` +
+    supervisors.map(s => `<option value="${s.id}"${editingUser && editingUser.orgSupervisorId === s.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('');
 }
 
 function onMasterManagerChange() {
   const role = document.getElementById('u-rol').value;
-  if (role !== 'agent') return;
+  if (role !== 'agent' && role !== 'supervisor_agent') return;
   const users = loadUsers();
   const session = getSession();
   const orgId = session && session.role === 'admin' ? session.id : (document.getElementById('u-org') ? document.getElementById('u-org').value || null : null);
   const editingUser = editingUserId ? users.find(u => u.id === editingUserId) : null;
   _populateManagerDropdown(users, orgId, editingUser);
+  if (role === 'agent') _populateSupervisorDropdown(users, orgId, editingUser);
 }
 
 function openUserModal(userId, presetOrgId, presetRole) {
@@ -7011,7 +7097,7 @@ function openUserModal(userId, presetOrgId, presetRole) {
     // admin: can create agents, managers, and master_managers in their org
     rolWrap.style.display = '';
     const rolSel = document.getElementById('u-rol');
-    rolSel.innerHTML = `<option value="agent">Agente</option><option value="manager">Manager</option><option value="master_manager">Master Manager</option>`;
+    rolSel.innerHTML = `<option value="agent">Agente</option><option value="supervisor_agent">SA - Supervisor Agent</option><option value="manager">GA - General Agent</option><option value="master_manager">MGA - Master General Agent</option>`;
     rolSel.value = u ? u.role : (presetRole || 'agent');
     orgWrap.style.display = 'none';
   }
@@ -7037,26 +7123,33 @@ async function saveUser() {
   let orgAdminId         = null;
   let orgManagerId       = null;
   let orgMasterManagerId = null;
+  let orgSupervisorId    = null;
 
   if (session.role === 'master') {
     role = document.getElementById('u-rol').value;
     if (role !== 'admin') {
       orgAdminId = document.getElementById('u-org') ? (document.getElementById('u-org').value || null) : null;
     }
-    if (role === 'manager' || role === 'agent') {
+    if (role === 'manager' || role === 'agent' || role === 'supervisor_agent') {
       orgMasterManagerId = document.getElementById('u-masterManager') ? (document.getElementById('u-masterManager').value || null) : null;
     }
-    if (role === 'agent') {
+    if (role === 'agent' || role === 'supervisor_agent') {
       orgManagerId = document.getElementById('u-manager') ? (document.getElementById('u-manager').value || null) : null;
+    }
+    if (role === 'agent') {
+      orgSupervisorId = document.getElementById('u-supervisor') ? (document.getElementById('u-supervisor').value || null) : null;
     }
   } else if (session.role === 'admin') {
     role       = document.getElementById('u-rol') ? document.getElementById('u-rol').value : 'agent';
     orgAdminId = session.id;
-    if (role === 'manager' || role === 'agent') {
+    if (role === 'manager' || role === 'agent' || role === 'supervisor_agent') {
       orgMasterManagerId = document.getElementById('u-masterManager') ? (document.getElementById('u-masterManager').value || null) : null;
     }
-    if (role === 'agent') {
+    if (role === 'agent' || role === 'supervisor_agent') {
       orgManagerId = document.getElementById('u-manager') ? (document.getElementById('u-manager').value || null) : null;
+    }
+    if (role === 'agent') {
+      orgSupervisorId = document.getElementById('u-supervisor') ? (document.getElementById('u-supervisor').value || null) : null;
     }
   }
 
@@ -7074,7 +7167,8 @@ async function saveUser() {
     const prev = users[idx];
     const isReassign = prev.orgAdminId !== orgAdminId ||
                        prev.orgMasterManagerId !== orgMasterManagerId ||
-                       prev.orgManagerId !== orgManagerId;
+                       prev.orgManagerId !== orgManagerId ||
+                       prev.orgSupervisorId !== orgSupervisorId;
     const isEmailChange = prev.email.toLowerCase() !== email.toLowerCase();
     const forcePass = document.getElementById('u-force-pass') ? document.getElementById('u-force-pass').checked : false;
 
@@ -7088,6 +7182,7 @@ async function saveUser() {
       freshUsers[i].orgAdminId         = orgAdminId;
       freshUsers[i].orgMasterManagerId = orgMasterManagerId;
       freshUsers[i].orgManagerId       = orgManagerId;
+      freshUsers[i].orgSupervisorId    = orgSupervisorId;
       freshUsers[i].mustChangePassword = forcePass;
       if (pass && pass.length >= 6) freshUsers[i].password = pass;
       if (session && session.id === editingUserId) {
@@ -7124,7 +7219,7 @@ async function saveUser() {
     if (!pass || pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
     if (email === MASTER_USER.email.toLowerCase()) { showToast('Ese email no está disponible', 'error'); return; }
     if (users.find(u => u.email === email)) { showToast('Ese email ya está registrado', 'error'); return; }
-    users.push({ id: uid(), name, email, password: pass, role, orgAdminId, orgMasterManagerId, orgManagerId, createdAt: today() });
+    users.push({ id: uid(), name, email, password: pass, role, orgAdminId, orgMasterManagerId, orgManagerId, orgSupervisorId, createdAt: today() });
     await saveUsers(users);
     logActivity('user_created', `Usuario creado: ${name}`, `Email: ${email} · Rol: ${role}`);
     closeUserModal();
@@ -7268,9 +7363,11 @@ function onApproveRolChange() {
   const users   = loadUsers();
   const isMasterSess = session && session.role === 'master';
 
-  document.getElementById('approve-org-wrap').style.display  = (isMasterSess && role !== 'admin') ? '' : 'none';
-  document.getElementById('approve-mm-wrap').style.display   = (role === 'manager' || role === 'agent') ? '' : 'none';
-  document.getElementById('approve-mgr-wrap').style.display  = role === 'agent' ? '' : 'none';
+  document.getElementById('approve-org-wrap').style.display        = (isMasterSess && role !== 'admin') ? '' : 'none';
+  document.getElementById('approve-mm-wrap').style.display         = (role === 'manager' || role === 'agent' || role === 'supervisor_agent') ? '' : 'none';
+  document.getElementById('approve-mgr-wrap').style.display        = (role === 'agent' || role === 'supervisor_agent') ? '' : 'none';
+  const appSupWrap = document.getElementById('approve-supervisor-wrap');
+  if (appSupWrap) appSupWrap.style.display = role === 'agent' ? '' : 'none';
 
   const orgId = isMasterSess ? (document.getElementById('approve-org').value || null) : (session ? session.id : null);
 
@@ -7282,13 +7379,19 @@ function onApproveRolChange() {
   }
   const mms = users.filter(u => u.role === 'master_manager' && (!orgId || u.orgAdminId === orgId));
   document.getElementById('approve-mm').innerHTML =
-    `<option value="">— Sin Master Manager —</option>` +
+    `<option value="">— Sin MGA —</option>` +
     mms.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('');
 
   const mgrs = users.filter(u => u.role === 'manager' && (!orgId || u.orgAdminId === orgId));
   document.getElementById('approve-mgr').innerHTML =
-    `<option value="">— Sin manager —</option>` +
+    `<option value="">— Sin GA (directo) —</option>` +
     mgrs.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('');
+
+  const sups = users.filter(u => u.role === 'supervisor_agent' && (!orgId || u.orgAdminId === orgId));
+  const appSupEl = document.getElementById('approve-supervisor');
+  if (appSupEl) appSupEl.innerHTML =
+    `<option value="">— Sin SA (directo) —</option>` +
+    sups.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
 }
 
 async function approveRequest() {
@@ -7300,12 +7403,14 @@ async function approveRequest() {
   const orgAdminId         = isMasterSess ? (document.getElementById('approve-org').value || null) : (session ? session.id : null);
   const orgMasterManagerId = document.getElementById('approve-mm-wrap').style.display !== 'none' ? (document.getElementById('approve-mm').value || null) : null;
   const orgManagerId       = document.getElementById('approve-mgr-wrap').style.display !== 'none' ? (document.getElementById('approve-mgr').value || null) : null;
+  const appSupWrapEl       = document.getElementById('approve-supervisor-wrap');
+  const orgSupervisorId    = (appSupWrapEl && appSupWrapEl.style.display !== 'none') ? (document.getElementById('approve-supervisor')?.value || null) : null;
 
   const users = loadUsers();
   if (users.some(x => x.email.toLowerCase() === u.email.toLowerCase())) {
     showToast('Ese email ya tiene una cuenta activa.', 'error'); return;
   }
-  users.push({ id: uid(), name: u.name, email: u.email, password: u.password || null, googleAuth: u.googleAuth || false, role, orgAdminId, orgMasterManagerId, orgManagerId, createdAt: today() });
+  users.push({ id: uid(), name: u.name, email: u.email, password: u.password || null, googleAuth: u.googleAuth || false, role, orgAdminId, orgMasterManagerId, orgManagerId, orgSupervisorId, createdAt: today() });
   await saveUsers(users);
 
   const remaining = loadPendingUsers().filter(x => x.id !== _approvingId);
@@ -8229,18 +8334,20 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
 <script>
 (function() {
   const ROLE_LABELS = {
-    master:         'Maestro',
-    admin:          'Administrador',
-    manager:        'Manager',
-    master_manager: 'Master Manager',
-    agent:          'Agente'
+    master:            'Maestro',
+    admin:             'Administrador',
+    manager:           'GA',
+    master_manager:    'MGA',
+    supervisor_agent:  'SA',
+    agent:             'Agente'
   };
   const ROLE_COLORS = {
-    master:         { bg:'rgba(253,171,61,.15)', color:'#fdab3d', border:'rgba(253,171,61,.35)' },
-    admin:          { bg:'rgba(0,115,234,.15)',  color:'#3b9eff', border:'rgba(0,115,234,.35)' },
-    manager:        { bg:'rgba(0,200,117,.12)',  color:'#00c875', border:'rgba(0,200,117,.3)'  },
-    master_manager: { bg:'rgba(0,183,195,.12)',  color:'#00b7c3', border:'rgba(0,183,195,.3)'  },
-    agent:          { bg:'rgba(120,75,209,.15)', color:'#a78bfa', border:'rgba(120,75,209,.35)' },
+    master:            { bg:'rgba(253,171,61,.15)', color:'#fdab3d', border:'rgba(253,171,61,.35)' },
+    admin:             { bg:'rgba(0,115,234,.15)',  color:'#3b9eff', border:'rgba(0,115,234,.35)' },
+    manager:           { bg:'rgba(0,200,117,.12)',  color:'#00c875', border:'rgba(0,200,117,.3)'  },
+    master_manager:    { bg:'rgba(0,183,195,.12)',  color:'#00b7c3', border:'rgba(0,183,195,.3)'  },
+    supervisor_agent:  { bg:'rgba(255,140,0,.12)',  color:'#ff8c00', border:'rgba(255,140,0,.3)'   },
+    agent:             { bg:'rgba(120,75,209,.15)', color:'#a78bfa', border:'rgba(120,75,209,.35)' },
   };
 
   function spawnParticles() {
@@ -8537,7 +8644,7 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
 
   function getSteps(role) {
     if (role === 'master' || role === 'admin') return STEPS_ADMIN;
-    if (role === 'manager' || role === 'master_manager') return STEPS_MANAGER;
+    if (role === 'manager' || role === 'master_manager' || role === 'supervisor_agent') return STEPS_MANAGER;
     return STEPS_AGENT;
   }
 
