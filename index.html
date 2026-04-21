@@ -7444,7 +7444,8 @@ async function loadFromSupabase() {
 
   try {
     syncMsg.textContent = 'Sincronizando datos…';
-    await loadFromSupabase();
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
+    await Promise.race([loadFromSupabase(), timeout]);
     syncMsg.textContent = 'Listo';
   } catch(e) {
     syncMsg.textContent = 'Sin conexión — usando datos locales';
