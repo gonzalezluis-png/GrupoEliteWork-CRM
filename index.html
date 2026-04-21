@@ -922,10 +922,10 @@
           <div id="ubicaciones-list"></div>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section" id="settings-leadtypes-section">
           <h3>Tipos de Lead</h3>
           <p>Define los tipos de lead disponibles al importar y en el formulario.</p>
-          <div style="display:flex;gap:8px;margin-bottom:12px">
+          <div id="lt-controls" style="display:flex;gap:8px;margin-bottom:12px">
             <input type="text" id="lt-new" placeholder="Ej: GUÍA LABORAL" style="flex:1;max-width:280px" />
             <button class="btn btn-primary btn-sm" onclick="addLeadType()">＋ Agregar</button>
           </div>
@@ -2278,11 +2278,15 @@ function renderLeadTypesList() {
   const types = getLeadTypes();
   const el = document.getElementById('lead-types-list');
   if (!el) return;
+  const session = getSession();
+  const canEdit = session && session.role === 'master';
   el.innerHTML = types.map((t, i) =>
-    `<div class="lt-tag">${esc(t)}<button onclick="removeLeadType(${i})" title="Eliminar">✕</button></div>`
+    `<div class="lt-tag">${esc(t)}${canEdit ? `<button onclick="removeLeadType(${i})" title="Eliminar">✕</button>` : ''}</div>`
   ).join('') || '<span style="color:var(--text2);font-size:12px">Sin tipos definidos</span>';
 }
 function addLeadType() {
+  const session = getSession();
+  if (!session || session.role !== 'master') { showToast('Solo el maestro puede agregar tipos de lead', 'error'); return; }
   const inp = document.getElementById('lt-new');
   const val = inp.value.trim().toUpperCase();
   if (!val) return;
@@ -2296,6 +2300,8 @@ function addLeadType() {
   showToast('Tipo agregado ✓', 'success');
 }
 function removeLeadType(idx) {
+  const session = getSession();
+  if (!session || session.role !== 'master') { showToast('Solo el maestro puede eliminar tipos de lead', 'error'); return; }
   const types = getLeadTypes();
   types.splice(idx, 1);
   saveLeadTypes(types);
@@ -2489,6 +2495,8 @@ function showSettingsPage() {
   currentBoardId = null;
   renderColToggles();
   renderCustomColsList();
+  const ltCtrl = document.getElementById('lt-controls');
+  if (ltCtrl) ltCtrl.style.display = (session && session.role === 'master') ? 'flex' : 'none';
 }
 
 function renderColToggles() {
