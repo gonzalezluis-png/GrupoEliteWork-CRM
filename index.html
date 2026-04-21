@@ -5510,6 +5510,7 @@ function doLogout() {
 
 function initApp(user) {
   logActivity('login', 'Inicio de sesión', `Accedió como ${({ master:'Maestro', admin:'Administrador', manager:'Manager', master_manager:'Master Manager', agent:'Agente' }[user.role] || user.role)}`);
+  if (typeof showWelcomeSplash === 'function') showWelcomeSplash(user);
   renderTopbarUser(user);
   applyAppName();
   // restore persisted column widths
@@ -6839,6 +6840,230 @@ function closeTosViewer() {
 document.getElementById('tos-viewer-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeTosViewer();
 });
+</script>
+
+<!-- ══════════════════════════════════════════════
+     WELCOME SPLASH
+══════════════════════════════════════════════ -->
+<div id="welcome-splash" style="display:none">
+  <div class="wlc-bg"></div>
+  <div class="wlc-particles" id="wlc-particles"></div>
+  <div class="wlc-card" id="wlc-card">
+    <div class="wlc-org" id="wlc-org"></div>
+    <div class="wlc-avatar" id="wlc-avatar"></div>
+    <div class="wlc-greeting" id="wlc-greeting"></div>
+    <div class="wlc-name" id="wlc-name"></div>
+    <div class="wlc-role-badge" id="wlc-role-badge"></div>
+    <div class="wlc-bar"><div class="wlc-bar-fill" id="wlc-bar-fill"></div></div>
+    <div class="wlc-hint">Cargando tu espacio de trabajo…</div>
+  </div>
+</div>
+
+<style>
+#welcome-splash {
+  position:fixed; inset:0; z-index:99999;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.wlc-bg {
+  position:absolute; inset:0;
+  background: radial-gradient(ellipse at 30% 40%, #0d1f4a 0%, #070d1a 55%, #120820 100%);
+}
+/* animated shimmer rays */
+.wlc-bg::before {
+  content:''; position:absolute; inset:0;
+  background: conic-gradient(from 200deg at 70% 60%,
+    transparent 0deg, rgba(0,115,234,.07) 40deg,
+    transparent 80deg, rgba(120,75,209,.06) 130deg,
+    transparent 180deg);
+  animation: wlc-ray-spin 12s linear infinite;
+}
+.wlc-bg::after {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(circle at 70% 30%, rgba(120,75,209,.12) 0%, transparent 55%),
+              radial-gradient(circle at 20% 80%, rgba(0,115,234,.1) 0%, transparent 45%);
+}
+@keyframes wlc-ray-spin { to { transform: rotate(360deg); } }
+
+/* floating particles */
+.wlc-particles { position:absolute; inset:0; pointer-events:none; }
+.wlc-particle {
+  position:absolute; border-radius:50%;
+  animation: wlc-float linear infinite;
+  opacity:0;
+}
+@keyframes wlc-float {
+  0%   { transform:translateY(0) scale(1);   opacity:0; }
+  10%  { opacity:.6; }
+  90%  { opacity:.2; }
+  100% { transform:translateY(-120px) scale(.4); opacity:0; }
+}
+
+/* card */
+.wlc-card {
+  position:relative; z-index:2;
+  display:flex; flex-direction:column; align-items:center;
+  padding:52px 56px 44px;
+  background: rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:28px;
+  backdrop-filter:blur(24px);
+  box-shadow: 0 40px 120px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04) inset;
+  min-width:340px; max-width:440px; width:90vw;
+  animation: wlc-card-in .55s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes wlc-card-in {
+  from { opacity:0; transform:translateY(32px) scale(.92); }
+  to   { opacity:1; transform:translateY(0)    scale(1);   }
+}
+.wlc-card.wlc-out {
+  animation: wlc-card-out .5s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes wlc-card-out {
+  to { opacity:0; transform:translateY(-24px) scale(.95); }
+}
+#welcome-splash.wlc-fade-out {
+  animation: wlc-splash-fade .55s ease forwards;
+}
+@keyframes wlc-splash-fade {
+  to { opacity:0; }
+}
+
+.wlc-org {
+  font-size:10px; font-weight:800; letter-spacing:2.5px;
+  color:rgba(0,115,234,.8); text-transform:uppercase; margin-bottom:28px;
+  animation: wlc-fade-up .4s .1s both;
+}
+.wlc-avatar {
+  width:72px; height:72px; border-radius:50%;
+  background: linear-gradient(135deg, #0073ea, #7c3aed);
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; font-weight:800; color:#fff;
+  box-shadow: 0 0 0 6px rgba(0,115,234,.15), 0 0 0 12px rgba(0,115,234,.06);
+  margin-bottom:20px;
+  animation: wlc-avatar-pop .5s .2s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes wlc-avatar-pop {
+  from { opacity:0; transform:scale(.5); }
+  to   { opacity:1; transform:scale(1);  }
+}
+.wlc-greeting {
+  font-size:13px; color:rgba(255,255,255,.45); font-weight:500;
+  letter-spacing:.5px; margin-bottom:6px;
+  animation: wlc-fade-up .4s .35s both;
+}
+.wlc-name {
+  font-size:28px; font-weight:800; color:#fff; text-align:center;
+  line-height:1.15; margin-bottom:14px;
+  animation: wlc-fade-up .4s .45s both;
+}
+.wlc-role-badge {
+  font-size:11px; font-weight:700; padding:4px 16px; border-radius:20px;
+  margin-bottom:32px;
+  animation: wlc-fade-up .4s .55s both;
+}
+.wlc-bar {
+  width:100%; height:3px; background:rgba(255,255,255,.07); border-radius:2px; overflow:hidden;
+  animation: wlc-fade-up .3s .65s both;
+}
+.wlc-bar-fill {
+  height:100%; width:0%; border-radius:2px;
+  background: linear-gradient(90deg, #0073ea, #7c3aed);
+  transition: width .05s linear;
+}
+.wlc-hint {
+  font-size:10px; color:rgba(255,255,255,.25); margin-top:10px; letter-spacing:.3px;
+  animation: wlc-fade-up .3s .7s both;
+}
+@keyframes wlc-fade-up {
+  from { opacity:0; transform:translateY(14px); }
+  to   { opacity:1; transform:translateY(0);    }
+}
+</style>
+
+<script>
+(function() {
+  const ROLE_LABELS = {
+    master:         'Maestro',
+    admin:          'Administrador',
+    manager:        'Manager',
+    master_manager: 'Master Manager',
+    agent:          'Agente'
+  };
+  const ROLE_COLORS = {
+    master:         { bg:'rgba(253,171,61,.15)', color:'#fdab3d', border:'rgba(253,171,61,.35)' },
+    admin:          { bg:'rgba(0,115,234,.15)',  color:'#3b9eff', border:'rgba(0,115,234,.35)' },
+    manager:        { bg:'rgba(0,200,117,.12)',  color:'#00c875', border:'rgba(0,200,117,.3)'  },
+    master_manager: { bg:'rgba(0,183,195,.12)',  color:'#00b7c3', border:'rgba(0,183,195,.3)'  },
+    agent:          { bg:'rgba(120,75,209,.15)', color:'#a78bfa', border:'rgba(120,75,209,.35)' },
+  };
+
+  function spawnParticles() {
+    const wrap = document.getElementById('wlc-particles');
+    if (!wrap) return;
+    const colors = ['#0073ea','#7c3aed','#00c875','#fdab3d','#00b7c3'];
+    for (let i = 0; i < 22; i++) {
+      const p = document.createElement('div');
+      p.className = 'wlc-particle';
+      const size  = Math.random() * 5 + 2;
+      const left  = Math.random() * 100;
+      const delay = Math.random() * 3;
+      const dur   = Math.random() * 3 + 3;
+      const top   = 60 + Math.random() * 35;
+      p.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${left}%; top:${top}%;
+        background:${colors[Math.floor(Math.random()*colors.length)]};
+        animation-duration:${dur}s; animation-delay:${delay}s;
+      `;
+      wrap.appendChild(p);
+    }
+  }
+
+  window.showWelcomeSplash = function(user) {
+    const splash  = document.getElementById('welcome-splash');
+    const orgName = (typeof loadAppName === 'function') ? loadAppName() : 'GRUPO ELITE WORK';
+    const role    = user.role || 'agent';
+    const label   = ROLE_LABELS[role] || role;
+    const colors  = ROLE_COLORS[role] || ROLE_COLORS.agent;
+    const initials= (user.name || user.email || '?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const firstName = (user.name || '').split(' ')[0] || user.email;
+
+    document.getElementById('wlc-org').textContent   = orgName;
+    document.getElementById('wlc-avatar').textContent = initials;
+    document.getElementById('wlc-greeting').textContent = 'Bienvenido de vuelta,';
+    document.getElementById('wlc-name').textContent  = firstName;
+    const badge = document.getElementById('wlc-role-badge');
+    badge.textContent = label;
+    badge.style.cssText = `background:${colors.bg};color:${colors.color};border:1px solid ${colors.border};font-size:11px;font-weight:700;padding:4px 16px;border-radius:20px;margin-bottom:32px`;
+
+    splash.style.display = 'flex';
+    spawnParticles();
+
+    // progress bar fill over ~2.8s
+    const bar = document.getElementById('wlc-bar-fill');
+    let pct = 0;
+    const tick = setInterval(() => {
+      pct = Math.min(pct + 100 / 56, 100);
+      bar.style.width = pct + '%';
+      if (pct >= 100) clearInterval(tick);
+    }, 50);
+
+    // dismiss after 3s
+    setTimeout(() => {
+      const card = document.getElementById('wlc-card');
+      if (card) card.classList.add('wlc-out');
+      splash.classList.add('wlc-fade-out');
+      setTimeout(() => {
+        splash.style.display = 'none';
+        splash.classList.remove('wlc-fade-out');
+        if (card) card.classList.remove('wlc-out');
+        const pw = document.getElementById('wlc-particles');
+        if (pw) pw.innerHTML = '';
+      }, 560);
+    }, 3000);
+  };
+})();
 </script>
 </body>
 </html>
