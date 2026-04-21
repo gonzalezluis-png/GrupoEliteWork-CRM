@@ -1633,6 +1633,29 @@
             </div>
           </div>
 
+          <!-- Danger zone (master only) -->
+          <div class="st-card" id="danger-zone-card" style="display:none;margin-top:16px;border-color:rgba(226,68,92,.3)">
+            <div class="st-card-header">
+              <div class="st-card-header-left">
+                <div class="st-card-icon" style="background:rgba(226,68,92,.12)">⚠️</div>
+                <div class="st-card-text">
+                  <div class="st-card-title" style="color:#e2445c">Zona de Peligro</div>
+                  <div class="st-card-desc">Acciones irreversibles. Solo visible para el Maestro.</div>
+                </div>
+              </div>
+            </div>
+            <div class="st-card-divider"></div>
+            <div class="st-card-body">
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                <div style="flex:1;min-width:200px">
+                  <div style="font-size:13px;font-weight:600;color:var(--text)">Eliminar todos los usuarios</div>
+                  <div style="font-size:11px;color:var(--text2);margin-top:3px">Borra todos los agentes, managers y master managers. Conserva solo el Maestro y los Administradores.</div>
+                </div>
+                <button class="btn btn-sm" style="background:rgba(226,68,92,.15);color:#e2445c;border:1px solid rgba(226,68,92,.35);flex-shrink:0" onclick="confirmClearAllUsers()">🗑 Limpiar usuarios</button>
+              </div>
+            </div>
+          </div>
+
           <!-- TAB: Solicitudes -->
           <div class="settings-tab" id="stab-requests">
             <div class="st-header">
@@ -4630,6 +4653,10 @@ function showSettingsPage() {
   const vuCard = document.getElementById('virtual-users-card');
   if (vuCard) vuCard.style.display = isAdminOrMaster ? '' : 'none';
 
+  // Danger zone — master only
+  const dzCard = document.getElementById('danger-zone-card');
+  if (dzCard) dzCard.style.display = (session && session.role === 'master') ? '' : 'none';
+
   // T&C editor — admin/master only
   const termsCard = document.getElementById('terms-editor-card');
   if (termsCard) termsCard.style.display = isAdminOrMaster ? '' : 'none';
@@ -6111,6 +6138,21 @@ async function confirmUserAction() {
   _pendingUserAction = null;
   document.getElementById('user-action-overlay').classList.remove('open');
   if (action) await action();
+}
+
+async function confirmClearAllUsers() {
+  const session = getSession();
+  if (!session || session.role !== 'master') return;
+  const users = loadUsers();
+  const toDelete = users.filter(u => u.role !== 'admin');
+  if (!toDelete.length) { showToast('No hay usuarios para eliminar', 'error'); return; }
+  const ok = confirm(`¿Eliminar ${toDelete.length} usuario${toDelete.length !== 1 ? 's' : ''}? Se conservarán los Administradores. Esta acción no se puede deshacer.`);
+  if (!ok) return;
+  const kept = users.filter(u => u.role === 'admin');
+  await saveUsers(kept);
+  renderUsersGrid();
+  _populateSettingsStats();
+  showToast(`${toDelete.length} usuario${toDelete.length !== 1 ? 's' : ''} eliminado${toDelete.length !== 1 ? 's' : ''}`, 'success');
 }
 
 async function deleteUser(userId) {
