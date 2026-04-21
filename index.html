@@ -729,37 +729,47 @@
   .org-group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 
   /* ── ORG TREE ── */
-  .org-tree { list-style:none; padding:0; margin:0; }
-  .org-tree ul { list-style:none; padding:0; margin:0 0 0 24px; position:relative; }
-  .org-tree ul::before { content:''; position:absolute; left:0; top:0; bottom:16px; width:2px; background:var(--border); }
-  .org-tree li { position:relative; padding:6px 0 0 24px; }
-  .org-tree li::before { content:''; position:absolute; left:0; top:24px; width:22px; height:2px; background:var(--border); }
-  .org-tree > li { padding-left:0; }
-  .org-tree > li::before { display:none; }
+  /* ── HORIZONTAL ORG CHART ── */
+  .org-h-scroll { overflow-x:auto; overflow-y:visible; padding:20px 8px 28px; }
+  /* Each "group" = node card + connector + children column */
+  .org-h-group { display:flex; flex-direction:row; align-items:center; }
+  /* Horizontal connector line from parent to vertical bar */
+  .org-h-hline { width:28px; height:2px; background:var(--border); flex-shrink:0; }
+  /* Vertical bar that spans all siblings */
+  .org-h-vbar  { width:2px; background:var(--border); align-self:stretch; flex-shrink:0; }
+  /* Column of children */
+  .org-h-children { display:flex; flex-direction:column; gap:14px; padding:10px 0; }
+  /* Each child row: short hline + subtree */
+  .org-h-child { display:flex; flex-direction:row; align-items:center; }
+  .org-h-child-hline { width:28px; height:2px; background:var(--border); flex-shrink:0; }
+  /* Node card */
   .org-node {
-    display:inline-flex; align-items:center; gap:10px;
+    display:inline-flex; align-items:center; gap:8px;
     background:var(--card); border:1px solid var(--border);
-    border-radius:10px; padding:10px 14px;
-    min-width:220px; max-width:300px;
+    border-radius:10px; padding:8px 12px;
+    width:200px; flex-shrink:0;
     transition:border-color .15s;
-    vertical-align:middle;
   }
-  .org-node:hover { border-color: var(--accent); }
-  .org-node-master            { border-color: var(--yellow); }
-  .org-node-admin             { border-color: var(--accent); }
-  .org-node-master_manager    { border-color: #00b7c3; }
-  .org-node-manager           { border-color: var(--green); }
-  .org-node-supervisor_agent  { border-color: #ff8c00; }
-  .org-node-agent             { border-color: var(--border); }
+  .org-node:hover { border-color:var(--accent); }
+  .org-node-master         { border-color:var(--yellow); }
+  .org-node-admin          { border-color:var(--accent); }
+  .org-node-master_manager { border-color:#00b7c3; }
+  .org-node-manager        { border-color:var(--green); }
+  .org-node-supervisor_agent { border-color:#ff8c00; }
+  .org-node-agent          { border-color:var(--border); }
   .org-node-info { flex:1; min-width:0; }
-  .org-node-name  { font-size:12px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .org-node-email { font-size:10px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .org-node-actions { display:flex; gap:4px; flex-shrink:0; }
-  .org-node-actions button { background:transparent; border:none; color:var(--text2); cursor:pointer; font-size:12px; padding:3px 5px; border-radius:4px; transition:background .12s,color .12s; }
+  .org-node-name  { font-size:11px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .org-node-email { font-size:9px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .org-node-actions { display:flex; gap:2px; flex-shrink:0; }
+  .org-node-actions button { background:transparent; border:none; color:var(--text2); cursor:pointer; font-size:11px; padding:2px 4px; border-radius:4px; transition:background .12s,color .12s; }
   .org-node-actions button:hover { background:var(--border); color:#fff; }
   .org-node-actions button.del:hover { color:var(--red); }
-  .org-tree-add { display:inline-flex; align-items:center; gap:6px; margin-top:6px; margin-left:0; background:transparent; border:1px dashed var(--border); border-radius:8px; padding:6px 14px; color:var(--text2); font-size:11px; font-weight:600; cursor:pointer; transition:border-color .15s,color .15s; }
+  .org-tree-add { display:inline-flex; align-items:center; gap:5px; background:transparent; border:1px dashed var(--border); border-radius:8px; padding:5px 12px; color:var(--text2); font-size:10px; font-weight:600; cursor:pointer; transition:border-color .15s,color .15s; white-space:nowrap; }
   .org-tree-add:hover { border-color:var(--accent); color:var(--accent); }
+  /* Legend strip */
+  .org-legend { display:flex; flex-wrap:wrap; gap:10px; padding:0 8px 16px; }
+  .org-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text2); }
+  .org-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 
   /* board item delete btn */
   .board-item .board-del {
@@ -6842,49 +6852,65 @@ function orgNode(u, session) {
   </div>`;
 }
 
+// ── Horizontal org chart helpers ──────────────────────────────
+function hOrgWrap(nodeHtml, childrenHtml) {
+  if (!childrenHtml) return `<div class="org-h-group">${nodeHtml}</div>`;
+  return `<div class="org-h-group">
+    ${nodeHtml}
+    <div class="org-h-hline"></div>
+    <div class="org-h-vbar"></div>
+    <div class="org-h-children">${childrenHtml}</div>
+  </div>`;
+}
+function hChild(subtreeHtml) {
+  return `<div class="org-h-child"><div class="org-h-child-hline"></div>${subtreeHtml}</div>`;
+}
+function hAddBtn(admId, label) {
+  return `<div class="org-h-child"><div class="org-h-child-hline"></div><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">${label}</button></div>`;
+}
+
 function buildManagerBranch(mgr, allUsers, admId, session) {
-  const allAgents      = allUsers.filter(u => u.role === 'agent');
-  const supervisors    = allUsers.filter(u => u.role === 'supervisor_agent' && u.orgManagerId === mgr.id);
-  const directAgents   = allAgents.filter(u => u.orgManagerId === mgr.id && !u.orgSupervisorId);
-  let items = '';
+  const allAgents    = allUsers.filter(u => u.role === 'agent');
+  const supervisors  = allUsers.filter(u => u.role === 'supervisor_agent' && u.orgManagerId === mgr.id);
+  const directAgents = allAgents.filter(u => u.orgManagerId === mgr.id && !u.orgSupervisorId);
+  let children = '';
+
   supervisors.forEach(sup => {
     const supAgents = allAgents.filter(u => u.orgSupervisorId === sup.id);
-    const supAgentItems = supAgents.map(ag => `<li>${orgNode(ag, session)}</li>`).join('');
-    items += `<li>${orgNode(sup, session)}<ul>${supAgentItems}<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar agente</button></li></ul></li>`;
+    let supChildren = supAgents.map(ag => hChild(hOrgWrap(orgNode(ag, session), ''))).join('');
+    supChildren += hAddBtn(admId, '＋ Agente');
+    children += hChild(hOrgWrap(orgNode(sup, session), supChildren));
   });
-  directAgents.forEach(ag => { items += `<li>${orgNode(ag, session)}</li>`; });
-  const addAgent = `<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar agente</button></li>`;
-  return `<li>${orgNode(mgr, session)}<ul>${items}${addAgent}</ul></li>`;
+  directAgents.forEach(ag => { children += hChild(hOrgWrap(orgNode(ag, session), '')); });
+  children += hAddBtn(admId, '＋ Agente');
+  return hOrgWrap(orgNode(mgr, session), children);
 }
 
 function buildOrgBranch(admId, allUsers, session) {
   const masterMgrs = allUsers.filter(u => u.role === 'master_manager' && u.orgAdminId === admId);
   const managers   = allUsers.filter(u => u.role === 'manager'        && u.orgAdminId === admId);
   const agents     = allUsers.filter(u => u.role === 'agent'          && u.orgAdminId === admId);
-  let li = '';
+  let children = '';
 
-  // master_managers → their managers → supervisors → agents; plus direct agents under master_manager
   masterMgrs.forEach(mm => {
     const mmManagers     = managers.filter(u => u.orgMasterManagerId === mm.id);
     const mmDirectAgents = agents.filter(u => u.orgMasterManagerId === mm.id && !u.orgManagerId && !u.orgSupervisorId);
-    let mmItems = mmManagers.map(mgr => buildManagerBranch(mgr, allUsers, admId, session)).join('');
-    mmDirectAgents.forEach(ag => { mmItems += `<li>${orgNode(ag, session)}</li>`; });
-    mmItems += `<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar usuario</button></li>`;
-    li += `<li>${orgNode(mm, session)}<ul>${mmItems}</ul></li>`;
+    let mmChildren = mmManagers.map(mgr => hChild(buildManagerBranch(mgr, allUsers, admId, session))).join('');
+    mmDirectAgents.forEach(ag => { mmChildren += hChild(hOrgWrap(orgNode(ag, session), '')); });
+    mmChildren += hAddBtn(admId, '＋ Agregar');
+    children += hChild(hOrgWrap(orgNode(mm, session), mmChildren));
   });
 
-  // managers directly under admin (no master_manager)
   managers.filter(u => !u.orgMasterManagerId).forEach(mgr => {
-    li += buildManagerBranch(mgr, allUsers, admId, session);
+    children += hChild(buildManagerBranch(mgr, allUsers, admId, session));
   });
 
-  // agents directly under admin (no master_manager, no manager, no supervisor)
   agents.filter(u => !u.orgManagerId && !u.orgMasterManagerId && !u.orgSupervisorId).forEach(ag => {
-    li += `<li>${orgNode(ag, session)}</li>`;
+    children += hChild(hOrgWrap(orgNode(ag, session), ''));
   });
 
-  li += `<li><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">＋ Agregar usuario</button></li>`;
-  return li;
+  children += hAddBtn(admId, '＋ Agregar usuario');
+  return children;
 }
 
 function renderUsersGrid() {
@@ -6896,27 +6922,31 @@ function renderUsersGrid() {
 
   const masterUser = { id: MASTER_USER.id, name: MASTER_USER.name, email: MASTER_USER.email, role: 'master' };
 
+  const legend = `<div class="org-legend">
+    <div class="org-legend-item"><div class="org-legend-dot" style="background:var(--accent)"></div>Administrador</div>
+    <div class="org-legend-item"><div class="org-legend-dot" style="background:#00b7c3"></div>MGA</div>
+    <div class="org-legend-item"><div class="org-legend-dot" style="background:var(--green)"></div>GA</div>
+    <div class="org-legend-item"><div class="org-legend-dot" style="background:#ff8c00"></div>SA</div>
+    <div class="org-legend-item"><div class="org-legend-dot" style="background:var(--purple)"></div>Agente</div>
+  </div>`;
+
   if (session.role === 'master') {
     const admins = allUsers.filter(u => u.role === 'admin');
-    let adminItems = admins.map(adm => {
+    let adminChildren = admins.map(adm => {
       const branch = buildOrgBranch(adm.id, allUsers, session);
-      return `<li>${orgNode(adm, session)}<ul>${branch}</ul></li>`;
+      return hChild(hOrgWrap(orgNode(adm, session), branch));
     }).join('');
-    adminItems += `<li><button class="org-tree-add" onclick="openUserModal(null,null,'admin')">＋ Agregar administrador</button></li>`;
+    adminChildren += `<div class="org-h-child"><div class="org-h-child-hline"></div><button class="org-tree-add" onclick="openUserModal(null,null,'admin')">＋ Agregar administrador</button></div>`;
 
     const ungrouped = allUsers.filter(u => u.role === 'agent' && !u.orgAdminId);
-    const ungroupedItems = ungrouped.map(u => `<li>${orgNode(u, session)}</li>`).join('');
+    ungrouped.forEach(u => { adminChildren += hChild(hOrgWrap(orgNode(u, session), '')); });
 
-    grid.innerHTML = `<ul class="org-tree">
-      <li>${orgNode(masterUser, session)}<ul>${adminItems}${ungroupedItems}</ul></li>
-    </ul>`;
+    grid.innerHTML = legend + `<div class="org-h-scroll">${hOrgWrap(orgNode(masterUser, session), adminChildren)}</div>`;
 
   } else if (session.role === 'admin') {
     const me = allUsers.find(u => u.id === session.id) || { ...session };
     const branch = buildOrgBranch(session.id, allUsers, session);
-    grid.innerHTML = `<ul class="org-tree">
-      <li>${orgNode(me, session)}<ul>${branch}</ul></li>
-    </ul>`;
+    grid.innerHTML = legend + `<div class="org-h-scroll">${hOrgWrap(orgNode(me, session), branch)}</div>`;
   }
 
   // Append deleted users history
