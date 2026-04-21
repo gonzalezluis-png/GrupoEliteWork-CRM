@@ -2619,17 +2619,23 @@ function renderRows(board, leads) {
         </td>`;
       }
       if (c.key === 'asignado') {
-        const sess = getSession();
+        const sess       = getSession();
         const displayVal = l.asignado || '';
-        const emptyClass = (displayVal && displayVal !== 'Sin asignar') ? '' : ' empty-val';
+        const isAssigned = displayVal && displayVal !== 'Sin asignar';
+        const pillStyle  = isAssigned
+          ? 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(0,200,117,.12);color:#00c875;border:1px solid rgba(0,200,117,.3)'
+          : 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(0,115,234,.12);color:#3b9eff;border:1px solid rgba(0,115,234,.3)';
+        const dot        = isAssigned
+          ? '<span style="width:6px;height:6px;border-radius:50%;background:#00c875;flex-shrink:0"></span>'
+          : '<span style="width:6px;height:6px;border-radius:50%;background:#3b9eff;flex-shrink:0"></span>';
         if (sess && (sess.role === 'agent' || sess.role === 'manager' || sess.role === 'master_manager')) {
-          return `<td><span style="font-size:12px">${esc(displayVal||'Sin asignar')}</span></td>`;
+          return `<td><span style="${pillStyle}">${dot}${esc(displayVal||'Sin Asignar')}</span></td>`;
         }
         const agOpts = ['', ...getAgents()].map(a =>
           `<option value="${esc(a)}"${l.asignado===a?' selected':''}>${a||'— Sin asignar —'}</option>`
         ).join('');
         return `<td class="td-inline" onclick="event.stopPropagation()">
-          <span class="inline-display${emptyClass}" onclick="openInlineSel(this)">${esc(displayVal||'Sin asignar')} <span class="caret">▾</span></span>
+          <span style="${pillStyle};cursor:pointer" onclick="openInlineSel(this)">${dot}${esc(displayVal||'Sin Asignar')} <span style="opacity:.6;font-size:10px">▾</span></span>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','asignado')"
             onblur="closeInlineSel(this)">${agOpts}</select>
