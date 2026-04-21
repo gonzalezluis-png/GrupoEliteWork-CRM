@@ -4653,9 +4653,10 @@ async function confirmUserAction() {
     valid = me && me.password === pass;
   }
   if (!valid) { showToast('Contraseña incorrecta', 'error'); document.getElementById('ua-pass').value = ''; document.getElementById('ua-pass').focus(); return; }
-  cancelUserAction();
-  if (_pendingUserAction) await _pendingUserAction();
+  const action = _pendingUserAction;
   _pendingUserAction = null;
+  document.getElementById('user-action-overlay').classList.remove('open');
+  if (action) await action();
 }
 
 async function deleteUser(userId) {
