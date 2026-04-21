@@ -602,8 +602,9 @@
   .user-card-email { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .user-card-bottom { display: flex; align-items: center; justify-content: space-between; }
   .role-badge { padding: 3px 9px; border-radius: 10px; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
-  .role-admin { background: rgba(0,115,234,.2); color: #4da8ff; }
-  .role-agent { background: rgba(120,75,209,.2); color: #a97ff2; }
+  .role-admin   { background: rgba(0,115,234,.2); color: #4da8ff; }
+  .role-manager { background: rgba(0,200,117,.2); color: #00c875; }
+  .role-agent   { background: rgba(120,75,209,.2); color: #a97ff2; }
   .user-card-actions { display: flex; gap: 6px; }
   .user-card-actions button { background: var(--border); border: none; color: var(--text2); padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 12px; transition: background .15s, color .15s; }
   .user-card-actions button:hover { background: var(--accent); color: #fff; }
@@ -1155,6 +1156,7 @@
           <label>Rol</label>
           <select id="u-rol" onchange="onRolChange()">
             <option value="agent">Agente</option>
+            <option value="manager">Manager</option>
             <option value="admin">Administrador</option>
           </select>
         </div>
@@ -1162,6 +1164,12 @@
           <label>Pertenece a (Administrador)</label>
           <select id="u-org">
             <option value="">— Sin organización —</option>
+          </select>
+        </div>
+        <div class="field" id="u-manager-wrap" style="display:none">
+          <label>Asignar a Manager</label>
+          <select id="u-manager">
+            <option value="">— Sin manager —</option>
           </select>
         </div>
       </div>
@@ -1200,6 +1208,12 @@ function getAgents() {
     agents = agents.filter(u => u.orgAdminId === session.id);
   }
   return agents.map(u => u.name);
+}
+
+function getManagerAgentNames(managerId) {
+  return loadUsers()
+    .filter(u => u.role === 'agent' && u.orgManagerId === managerId)
+    .map(u => u.name);
 }
 // legacy alias used in some places — replaced dynamically below
 const AGENTS = [];
@@ -1325,15 +1339,18 @@ function formatDate(str) {
 // ════════════════════════════════════════════
 function renderSidebar() {
   const session = getSession();
-  const isMaster = session && session.role === 'master';
-  const isAgent  = session && session.role === 'agent';
+  const isMaster  = session && session.role === 'master';
+  const isAgent   = session && session.role === 'agent';
+  const isManager = session && session.role === 'manager';
   const list = document.getElementById('board-list');
   const defaultIds = new Set(DEFAULT_BOARDS.map(b => b.id));
 
-  // agents only see boards where they have at least one assigned lead
+  const mgrAgentNames = isManager ? getManagerAgentNames(session.id) : [];
   const visibleBoards = isAgent
     ? BOARDS.filter(b => loadLeads(b.id).some(l => l.asignado === session.name))
-    : BOARDS;
+    : isManager
+      ? BOARDS.filter(b => loadLeads(b.id).some(l => mgrAgentNames.includes(l.asignado)))
+      : BOARDS;
 
   list.innerHTML = visibleBoards.map(b => {
     const isCustom = !defaultIds.has(b.id);
@@ -1432,6 +1449,8 @@ function applyFilters() {
   const leads   = currentBoardId === '__agent__'
     ? loadAgentLeads(session ? session.name : '')
     : loadLeads(currentBoardId);
+
+  const mgrAgents = (session && session.role === 'manager') ? getManagerAgentNames(session.id) : null;
   const q       = document.getElementById('search-input').value.toLowerCase();
   const fAsig   = document.getElementById('f-asignado').value;
   const fLead   = document.getElementById('f-lead').value;
@@ -1444,6 +1463,7 @@ function applyFilters() {
   selectedIds.clear();
   updateBulkBar();
   filteredLeads = leads.filter(l => {
+    if (mgrAgents && !mgrAgents.includes(l.asignado)) return false;
     if (q && ![ l.nombre, l.email, l.telefono ].some(v => (v||'').toLowerCase().includes(q))) return false;
     if (fAsig && l.asignado  !== fAsig) return false;
     if (fLead && l.lead      !== fLead) return false;
@@ -1493,7 +1513,7 @@ function renderRows(board, leads) {
       if (c.key === '_check') return `<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-checkbox" data-id="${l.id}" onchange="toggleRowSelect(this,'${l.id}')" ${selectedIds.has(l.id)?'checked':''} /></td>`;
       if (c.key === '_actions') {
         const sess2 = getSession();
-        if (sess2 && sess2.role === 'agent') {
+        if (sess2 && (sess2.role === 'agent' || sess2.role === 'manager')) {
           return `<td><div class="row-actions">
             <button class="row-btn" onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas">📝</button>
           </div></td>`;
@@ -1543,7 +1563,7 @@ function renderRows(board, leads) {
         const sess = getSession();
         const displayVal = l.asignado || '';
         const emptyClass = (displayVal && displayVal !== 'Sin asignar') ? '' : ' empty-val';
-        if (sess && sess.role === 'agent') {
+        if (sess && (sess.role === 'agent' || sess.role === 'manager')) {
           return `<td><span style="font-size:12px">${esc(displayVal||'Sin asignar')}</span></td>`;
         }
         const agOpts = ['', ...getAgents()].map(a =>
@@ -2988,7 +3008,6 @@ function initApp(user) {
   renderTopbarUser(user);
   applyAppName();
   if (user.role === 'agent') {
-    // agents: no board navigation, just their leads
     document.getElementById('sidebar').style.display = 'none';
     const agentFilterWrap = document.getElementById('f-asignado');
     if (agentFilterWrap) {
@@ -3069,7 +3088,7 @@ function saveAppName() {
 
 function renderTopbarUser(user) {
   const initials = user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-  const roleLabel = user.role === 'master' ? 'Maestro' : user.role === 'admin' ? 'Administrador' : 'Agente';
+  const roleLabel = user.role === 'master' ? 'Maestro' : user.role === 'admin' ? 'Administrador' : user.role === 'manager' ? 'Manager' : 'Agente';
   document.getElementById('topbar-user').innerHTML = `
     <div class="topbar-avatar">${initials}</div>
     <div class="topbar-user-info">
@@ -3113,8 +3132,8 @@ function showBoardView() {
 function userCard(u, session) {
   const initials  = u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatarCls = u.role === 'admin' ? 'avatar-admin' : 'avatar-agent';
-  const roleCls   = u.role === 'admin' ? 'role-admin' : 'role-agent';
-  const roleLabel = u.role === 'admin' ? 'Administrador' : 'Agente';
+  const roleCls   = u.role === 'admin' ? 'role-admin' : u.role === 'manager' ? 'role-manager' : 'role-agent';
+  const roleLabel = u.role === 'admin' ? 'Administrador' : u.role === 'manager' ? 'Manager' : 'Agente';
   const isSelf    = session && session.id === u.id;
   const canEdit   = session && (session.role === 'master' ||
                     (session.role === 'admin' && (u.orgAdminId === session.id || u.id === session.id)));
@@ -3159,14 +3178,25 @@ function renderUsersGrid() {
     </div>`;
 
     admins.forEach(adm => {
-      const agents = allUsers.filter(u => u.role === 'agent' && u.orgAdminId === adm.id);
+      const managers = allUsers.filter(u => u.role === 'manager' && u.orgAdminId === adm.id);
+      const agents   = allUsers.filter(u => u.role === 'agent'   && u.orgAdminId === adm.id);
+      let membersHtml = userCard(adm, session);
+      managers.forEach(mgr => {
+        const mgrAgents = agents.filter(u => u.orgManagerId === mgr.id);
+        membersHtml += `<div style="grid-column:1/-1;background:rgba(0,115,234,.06);border:1px solid rgba(0,115,234,.15);border-radius:8px;padding:10px 12px;margin:4px 0">
+          <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-bottom:8px">MANAGER</div>
+          <div class="org-group-grid" style="margin:0">
+            ${userCard(mgr, session)}
+            ${mgrAgents.map(u => userCard(u, session)).join('')}
+          </div>
+        </div>`;
+      });
+      const unassignedAgents = agents.filter(u => !u.orgManagerId);
+      membersHtml += unassignedAgents.map(u => userCard(u, session)).join('');
+      membersHtml += `<div class="user-add-card" onclick="openUserModal(null,'${adm.id}')">＋ Agregar usuario</div>`;
       html += `<div class="org-group">
         <div class="org-group-header">Organización de <span class="org-group-name">${esc(adm.name)}</span></div>
-        <div class="org-group-grid">
-          ${userCard(adm, session)}
-          ${agents.map(u => userCard(u, session)).join('')}
-          <div class="user-add-card" onclick="openUserModal(null,'${adm.id}')">＋ Agregar agente</div>
-        </div>
+        <div class="org-group-grid">${membersHtml}</div>
       </div>`;
     });
 
@@ -3184,26 +3214,52 @@ function renderUsersGrid() {
     </div>`;
 
   } else if (session.role === 'admin') {
-    const myAgents = allUsers.filter(u => u.role === 'agent' && u.orgAdminId === session.id);
-    const me       = allUsers.find(u => u.id === session.id);
-    const cards    = (me ? [userCard(me, session)] : [])
-                     .concat(myAgents.map(u => userCard(u, session)));
-    html = `<div class="org-group-grid">${cards.join('')}
-      <div class="user-add-card" onclick="openUserModal()">＋ Agregar agente</div>
-    </div>`;
+    const myManagers = allUsers.filter(u => u.role === 'manager' && u.orgAdminId === session.id);
+    const myAgents   = allUsers.filter(u => u.role === 'agent'   && u.orgAdminId === session.id);
+    const me = allUsers.find(u => u.id === session.id);
+    let inner = me ? userCard(me, session) : '';
+    myManagers.forEach(mgr => {
+      const mgrAgents = myAgents.filter(u => u.orgManagerId === mgr.id);
+      inner += `<div style="grid-column:1/-1;background:rgba(0,115,234,.06);border:1px solid rgba(0,115,234,.15);border-radius:8px;padding:10px 12px;margin:4px 0">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-bottom:8px">MANAGER</div>
+        <div class="org-group-grid" style="margin:0">
+          ${userCard(mgr, session)}
+          ${mgrAgents.map(u => userCard(u, session)).join('')}
+        </div>
+      </div>`;
+    });
+    const unassigned = myAgents.filter(u => !u.orgManagerId);
+    inner += unassigned.map(u => userCard(u, session)).join('');
+    inner += `<div class="user-add-card" onclick="openUserModal()">＋ Agregar usuario</div>`;
+    html = `<div class="org-group-grid">${inner}</div>`;
   }
 
   grid.innerHTML = html;
 }
 
 function onRolChange() {
-  const role    = document.getElementById('u-rol').value;
-  const session = getSession();
-  const orgWrap = document.getElementById('u-org-wrap');
-  if (session && session.role === 'master' && role === 'agent') {
-    orgWrap.style.display = '';
+  const role       = document.getElementById('u-rol').value;
+  const session    = getSession();
+  const orgWrap    = document.getElementById('u-org-wrap');
+  const mgrWrap    = document.getElementById('u-manager-wrap');
+  const isAgent    = role === 'agent';
+  const isMasterSess = session && session.role === 'master';
+  const isAdminSess  = session && session.role === 'admin';
+
+  orgWrap.style.display = (isMasterSess && isAgent) ? '' : 'none';
+
+  // show manager assignment when creating agent (admin or master)
+  if (isAgent) {
+    mgrWrap.style.display = '';
+    const users = loadUsers();
+    const orgId = isAdminSess ? session.id : (document.getElementById('u-org').value || null);
+    const managers = users.filter(u => u.role === 'manager' && u.orgAdminId === orgId);
+    const editingUser = editingUserId ? users.find(u => u.id === editingUserId) : null;
+    document.getElementById('u-manager').innerHTML =
+      `<option value="">— Sin manager —</option>` +
+      managers.map(m => `<option value="${m.id}"${editingUser && editingUser.orgManagerId === m.id ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
   } else {
-    orgWrap.style.display = 'none';
+    mgrWrap.style.display = 'none';
   }
 }
 
@@ -3227,18 +3283,20 @@ function openUserModal(userId, presetOrgId, presetRole) {
     rolWrap.style.display = '';
     const role = u ? u.role : (presetRole || 'agent');
     document.getElementById('u-rol').value = role;
-    // populate org dropdown
     const admins = users.filter(x => x.role === 'admin');
     const orgSel = document.getElementById('u-org');
     orgSel.innerHTML = `<option value="">— Sin organización —</option>` +
       admins.map(a => `<option value="${a.id}"${(u ? u.orgAdminId : presetOrgId) === a.id ? ' selected' : ''}>${esc(a.name)}</option>`).join('');
     orgWrap.style.display = role === 'agent' ? '' : 'none';
-  } else {
-    // admin: lock role to agent, no org field
-    rolWrap.style.display = 'none';
+  } else if (session && session.role === 'admin') {
+    // admin: can create agents and managers in their org
+    rolWrap.style.display = '';
+    const rolSel = document.getElementById('u-rol');
+    rolSel.innerHTML = `<option value="agent">Agente</option><option value="manager">Manager</option>`;
+    rolSel.value = u ? u.role : (presetRole || 'agent');
     orgWrap.style.display = 'none';
-    document.getElementById('u-rol').value = 'agent';
   }
+  onRolChange();
 
   document.getElementById('user-modal-overlay').classList.add('open');
 }
@@ -3257,16 +3315,23 @@ async function saveUser() {
   if (!session) { showToast('Sesión expirada. Por favor inicia sesión de nuevo.', 'error'); return; }
 
   let role = 'agent';
-  let orgAdminId = null;
+  let orgAdminId  = null;
+  let orgManagerId = null;
 
   if (session.role === 'master') {
     role = document.getElementById('u-rol').value;
+    if (role === 'agent' || role === 'manager') {
+      orgAdminId = document.getElementById('u-org') ? (document.getElementById('u-org').value || null) : null;
+    }
     if (role === 'agent') {
-      orgAdminId = document.getElementById('u-org').value || null;
+      orgManagerId = document.getElementById('u-manager') ? (document.getElementById('u-manager').value || null) : null;
     }
   } else if (session.role === 'admin') {
-    role       = 'agent';
+    role       = document.getElementById('u-rol') ? document.getElementById('u-rol').value : 'agent';
     orgAdminId = session.id;
+    if (role === 'agent') {
+      orgManagerId = document.getElementById('u-manager') ? (document.getElementById('u-manager').value || null) : null;
+    }
   }
 
   if (!name)  { showToast('El nombre es requerido', 'error'); return; }
@@ -3279,10 +3344,11 @@ async function saveUser() {
     if (idx === -1) return;
     const dup = users.find(u => u.email === email && u.id !== editingUserId);
     if (dup) { showToast('Ese email ya está registrado', 'error'); return; }
-    users[idx].name       = name;
-    users[idx].email      = email;
-    users[idx].role       = role;
-    users[idx].orgAdminId = orgAdminId;
+    users[idx].name        = name;
+    users[idx].email       = email;
+    users[idx].role        = role;
+    users[idx].orgAdminId  = orgAdminId;
+    users[idx].orgManagerId = orgManagerId;
     if (pass) {
       if (pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
       users[idx].password = pass;
@@ -3295,7 +3361,7 @@ async function saveUser() {
     if (!pass || pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
     if (email === MASTER_USER.email.toLowerCase()) { showToast('Ese email no está disponible', 'error'); return; }
     if (users.find(u => u.email === email)) { showToast('Ese email ya está registrado', 'error'); return; }
-    users.push({ id: uid(), name, email, password: pass, role, orgAdminId, createdAt: today() });
+    users.push({ id: uid(), name, email, password: pass, role, orgAdminId, orgManagerId, createdAt: today() });
   }
 
   await saveUsers(users);
