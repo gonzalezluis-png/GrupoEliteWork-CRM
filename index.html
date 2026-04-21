@@ -1608,6 +1608,10 @@
         <div class="scripts-list-panel">
           <div class="scripts-list-hdr">
             <div class="scripts-list-hdr-title">📋 Scripts de Llamada</div>
+            <div id="scripts-admin-note" style="display:none;margin-top:10px;background:rgba(253,171,61,.08);border:1px solid rgba(253,171,61,.25);border-radius:7px;padding:9px 10px;font-size:10.5px;color:var(--yellow);line-height:1.6">
+              ✏️ <strong>Solo tú puedes editar</strong> este contenido.<br>
+              Los managers y agentes únicamente pueden <strong>visualizar</strong> los scripts. Cualquier cambio que realices aquí será visible de inmediato para todo tu equipo.
+            </div>
           </div>
           <div class="scripts-list-scroll" id="scripts-list"></div>
           <div class="scripts-list-footer" id="scripts-add-wrap" style="display:none">
@@ -2878,6 +2882,7 @@ function showScriptsPage() {
   const canEdit = session.role === 'admin' || session.role === 'master';
   document.getElementById('scripts-toolbar').style.display   = canEdit ? 'flex' : 'none';
   document.getElementById('scripts-add-wrap').style.display  = canEdit ? ''     : 'none';
+  document.getElementById('scripts-admin-note').style.display = canEdit ? '' : 'none';
 
   document.getElementById('scripts-page').classList.add('visible');
   currentBoardId = null;
