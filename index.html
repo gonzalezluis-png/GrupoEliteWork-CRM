@@ -692,13 +692,81 @@
   .sidebar-item.active { color: var(--accent); background: rgba(0,115,234,.1); }
 
   /* ── SETTINGS PAGE ── */
-  #settings-page { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-  #settings-page.visible { display: flex; }
-  .settings-wrap { padding: 28px; overflow-y: auto; flex: 1; max-width: 700px; }
-  .settings-wrap h2 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 22px; }
-  .settings-section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 18px; }
-  .settings-section h3 { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-  .settings-section p  { font-size: 11px; color: var(--text2); margin-bottom: 16px; }
+  /* ── SETTINGS REDESIGN ── */
+  #settings-page { display:none; flex:1; overflow:hidden; }
+  #settings-page.visible { display:flex; }
+
+  .settings-layout { display:flex; width:100%; height:100%; overflow:hidden; }
+
+  /* Left nav */
+  .settings-nav {
+    width:230px; min-width:230px; background:var(--sidebar);
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column; overflow-y:auto; padding:28px 0 20px;
+  }
+  .settings-nav-logo {
+    padding:0 20px 20px; border-bottom:1px solid var(--border); margin-bottom:16px;
+  }
+  .settings-nav-logo-title { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.8px; }
+  .settings-nav-section { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--gray); padding:8px 20px 4px; }
+  .settings-nav-item {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 20px; width:100%; background:transparent; border:none;
+    color:var(--text2); font-size:12.5px; font-weight:500; font-family:var(--font);
+    cursor:pointer; text-align:left; transition:background .15s,color .15s;
+    position:relative;
+  }
+  .settings-nav-item:hover { background:rgba(255,255,255,.04); color:var(--text); }
+  .settings-nav-item.active { background:rgba(0,115,234,.1); color:var(--accent); font-weight:600; }
+  .settings-nav-item.active::before {
+    content:''; position:absolute; left:0; top:6px; bottom:6px;
+    width:3px; background:var(--accent); border-radius:0 2px 2px 0;
+  }
+  .sni-icon { font-size:14px; width:20px; text-align:center; flex-shrink:0; opacity:.85; }
+  .sni-badge {
+    margin-left:auto; background:var(--red); color:#fff;
+    font-size:9px; font-weight:700; padding:1px 6px; border-radius:8px;
+  }
+
+  /* Content area */
+  .settings-content { flex:1; overflow-y:auto; padding:36px 40px; background:var(--bg); }
+  .settings-tab { display:none; max-width:820px; }
+  .settings-tab.active { display:block; }
+
+  /* Tab header */
+  .st-header { margin-bottom:28px; padding-bottom:20px; border-bottom:1px solid var(--border); display:flex; align-items:flex-end; justify-content:space-between; }
+  .st-header-left {}
+  .st-title { font-size:22px; font-weight:700; color:#fff; letter-spacing:-.3px; line-height:1.2; }
+  .st-subtitle { font-size:12px; color:var(--text2); margin-top:5px; line-height:1.5; }
+
+  /* Cards */
+  .st-card { background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:16px; }
+  .st-card-header { padding:18px 22px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .st-card-header-left { flex:1; min-width:0; }
+  .st-card-title { font-size:13px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px; }
+  .st-card-desc { font-size:11px; color:var(--text2); margin-top:3px; line-height:1.5; }
+  .st-card-divider { height:1px; background:var(--border); }
+  .st-card-body { padding:20px 22px; }
+
+  /* Account rows */
+  .acc-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+  .acc-row:last-child { border-bottom:none; }
+  .acc-row-label { font-size:13px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:10px; }
+  .acc-row-icon { width:32px; height:32px; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+  .acc-row-sub { font-size:11px; color:var(--text2); margin-top:2px; }
+  .acc-row-chevron { color:var(--text2); font-size:12px; transition:transform .2s; }
+  .acc-form { padding-top:16px; padding-left:42px; }
+
+  /* Stat row */
+  .settings-stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:20px; }
+  .settings-stat { background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .settings-stat-val { font-size:22px; font-weight:700; color:#fff; line-height:1; }
+  .settings-stat-lbl { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text2); margin-top:4px; }
+
+  /* legacy compat */
+  .settings-section { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px 22px; margin-bottom:16px; }
+  .settings-section h3 { font-size:13px; font-weight:700; color:#fff; margin-bottom:4px; }
+  .settings-section p  { font-size:11px; color:var(--text2); margin-bottom:16px; }
 
   /* toggle switch */
   .col-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -898,172 +966,281 @@
 
     <!-- SETTINGS PAGE -->
     <div id="settings-page">
-      <div class="settings-wrap">
-        <h2>⚙️ Configuración de Boards</h2>
+      <div class="settings-layout">
 
-        <div class="settings-section">
-          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleOrgNameSection()">
-            <div>
-              <h3 style="margin:0">🏢 Nombre de la organización</h3>
-              <p style="margin:4px 0 0;font-size:11px;color:var(--text2)">El nombre que aparece en la parte superior del menú lateral.</p>
-            </div>
-            <span id="orgname-lock-icon" style="font-size:18px;color:var(--text2)" title="Haz clic para editar">🔒</span>
+        <!-- ── Left navigation ── -->
+        <nav class="settings-nav">
+          <div class="settings-nav-logo">
+            <div class="settings-nav-logo-title">Configuración</div>
           </div>
-          <div id="orgname-edit-section" style="display:none;margin-top:14px">
-            <div style="background:rgba(226,68,92,.08);border:1px solid rgba(226,68,92,.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e2445c">
-              ⚠️ Estás a punto de cambiar el nombre visible de la organización para todos los usuarios.
-            </div>
-            <div id="appname-settings-wrap">
-              <input type="text" id="appname-settings-input" maxlength="40" placeholder="Ej: GRUPO ELITE WORK" />
-              <button class="btn btn-primary btn-sm" onclick="saveAppName()">Guardar</button>
-              <button class="btn btn-secondary btn-sm" onclick="toggleOrgNameSection()">Cancelar</button>
-            </div>
-          </div>
-        </div>
 
-        <div class="settings-section">
-          <h3>Columnas visibles</h3>
-          <p>Activa o desactiva columnas en todos los boards. Las columnas fijas no se pueden quitar.</p>
-          <div id="col-toggles"></div>
-        </div>
+          <div class="settings-nav-section">General</div>
+          <button class="settings-nav-item active" data-tab="org" onclick="switchSettingsTab('org')">
+            <span class="sni-icon">🏢</span>Organización
+          </button>
+          <button class="settings-nav-item" data-tab="boards" onclick="switchSettingsTab('boards')">
+            <span class="sni-icon">📊</span>Boards &amp; Columnas
+          </button>
+          <button class="settings-nav-item" data-tab="leadtypes" id="snav-leadtypes" onclick="switchSettingsTab('leadtypes')">
+            <span class="sni-icon">🏷️</span>Tipos de Lead
+          </button>
 
-        <div class="settings-section">
-          <h3>Columnas personalizadas</h3>
-          <p>Agrega columnas nuevas a todos los boards.</p>
-          <div class="custom-col-form">
-            <div class="field">
-              <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Nombre</label>
-              <input type="text" id="cc-nombre" placeholder="Ej: ESTADO MIGRATORIO" style="width:200px" />
-            </div>
-            <div class="field">
-              <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Tipo</label>
-              <select id="cc-tipo" onchange="toggleOptionsInput()" style="width:130px">
-                <option value="text">Texto</option>
-                <option value="number">Número</option>
-                <option value="dropdown">Dropdown</option>
-              </select>
-            </div>
-            <button class="btn btn-primary btn-sm" onclick="addCustomCol()" style="margin-bottom:1px">＋ Agregar</button>
-          </div>
-          <div id="cc-options-wrap" style="display:none;margin-bottom:14px">
-            <div class="field">
-              <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Opciones <span style="font-weight:400;text-transform:none">(separadas por coma)</span></label>
-              <input type="text" id="cc-options" class="options-input" placeholder="Ej: Opción 1, Opción 2, Opción 3" />
-            </div>
-          </div>
-          <div class="custom-cols-list" id="custom-cols-list"></div>
-        </div>
+          <div class="settings-nav-section" id="snav-sec-team" style="display:none">Equipo</div>
+          <button class="settings-nav-item" data-tab="team" id="snav-team" style="display:none" onclick="switchSettingsTab('team')">
+            <span class="sni-icon">👥</span>Usuarios
+          </button>
+          <button class="settings-nav-item" data-tab="requests" id="snav-requests" style="display:none" onclick="switchSettingsTab('requests')">
+            <span class="sni-icon">🔔</span>Solicitudes
+            <span class="sni-badge" id="pending-badge" style="display:none"></span>
+          </button>
 
-        <div class="settings-section">
-          <h3>Ubicaciones por Board</h3>
-          <p>Agrega o elimina ubicaciones disponibles en el desplegable de cada board.</p>
-          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
-            <div class="field" style="margin:0">
-              <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Board</label>
-              <select id="ub-board-sel" style="width:220px" onchange="renderUbicacionesList()">
-              </select>
-            </div>
-            <input type="text" id="ub-new" placeholder="Ej: Houston" style="width:180px" onkeydown="if(event.key==='Enter')addUbicacion()" />
-            <button class="btn btn-primary btn-sm" onclick="addUbicacion()">＋ Agregar</button>
-          </div>
-          <div id="ubicaciones-list"></div>
-        </div>
+          <div class="settings-nav-section" style="margin-top:auto">Cuenta</div>
+          <button class="settings-nav-item" data-tab="account" onclick="switchSettingsTab('account')">
+            <span class="sni-icon">👤</span>Mi Cuenta
+          </button>
+        </nav>
 
-        <div class="settings-section" id="settings-leadtypes-section">
-          <h3>Tipos de Lead</h3>
-          <p>Define los tipos de lead disponibles al importar y en el formulario.</p>
-          <div id="lt-controls" style="display:flex;gap:8px;margin-bottom:12px">
-            <input type="text" id="lt-new" placeholder="Ej: GUÍA LABORAL" style="flex:1;max-width:280px" />
-            <button class="btn btn-primary btn-sm" onclick="addLeadType()">＋ Agregar</button>
-          </div>
-          <div id="lead-types-list"></div>
-        </div>
+        <!-- ── Content ── -->
+        <div class="settings-content">
 
-        <div class="settings-section" id="settings-account-section">
-          <h3>👤 Mi Cuenta</h3>
-          <p>Actualiza tu correo electrónico o contraseña de acceso.</p>
-
-          <!-- Cambiar correo -->
-          <div style="margin-bottom:20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleAccountSection('email')">
-              <span style="font-size:12px;font-weight:600;color:var(--text)">Cambiar correo electrónico</span>
-              <span id="account-email-icon" style="font-size:14px;color:var(--text2)">🔒</span>
-            </div>
-            <div id="account-email-form" style="display:none;margin-top:12px">
-              <div style="background:rgba(226,68,92,.08);border:1px solid rgba(226,68,92,.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e2445c">
-                ⚠️ Necesitarás usar el nuevo correo para iniciar sesión.
+          <!-- TAB: Organización -->
+          <div class="settings-tab active" id="stab-org">
+            <div class="st-header">
+              <div class="st-header-left">
+                <div class="st-title">Organización</div>
+                <div class="st-subtitle">Configura el nombre y la identidad de tu empresa dentro del CRM.</div>
               </div>
-              <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
-                <div class="field" style="margin:0">
-                  <label>Correo actual</label>
-                  <input type="email" id="acc-email-current" readonly style="opacity:.6;cursor:not-allowed" />
+            </div>
+
+            <div class="st-card">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-title">🏢 Nombre de la organización</div>
+                  <div class="st-card-desc">Aparece en la barra lateral y en la vista de los agentes.</div>
                 </div>
-                <div class="field" style="margin:0">
-                  <label>Nuevo correo</label>
-                  <input type="email" id="acc-email-new" placeholder="nuevo@ejemplo.com" />
-                </div>
-                <div class="field" style="margin:0">
-                  <label>Confirmar con tu contraseña</label>
-                  <input type="password" id="acc-email-pass" placeholder="••••••••" />
-                </div>
-                <div style="display:flex;gap:8px">
-                  <button class="btn btn-primary btn-sm" onclick="changeEmail()">Guardar correo</button>
-                  <button class="btn btn-secondary btn-sm" onclick="toggleAccountSection('email')">Cancelar</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleOrgNameSection()">
+                  <span id="orgname-lock-icon">✏️ Editar</span>
+                </button>
+              </div>
+              <div id="orgname-edit-section" style="display:none">
+                <div class="st-card-divider"></div>
+                <div class="st-card-body">
+                  <div style="background:rgba(226,68,92,.07);border:1px solid rgba(226,68,92,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#e2445c">
+                    ⚠️ Este cambio es visible para todos los usuarios del sistema.
+                  </div>
+                  <div id="appname-settings-wrap" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <input type="text" id="appname-settings-input" maxlength="40" placeholder="Ej: GRUPO ELITE WORK" style="flex:1;min-width:200px;max-width:340px" />
+                    <button class="btn btn-primary btn-sm" onclick="saveAppName()">Guardar</button>
+                    <button class="btn btn-secondary btn-sm" onclick="toggleOrgNameSection()">Cancelar</button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Cambiar contraseña -->
-          <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleAccountSection('pass')">
-              <span style="font-size:12px;font-weight:600;color:var(--text)">Cambiar contraseña</span>
-              <span id="account-pass-icon" style="font-size:14px;color:var(--text2)">🔒</span>
+          <!-- TAB: Boards & Columnas -->
+          <div class="settings-tab" id="stab-boards">
+            <div class="st-header">
+              <div class="st-header-left">
+                <div class="st-title">Boards &amp; Columnas</div>
+                <div class="st-subtitle">Controla qué columnas se muestran y agrega campos personalizados a tus boards.</div>
+              </div>
             </div>
-            <div id="account-pass-form" style="display:none;margin-top:12px">
-              <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
-                <div class="field" style="margin:0">
-                  <label>Contraseña actual</label>
-                  <input type="password" id="acc-pass-current" placeholder="••••••••" />
+
+            <div class="st-card">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-title">👁 Columnas visibles</div>
+                  <div class="st-card-desc">Activa o desactiva columnas. Las columnas fijas no se pueden ocultar.</div>
                 </div>
-                <div class="field" style="margin:0">
-                  <label>Nueva contraseña</label>
-                  <input type="password" id="acc-pass-new" placeholder="Mínimo 6 caracteres" />
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <div id="col-toggles"></div>
+              </div>
+            </div>
+
+            <div class="st-card">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-title">＋ Columnas personalizadas</div>
+                  <div class="st-card-desc">Agrega campos adicionales a todos los boards.</div>
                 </div>
-                <div class="field" style="margin:0">
-                  <label>Confirmar nueva contraseña</label>
-                  <input type="password" id="acc-pass-confirm" placeholder="Repite la nueva contraseña" />
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <div class="custom-col-form" style="margin-bottom:14px">
+                  <div class="field" style="margin:0">
+                    <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Nombre</label>
+                    <input type="text" id="cc-nombre" placeholder="Ej: ESTADO MIGRATORIO" style="width:200px" />
+                  </div>
+                  <div class="field" style="margin:0">
+                    <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Tipo</label>
+                    <select id="cc-tipo" onchange="toggleOptionsInput()" style="width:130px">
+                      <option value="text">Texto</option>
+                      <option value="number">Número</option>
+                      <option value="dropdown">Dropdown</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="addCustomCol()" style="margin-bottom:1px">＋ Agregar</button>
                 </div>
-                <div style="display:flex;gap:8px">
-                  <button class="btn btn-primary btn-sm" onclick="changePassword()">Guardar contraseña</button>
-                  <button class="btn btn-secondary btn-sm" onclick="toggleAccountSection('pass')">Cancelar</button>
+                <div id="cc-options-wrap" style="display:none;margin-bottom:14px">
+                  <div class="field">
+                    <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Opciones <span style="font-weight:400;text-transform:none">(separadas por coma)</span></label>
+                    <input type="text" id="cc-options" class="options-input" placeholder="Ej: Opción 1, Opción 2, Opción 3" />
+                  </div>
+                </div>
+                <div class="custom-cols-list" id="custom-cols-list"></div>
+              </div>
+            </div>
+
+            <div class="st-card">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-title">📍 Ubicaciones por Board</div>
+                  <div class="st-card-desc">Administra las ubicaciones disponibles en cada board.</div>
+                </div>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+                  <div class="field" style="margin:0">
+                    <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Board</label>
+                    <select id="ub-board-sel" style="width:220px" onchange="renderUbicacionesList()"></select>
+                  </div>
+                  <input type="text" id="ub-new" placeholder="Ej: Houston" style="width:180px" onkeydown="if(event.key==='Enter')addUbicacion()" />
+                  <button class="btn btn-primary btn-sm" onclick="addUbicacion()">＋ Agregar</button>
+                </div>
+                <div id="ubicaciones-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: Tipos de Lead -->
+          <div class="settings-tab" id="stab-leadtypes">
+            <div class="st-header">
+              <div class="st-header-left">
+                <div class="st-title">Tipos de Lead</div>
+                <div class="st-subtitle">Define las categorías de lead disponibles al importar y en el formulario.</div>
+              </div>
+            </div>
+            <div class="st-card">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-title">🏷️ Categorías activas</div>
+                  <div class="st-card-desc">Solo el maestro puede agregar o eliminar tipos.</div>
+                </div>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <div id="lt-controls" style="display:flex;gap:8px;margin-bottom:14px">
+                  <input type="text" id="lt-new" placeholder="Ej: GUÍA LABORAL" style="flex:1;max-width:280px" />
+                  <button class="btn btn-primary btn-sm" onclick="addLeadType()">＋ Agregar</button>
+                </div>
+                <div id="lead-types-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: Usuarios / Equipo -->
+          <div class="settings-tab" id="stab-team">
+            <div class="st-header">
+              <div class="st-header-left">
+                <div class="st-title">Equipo</div>
+                <div class="st-subtitle">Visualiza y gestiona la estructura jerárquica de tu organización.</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openUserModal()">＋ Nuevo Usuario</button>
+            </div>
+            <div id="users-grid"></div>
+          </div>
+
+          <!-- TAB: Solicitudes -->
+          <div class="settings-tab" id="stab-requests">
+            <div class="st-header">
+              <div class="st-header-left">
+                <div class="st-title">Solicitudes de Acceso</div>
+                <div class="st-subtitle">Usuarios que han solicitado unirse al CRM y esperan aprobación.</div>
+              </div>
+            </div>
+            <div id="settings-pending-section">
+              <div id="pending-list"></div>
+            </div>
+          </div>
+
+          <!-- TAB: Mi Cuenta -->
+          <div class="settings-tab" id="stab-account">
+            <div class="st-header">
+              <div class="st-header-left">
+                <div class="st-title">Mi Cuenta</div>
+                <div class="st-subtitle">Administra tu información de acceso personal.</div>
+              </div>
+            </div>
+
+            <div id="settings-account-section">
+              <div class="st-card">
+                <div class="st-card-body" style="padding:0">
+
+                  <!-- Cambiar correo -->
+                  <div class="acc-row" onclick="toggleAccountSection('email')" style="padding:16px 22px">
+                    <div class="acc-row-label">
+                      <div class="acc-row-icon">✉️</div>
+                      <div>
+                        <div>Correo electrónico</div>
+                        <div class="acc-row-sub">Cambia el email con el que inicias sesión</div>
+                      </div>
+                    </div>
+                    <span id="account-email-icon" class="acc-row-chevron">›</span>
+                  </div>
+                  <div id="account-email-form" style="display:none;border-top:1px solid var(--border)">
+                    <div class="acc-form" style="padding:16px 22px 20px 22px">
+                      <div style="background:rgba(226,68,92,.07);border:1px solid rgba(226,68,92,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#e2445c">
+                        ⚠️ Necesitarás usar el nuevo correo para iniciar sesión.
+                      </div>
+                      <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
+                        <div class="field" style="margin:0"><label>Correo actual</label><input type="email" id="acc-email-current" readonly style="opacity:.6;cursor:not-allowed" /></div>
+                        <div class="field" style="margin:0"><label>Nuevo correo</label><input type="email" id="acc-email-new" placeholder="nuevo@ejemplo.com" /></div>
+                        <div class="field" style="margin:0"><label>Confirmar con tu contraseña</label><input type="password" id="acc-email-pass" placeholder="••••••••" /></div>
+                        <div style="display:flex;gap:8px">
+                          <button class="btn btn-primary btn-sm" onclick="changeEmail()">Guardar correo</button>
+                          <button class="btn btn-secondary btn-sm" onclick="toggleAccountSection('email')">Cancelar</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Cambiar contraseña -->
+                  <div class="acc-row" onclick="toggleAccountSection('pass')" style="padding:16px 22px;border-top:1px solid var(--border)">
+                    <div class="acc-row-label">
+                      <div class="acc-row-icon">🔑</div>
+                      <div>
+                        <div>Contraseña</div>
+                        <div class="acc-row-sub">Actualiza tu contraseña de acceso</div>
+                      </div>
+                    </div>
+                    <span id="account-pass-icon" class="acc-row-chevron">›</span>
+                  </div>
+                  <div id="account-pass-form" style="display:none;border-top:1px solid var(--border)">
+                    <div class="acc-form" style="padding:16px 22px 20px 22px">
+                      <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
+                        <div class="field" style="margin:0"><label>Contraseña actual</label><input type="password" id="acc-pass-current" placeholder="••••••••" /></div>
+                        <div class="field" style="margin:0"><label>Nueva contraseña</label><input type="password" id="acc-pass-new" placeholder="Mínimo 6 caracteres" /></div>
+                        <div class="field" style="margin:0"><label>Confirmar nueva contraseña</label><input type="password" id="acc-pass-confirm" placeholder="Repite la nueva contraseña" /></div>
+                        <div style="display:flex;gap:8px">
+                          <button class="btn btn-primary btn-sm" onclick="changePassword()">Guardar contraseña</button>
+                          <button class="btn btn-secondary btn-sm" onclick="toggleAccountSection('pass')">Cancelar</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="settings-section" id="settings-pending-section" style="display:none">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-            <h3 style="margin:0">🔔 Solicitudes de Acceso</h3>
-            <span id="pending-badge" style="background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px"></span>
-          </div>
-          <div id="pending-list"></div>
-        </div>
-
-        <div class="settings-section" id="settings-users-section">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-            <div>
-              <h3 style="margin:0">👥 Usuarios</h3>
-              <p style="margin:4px 0 0;font-size:11px;color:var(--text2)">Gestiona los usuarios y sus roles dentro de la organización.</p>
-            </div>
-            <button class="btn btn-primary btn-sm" onclick="openUserModal()">＋ Nuevo Usuario</button>
-          </div>
-          <div class="users-grid" id="users-grid"></div>
-        </div>
-
-      </div>
-    </div>
+        </div><!-- /.settings-content -->
+      </div><!-- /.settings-layout -->
+    </div><!-- /#settings-page -->
 
     <!-- USERS PAGE (kept for compatibility but hidden) -->
     <div id="users-page" style="display:none"></div>
@@ -2867,6 +3044,15 @@ async function changePassword() {
 }
 
 // settings page
+function switchSettingsTab(tab) {
+  document.querySelectorAll('.settings-tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
+  const tabEl = document.getElementById('stab-' + tab);
+  if (tabEl) tabEl.classList.add('active');
+  const navEl = document.querySelector(`.settings-nav-item[data-tab="${tab}"]`);
+  if (navEl) navEl.classList.add('active');
+}
+
 function showSettingsPage() {
   showBoardView();
   document.getElementById('assign-strip').classList.add('hidden');
@@ -2877,18 +3063,32 @@ function showSettingsPage() {
   document.getElementById('btn-export').style.display    = 'none';
   document.getElementById('settings-page').classList.add('visible');
   document.getElementById('board-title').textContent     = 'Configuración';
-  populateUbicacionesBoardSel();
-  renderLeadTypesList();
-  renderUsersGrid();
-  renderPendingList();
   document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
   const ns = document.getElementById('nav-settings');
   if (ns) ns.classList.add('active');
   currentBoardId = null;
-  renderColToggles();
-  renderCustomColsList();
+
+  // Role-based nav visibility
+  const isAdminOrMaster = session && (session.role === 'master' || session.role === 'admin');
+  ['snav-sec-team','snav-team','snav-requests'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdminOrMaster ? '' : 'none';
+  });
   const ltCtrl = document.getElementById('lt-controls');
   if (ltCtrl) ltCtrl.style.display = (session && session.role === 'master') ? 'flex' : 'none';
+  const ltNav = document.getElementById('snav-leadtypes');
+  if (ltNav) ltNav.style.display = (session && session.role === 'master') ? '' : 'none';
+
+  // Default tab by role
+  const defaultTab = isAdminOrMaster ? 'org' : 'account';
+  switchSettingsTab(defaultTab);
+
+  populateUbicacionesBoardSel();
+  renderLeadTypesList();
+  renderUsersGrid();
+  renderPendingList();
+  renderColToggles();
+  renderCustomColsList();
 }
 
 function renderColToggles() {
@@ -3802,22 +4002,20 @@ async function submitRegisterRequest() {
 
 function updatePendingBadge() {
   const count = loadPendingUsers().length;
-  const badge    = document.getElementById('sidebar-pending-badge');
-  const secBadge = document.getElementById('pending-badge');
-  if (badge)    { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
-  if (secBadge) { secBadge.textContent = count + ' pendiente' + (count !== 1 ? 's' : ''); }
+  const sidebarBadge = document.getElementById('sidebar-pending-badge');
+  const navBadge     = document.getElementById('pending-badge');
+  if (sidebarBadge) { sidebarBadge.textContent = count; sidebarBadge.style.display = count > 0 ? '' : 'none'; }
+  if (navBadge)     { navBadge.textContent = count;     navBadge.style.display     = count > 0 ? '' : 'none'; }
 }
 
 function renderPendingList() {
   const session = getSession();
   if (!session || (session.role !== 'master' && session.role !== 'admin')) return;
   const pending = loadPendingUsers();
-  const sec  = document.getElementById('settings-pending-section');
   const list = document.getElementById('pending-list');
-  if (!sec || !list) return;
-  sec.style.display = pending.length > 0 ? '' : 'none';
+  if (!list) return;
   updatePendingBadge();
-  if (pending.length === 0) { list.innerHTML = ''; return; }
+  if (pending.length === 0) { list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text2);font-size:13px">No hay solicitudes pendientes.</div>'; return; }
   list.innerHTML = pending.map(u => `
     <div style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
       <div style="width:36px;height:36px;border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#1a1a1a;flex-shrink:0">${esc(u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase())}</div>
