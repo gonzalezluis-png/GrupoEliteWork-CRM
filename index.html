@@ -1673,6 +1673,13 @@ setTimeout(function(){
             </button>
           </div>
 
+          <div class="settings-nav-group" id="snav-sec-backup" style="display:none">
+            <span class="settings-nav-group-label">Sistema</span>
+            <button class="settings-nav-item" data-tab="backup" id="snav-backup" onclick="switchSettingsTab('backup')">
+              <span class="sni-icon-wrap">💾</span>Respaldo
+            </button>
+          </div>
+
           <div class="settings-nav-group" style="margin-top:auto">
             <span class="settings-nav-group-label">Cuenta</span>
             <button class="settings-nav-item" data-tab="account" onclick="switchSettingsTab('account')">
@@ -2037,6 +2044,68 @@ setTimeout(function(){
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- TAB: Respaldo (master only) -->
+          <div class="settings-tab" id="stab-backup">
+            <div class="st-header">
+              <div>
+                <div class="st-title">💾 Respaldo del Sistema</div>
+                <div class="st-subtitle">Exporta todos los datos del CRM a un archivo local. En caso de emergencia, usa ese archivo para restaurar todo.</div>
+              </div>
+            </div>
+
+            <!-- EXPORT -->
+            <div class="st-card" style="margin-bottom:20px">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-icon" style="background:rgba(0,200,117,.12)">📥</div>
+                  <div class="st-card-text">
+                    <div class="st-card-title">Exportar Respaldo</div>
+                    <div class="st-card-desc">Descarga un archivo .json con todos los leads, usuarios, calendarios, notas y configuración.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <div style="background:rgba(0,200,117,.07);border:1px solid rgba(0,200,117,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.6">
+                  ✅ Guarda este archivo en <strong>Google Drive, iCloud o un disco externo</strong>. Hazlo regularmente para tener historial de respaldos.
+                </div>
+                <button class="btn btn-primary" onclick="exportBackup()" style="gap:8px">📥 Descargar Respaldo Completo</button>
+                <div id="backup-export-info" style="margin-top:10px;font-size:11px;color:var(--text2)"></div>
+              </div>
+            </div>
+
+            <!-- RESTORE -->
+            <div class="st-card">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-icon" style="background:rgba(226,68,92,.12)">🔄</div>
+                  <div class="st-card-text">
+                    <div class="st-card-title">Restaurar desde Respaldo</div>
+                    <div class="st-card-desc">Selecciona un archivo de respaldo para recuperar todos los datos. <strong style="color:#e2445c">Esto reemplaza todos los datos actuales.</strong></div>
+                  </div>
+                </div>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <div style="background:rgba(226,68,92,.07);border:1px solid rgba(226,68,92,.25);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#e2445c;line-height:1.6">
+                  ⚠️ <strong>Solo usa esto en caso de emergencia.</strong> Todos los datos actuales serán reemplazados por los del archivo de respaldo.
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                  <label class="btn btn-secondary" style="cursor:pointer">
+                    📂 Seleccionar archivo de respaldo
+                    <input type="file" id="backup-file-input" accept=".json" style="display:none" onchange="previewRestore(event)" />
+                  </label>
+                  <span id="backup-file-name" style="font-size:12px;color:var(--text2)"></span>
+                </div>
+                <div id="backup-preview" style="display:none;margin-top:14px">
+                  <div id="backup-preview-info" style="background:rgba(0,115,234,.08);border:1px solid rgba(0,115,234,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.8"></div>
+                  <button class="btn" onclick="confirmRestore()" style="background:#e2445c;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-weight:700;cursor:pointer">🔄 Restaurar ahora</button>
+                </div>
+              </div>
+            </div>
+
           </div>
 
         </div><!-- /.settings-content -->
@@ -5692,6 +5761,8 @@ function showSettingsPage() {
   if (ltCtrl) ltCtrl.style.display = (session && session.role === 'master') ? 'flex' : 'none';
   const ltNav = document.getElementById('snav-leadtypes');
   if (ltNav) ltNav.style.display = (session && session.role === 'master') ? 'block' : 'none';
+  const backupNav = document.getElementById('snav-sec-backup');
+  if (backupNav) backupNav.style.display = (session && session.role === 'master') ? 'block' : 'none';
 
   // Default tab by role
   const defaultTab = isAdminOrMaster ? 'org' : 'account';
@@ -7423,6 +7494,86 @@ async function submitNote() {
   document.getElementById('notes-new-input').value = '';
   _renderNotesJournal(lead);
   showToast('Guardado ✓', 'success');
+}
+
+// ════════════════════════════════════════════
+//  BACKUP & RESTORE
+// ════════════════════════════════════════════
+const BACKUP_KEYS = [
+  'gew_users', 'gew_virtual_users', 'gew_session',
+  'gew_activity_log', 'gew_calendar', 'gew_terms',
+  'gew_app_name', 'gew_lead_types', 'gew_columns',
+  'gew_ubicaciones_boards'
+];
+
+function exportBackup() {
+  const backup = { version: 1, exportedAt: new Date().toISOString(), data: {} };
+
+  // Collect all localStorage keys (static + dynamic board keys)
+  Object.keys(localStorage).forEach(k => {
+    backup.data[k] = localStorage.getItem(k);
+  });
+
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = `GrupoElite_CRM_Respaldo_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  const info = document.getElementById('backup-export-info');
+  const keys = Object.keys(backup.data).length;
+  if (info) info.textContent = `✓ Respaldo exportado — ${keys} registros — ${date}`;
+  logActivity('backup_export', 'Respaldo exportado', `${keys} claves`);
+}
+
+let _restoreData = null;
+function previewRestore(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  document.getElementById('backup-file-name').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const backup = JSON.parse(e.target.result);
+      if (!backup.data) throw new Error('Archivo inválido');
+      _restoreData = backup;
+      const keys = Object.keys(backup.data).length;
+      const date = backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('es') : 'desconocida';
+      const preview = document.getElementById('backup-preview');
+      const info    = document.getElementById('backup-preview-info');
+      info.innerHTML = `📅 <strong>Fecha del respaldo:</strong> ${date}<br>📦 <strong>Registros:</strong> ${keys}<br><br>Al restaurar, todos los datos actuales serán reemplazados por los de este archivo.`;
+      preview.style.display = 'block';
+    } catch(err) {
+      showToast('Archivo de respaldo inválido', 'error');
+      _restoreData = null;
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function confirmRestore() {
+  if (!_restoreData) return;
+  if (!confirm('¿Estás seguro? Esto reemplazará TODOS los datos actuales con los del respaldo. Esta acción no se puede deshacer.')) return;
+  try {
+    // Clear and restore localStorage
+    localStorage.clear();
+    Object.entries(_restoreData.data).forEach(([k, v]) => localStorage.setItem(k, v));
+
+    // Sync all keys to Supabase
+    for (const [k, v] of Object.entries(_restoreData.data)) {
+      await supaSync(k, v);
+    }
+
+    logActivity('backup_restore', 'Respaldo restaurado', `${Object.keys(_restoreData.data).length} claves`);
+    showToast('✅ Respaldo restaurado correctamente. Recargando…', 'success');
+    setTimeout(() => location.reload(), 2000);
+  } catch(e) {
+    showToast('Error al restaurar: ' + e.message, 'error');
+  }
 }
 
 // ════════════════════════════════════════════
