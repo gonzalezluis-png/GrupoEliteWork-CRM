@@ -1447,6 +1447,23 @@
                 </div>
               </div>
             </div>
+
+            <!-- Danger zone inside Org tab — master only -->
+            <div class="st-card" id="danger-zone-card2" style="display:none;border-color:rgba(226,68,92,.3)">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-icon" style="background:rgba(226,68,92,.12)">⚠️</div>
+                  <div class="st-card-text">
+                    <div class="st-card-title" style="color:#e2445c">Zona de Peligro</div>
+                    <div class="st-card-desc">Elimina todos los agentes y managers. Conserva Maestro y Administradores.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <button class="btn btn-sm" style="background:rgba(226,68,92,.15);color:#e2445c;border:1px solid rgba(226,68,92,.35)" onclick="confirmClearAllUsers()">🗑 Eliminar todos los usuarios (excepto Admins)</button>
+              </div>
+            </div>
           </div>
 
           <!-- TAB: Boards & Columnas -->
@@ -4654,8 +4671,11 @@ function showSettingsPage() {
   if (vuCard) vuCard.style.display = isAdminOrMaster ? '' : 'none';
 
   // Danger zone — master only
-  const dzCard = document.getElementById('danger-zone-card');
-  if (dzCard) dzCard.style.display = (session && session.role === 'master') ? '' : 'none';
+  const isMaster = session && session.role === 'master';
+  ['danger-zone-card','danger-zone-card2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isMaster ? '' : 'none';
+  });
 
   // T&C editor — admin/master only
   const termsCard = document.getElementById('terms-editor-card');
