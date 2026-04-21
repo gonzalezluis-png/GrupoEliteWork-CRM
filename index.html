@@ -2448,7 +2448,7 @@ function renderTrashTable() {
   if (empty) empty.style.display = 'none';
 
   const session = getSession();
-  const canPerm = session && (session.role === 'master' || session.role === 'admin');
+  const canPerm = session && session.role === 'master';
 
   tbody.innerHTML = filtered.map(l => {
     const date = l._deletedAt ? new Date(l._deletedAt).toLocaleString('es', { dateStyle:'short', timeStyle:'short' }) : '—';
