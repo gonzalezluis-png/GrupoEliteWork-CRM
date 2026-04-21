@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Grupo Elite Work — CRM</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -697,9 +698,28 @@
   .custom-col-del { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 14px; transition: color .15s; }
   .custom-col-del:hover { color: var(--red); }
   .options-input { width: 100%; margin-top: 8px; }
+  /* ── SYNC LOADING OVERLAY ── */
+  #sync-overlay {
+    position: fixed; inset: 0; background: #0f1117;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 9999; gap: 16px;
+  }
+  #sync-overlay.hidden { display: none; }
+  .sync-spinner {
+    width: 40px; height: 40px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .sync-msg { color: var(--text2); font-size: 13px; }
 </style>
 </head>
 <body>
+
+<div id="sync-overlay">
+  <div class="sync-spinner"></div>
+  <div class="sync-msg" id="sync-msg">Conectando con la base de datos…</div>
+</div>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
@@ -1065,7 +1085,7 @@ function getLeadTypes() {
   } catch(e) {}
   return [...DEFAULT_LEAD_TYPES];
 }
-function saveLeadTypes(arr) { localStorage.setItem('gew_lead_types', JSON.stringify(arr)); }
+function saveLeadTypes(arr) { localStorage.setItem('gew_lead_types', JSON.stringify(arr)); supaSync('gew_lead_types', JSON.stringify(arr)); }
 const LEAD_TYPES = DEFAULT_LEAD_TYPES; // legacy alias — use getLeadTypes() for live data
 const ESTADOS = ['ACTIVO','INACTIVO','EN PROCESO','CERRADO','NUEVO'];
 const RESULTADOS = [
@@ -1127,7 +1147,9 @@ function loadLeads(boardId) {
   catch { return []; }
 }
 function saveLeads(boardId, leads) {
-  localStorage.setItem('gew_leads_' + boardId, JSON.stringify(leads));
+  const key = 'gew_leads_' + boardId;
+  localStorage.setItem(key, JSON.stringify(leads));
+  supaSync(key, JSON.stringify(leads));
   updateSidebarCount(boardId);
 }
 function allBoards() {
@@ -2264,7 +2286,7 @@ function loadColConfig() {
   OPTIONAL_COLS.forEach(c => def[c.key] = true);
   return def;
 }
-function saveColConfig(cfg) { localStorage.setItem(COL_CONFIG_KEY, JSON.stringify(cfg)); }
+function saveColConfig(cfg) { localStorage.setItem(COL_CONFIG_KEY, JSON.stringify(cfg)); supaSync(COL_CONFIG_KEY, JSON.stringify(cfg)); }
 
 function getActiveColumns(board) {
   const cfg = loadColConfig();
@@ -2399,12 +2421,13 @@ function loadCustomBoards() {
 }
 function saveCustomBoards(boards) {
   localStorage.setItem(CUSTOM_BOARDS_KEY, JSON.stringify(boards));
+  supaSync(CUSTOM_BOARDS_KEY, JSON.stringify(boards));
 }
 const UBICACIONES_KEY = 'gew_ubicaciones';
 function loadUbicacionesOverrides() {
   try { return JSON.parse(localStorage.getItem(UBICACIONES_KEY)) || {}; } catch { return {}; }
 }
-function saveUbicacionesOverrides(obj) { localStorage.setItem(UBICACIONES_KEY, JSON.stringify(obj)); }
+function saveUbicacionesOverrides(obj) { localStorage.setItem(UBICACIONES_KEY, JSON.stringify(obj)); supaSync(UBICACIONES_KEY, JSON.stringify(obj)); }
 
 function refreshBoards() {
   const overrides = loadUbicacionesOverrides();
@@ -2480,7 +2503,7 @@ const MASTER_USER = { id: 'master', name: 'Luis González', email: 'gonzalezluis
 function loadUsers() {
   try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; } catch { return []; }
 }
-function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); supaSync(USERS_KEY, JSON.stringify(users)); }
 function getSession() {
   try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; }
 }
@@ -2619,7 +2642,7 @@ function toggleOrgNameSection() {
 function saveAppName() {
   const val = document.getElementById('appname-settings-input').value.trim();
   if (val) {
-    localStorage.setItem('gew_appname', val);
+    localStorage.setItem('gew_appname', val); supaSync('gew_appname', val);
     document.getElementById('appname-display').textContent = val;
     showToast('Nombre actualizado ✓', 'success');
     document.getElementById('orgname-edit-section').style.display = 'none';
@@ -2879,20 +2902,58 @@ function deleteUser(userId) {
 
 
 // ════════════════════════════════════════════
+//  SUPABASE
+// ════════════════════════════════════════════
+const SUPA_URL = 'https://vpwbczzmonboirjckpmy.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwd2Jjenptb25ib2lyamNrcG15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MjAwMDUsImV4cCI6MjA5MjI5NjAwNX0._JCs7b6xMKgqskbCAdg6j9nW6UdMfPRPcwScLp9YCZM';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+function supaSync(key, value) {
+  supa.from('kv_store').upsert({ key, value }, { onConflict: 'key' })
+    .then(({ error }) => { if (error) console.error('supaSync error:', key, error.message); });
+}
+
+async function loadFromSupabase() {
+  try {
+    const { data, error } = await supa.from('kv_store').select('key, value');
+    if (error) { console.error('Supabase load error:', error.message); return; }
+    if (data && data.length > 0) {
+      data.forEach(row => localStorage.setItem(row.key, row.value));
+    }
+  } catch(e) {
+    console.error('Supabase unreachable:', e);
+  }
+}
+
+// ════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════
-seedDefaultAdmin();
-refreshBoards();
-seedTestLeads();
-const _session = getSession();
-if (_session) {
-  document.getElementById('login-screen').classList.add('hidden');
-  initApp(_session);
-} else {
-  // keep login visible
-  populateAgentFilter();
-  populateLeadFilter(); // pre-populate for when app loads
-}
+(async () => {
+  const syncEl  = document.getElementById('sync-overlay');
+  const syncMsg = document.getElementById('sync-msg');
+
+  try {
+    syncMsg.textContent = 'Sincronizando datos…';
+    await loadFromSupabase();
+    syncMsg.textContent = 'Listo';
+  } catch(e) {
+    syncMsg.textContent = 'Sin conexión — usando datos locales';
+  }
+
+  syncEl.classList.add('hidden');
+
+  seedDefaultAdmin();
+  refreshBoards();
+  seedTestLeads();
+  const _session = getSession();
+  if (_session) {
+    document.getElementById('login-screen').classList.add('hidden');
+    initApp(_session);
+  } else {
+    populateAgentFilter();
+    populateLeadFilter();
+  }
+})();
 </script>
 </body>
 </html>
