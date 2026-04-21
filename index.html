@@ -3474,15 +3474,16 @@ function showSettingsPage() {
   currentBoardId = null;
 
   // Role-based nav visibility
+  const session = getSession();
   const isAdminOrMaster = session && (session.role === 'master' || session.role === 'admin');
   ['snav-sec-team','snav-team','snav-requests'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.display = isAdminOrMaster ? '' : 'none';
+    if (el) el.style.display = isAdminOrMaster ? 'block' : 'none';
   });
   const ltCtrl = document.getElementById('lt-controls');
   if (ltCtrl) ltCtrl.style.display = (session && session.role === 'master') ? 'flex' : 'none';
   const ltNav = document.getElementById('snav-leadtypes');
-  if (ltNav) ltNav.style.display = (session && session.role === 'master') ? '' : 'none';
+  if (ltNav) ltNav.style.display = (session && session.role === 'master') ? 'block' : 'none';
 
   // Default tab by role
   const defaultTab = isAdminOrMaster ? 'org' : 'account';
