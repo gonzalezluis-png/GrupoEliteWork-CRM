@@ -6,6 +6,7 @@
 <title>Grupo Elite Work — CRM</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -2071,7 +2072,13 @@ setTimeout(function(){
                 <div style="background:rgba(0,200,117,.07);border:1px solid rgba(0,200,117,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.6">
                   ✅ Guarda este archivo en <strong>Google Drive, iCloud o un disco externo</strong>. Hazlo regularmente para tener historial de respaldos.
                 </div>
-                <button class="btn btn-primary" onclick="exportBackup()" style="gap:8px">📥 Descargar Respaldo Completo</button>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                  <button class="btn btn-primary" onclick="exportBackup()" style="gap:8px">📥 Descargar en dispositivo</button>
+                  <button class="btn btn-secondary" onclick="exportBackupToDrive()" id="btn-drive-backup" style="gap:8px;display:flex;align-items:center">
+                    <img src="https://www.google.com/images/icons/product/drive-32.png" style="width:16px;height:16px" />
+                    Guardar en Google Drive
+                  </button>
+                </div>
                 <div id="backup-export-info" style="margin-top:10px;font-size:11px;color:var(--text2)"></div>
               </div>
             </div>
@@ -7494,6 +7501,80 @@ async function submitNote() {
   document.getElementById('notes-new-input').value = '';
   _renderNotesJournal(lead);
   showToast('Guardado ✓', 'success');
+}
+
+// ════════════════════════════════════════════
+//  GOOGLE DRIVE BACKUP
+// ════════════════════════════════════════════
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+let _driveTokenClient = null;
+let _driveAccessToken = null;
+
+function _initDriveClient(callback) {
+  if (!window.google || !google.accounts) {
+    showToast('Google API no cargada aún, intenta de nuevo', 'error'); return;
+  }
+  if (_driveTokenClient) { _driveTokenClient._cb = callback; _driveTokenClient.requestAccessToken(); return; }
+  _driveTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: (resp) => {
+      if (resp.error) { showToast('Error al conectar con Google Drive', 'error'); return; }
+      _driveAccessToken = resp.access_token;
+      if (_driveTokenClient._cb) _driveTokenClient._cb();
+    }
+  });
+  _driveTokenClient._cb = callback;
+  _driveTokenClient.requestAccessToken();
+}
+
+async function exportBackupToDrive() {
+  const btn = document.getElementById('btn-drive-backup');
+  if (btn) { btn.disabled = true; btn.textContent = 'Conectando…'; }
+  _initDriveClient(async () => {
+    try {
+      const backup = { version: 1, exportedAt: new Date().toISOString(), data: {} };
+      Object.keys(localStorage).forEach(k => { backup.data[k] = localStorage.getItem(k); });
+      const json = JSON.stringify(backup, null, 2);
+      const date = new Date().toISOString().slice(0, 10);
+      const fileName = `GrupoElite_CRM_Respaldo_${date}.json`;
+
+      // Check if file already exists (same name) to update instead of duplicate
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${fileName}'&spaces=drive&fields=files(id,name)`,
+        { headers: { Authorization: `Bearer ${_driveAccessToken}` } }
+      );
+      const searchData = await searchRes.json();
+      const existing = searchData.files && searchData.files[0];
+
+      const metadata = { name: fileName, mimeType: 'application/json' };
+      const formData = new FormData();
+      formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      formData.append('file', new Blob([json], { type: 'application/json' }));
+
+      const url = existing
+        ? `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart`
+        : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+      const method = existing ? 'PATCH' : 'POST';
+
+      const uploadRes = await fetch(url, {
+        method,
+        headers: { Authorization: `Bearer ${_driveAccessToken}` },
+        body: formData
+      });
+
+      if (!uploadRes.ok) throw new Error('Error al subir a Drive');
+
+      const info = document.getElementById('backup-export-info');
+      const keys = Object.keys(backup.data).length;
+      if (info) info.innerHTML = `✅ Guardado en Google Drive: <strong>${fileName}</strong> — ${keys} registros`;
+      logActivity('backup_drive', 'Respaldo subido a Google Drive', fileName);
+      showToast('✅ Respaldo guardado en Google Drive', 'success');
+    } catch(e) {
+      showToast('Error: ' + e.message, 'error');
+    }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<img src="https://www.google.com/images/icons/product/drive-32.png" style="width:16px;height:16px" /> Guardar en Google Drive'; }
+  });
 }
 
 // ════════════════════════════════════════════
