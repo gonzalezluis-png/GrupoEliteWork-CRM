@@ -3128,7 +3128,8 @@ function toggleAccountSection(type) {
   const icon = document.getElementById('account-' + type + '-icon');
   const open = form.style.display === 'none';
   form.style.display = open ? 'block' : 'none';
-  icon.textContent   = open ? '🔓' : '🔒';
+  icon.textContent   = open ? '⌄' : '›';
+  icon.style.transform = open ? 'rotate(0deg)' : '';
   if (open && type === 'email') {
     const session = getSession();
     document.getElementById('acc-email-current').value = session ? session.email : '';
@@ -3254,7 +3255,7 @@ function showSettingsPage() {
 
 function _populateSettingsStats() {
   const users = loadUsers();
-  const allLeads = BOARDS.reduce((acc, b) => acc + (b.leads || []).length, 0);
+  const allLeads = BOARDS.reduce((acc, b) => acc + loadLeads(b.id).length, 0);
   const agents   = users.filter(u => u.role === 'agent').length;
 
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -3751,7 +3752,7 @@ function toggleOrgNameSection() {
     icon.textContent = '🔓';
   } else {
     section.style.display = 'none';
-    icon.textContent = '🔒';
+    icon.textContent = '✏️ Editar';
   }
 }
 function saveAppName() {
@@ -3761,7 +3762,7 @@ function saveAppName() {
     document.getElementById('appname-display').textContent = val;
     showToast('Nombre actualizado ✓', 'success');
     document.getElementById('orgname-edit-section').style.display = 'none';
-    document.getElementById('orgname-lock-icon').textContent = '🔒';
+    document.getElementById('orgname-lock-icon').textContent = '✏️ Editar';
   }
 }
 
