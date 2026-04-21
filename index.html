@@ -2362,16 +2362,11 @@
 //  CONFIG
 // ════════════════════════════════════════════
 function getAgents() {
-  const users    = loadUsers();
-  const virtuals = loadVirtualUsers();
-  const session  = getSession();
+  const users   = loadUsers();
+  const session = getSession();
   let agents = users.filter(u => u.role === 'agent');
-  let vus    = [];
   if (session && session.role === 'admin') {
     agents = agents.filter(u => u.orgAdminId === session.id);
-    vus    = virtuals.filter(v => v.orgAdminId === session.id);
-  } else if (session && session.role === 'master') {
-    vus = virtuals;
   } else if (session && session.role === 'master_manager') {
     const agentNames = getMasterManagerAgentNames(session.id);
     agents = agents.filter(u => agentNames.includes(u.name));
@@ -2379,7 +2374,7 @@ function getAgents() {
     const agentNames = getManagerAgentNames(session.id);
     agents = agents.filter(u => agentNames.includes(u.name));
   }
-  return [...agents.map(u => u.name), ...vus.map(v => v.name)];
+  return agents.map(u => u.name);
 }
 
 function getManagerAgentNames(managerId) {
@@ -2767,7 +2762,8 @@ function renderRows(board, leads) {
         const dot        = isAssigned
           ? '<span style="width:6px;height:6px;border-radius:50%;background:#00c875;flex-shrink:0"></span>'
           : '<span style="width:6px;height:6px;border-radius:50%;background:#3b9eff;flex-shrink:0"></span>';
-        if (sess && (sess.role === 'agent' || sess.role === 'manager' || sess.role === 'master_manager')) {
+        const canAssign = sess && (sess.role === 'master' || sess.role === 'admin');
+        if (!canAssign) {
           return `<td><span style="${pillStyle}">${dot}${esc(displayVal||'Sin Asignar')}</span></td>`;
         }
         const agOpts = ['', ...getAgents()].map(a =>
@@ -2876,9 +2872,9 @@ function buildForm(board, lead) {
     </div>
     <div class="field">
       <label>Asignado A</label>
-      ${(getSession() && getSession().role === 'agent')
-        ? `<input type="text" id="f_asignado" value="${esc(v('asignado'))}" readonly style="opacity:.6;cursor:not-allowed" />`
-        : `<select id="f_asignado"><option value="">— Seleccionar —</option>${selAgents}</select>`}
+      ${(() => { const r = getSession()?.role; return (r === 'master' || r === 'admin'); })()
+        ? `<select id="f_asignado"><option value="">— Seleccionar —</option>${selAgents}</select>`
+        : `<input type="text" id="f_asignado" value="${esc(v('asignado'))}" readonly style="opacity:.6;cursor:not-allowed" />`}
     </div>
     <div class="field">
       <label>Resultado</label>
