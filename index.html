@@ -2929,7 +2929,7 @@ function doLogout() {
   document.getElementById('sidebar-admin').style.display  = 'none';
   document.getElementById('sidebar-master').style.display = 'none';
   document.getElementById('assign-strip').classList.add('hidden');
-  document.getElementById('board-list').style.display = '';
+  document.getElementById('sidebar').style.display = '';
   document.getElementById('settings-page').classList.remove('visible');
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
@@ -2947,7 +2947,7 @@ function initApp(user) {
   applyAppName();
   if (user.role === 'agent') {
     // agents: no board navigation, just their leads
-    document.getElementById('board-list').style.display = 'none';
+    document.getElementById('sidebar').style.display = 'none';
     const agentFilterWrap = document.getElementById('f-asignado');
     if (agentFilterWrap) {
       const fg = agentFilterWrap.closest('.filter-group');
@@ -2955,7 +2955,7 @@ function initApp(user) {
     }
     showAgentView();
   } else {
-    document.getElementById('board-list').style.display = '';
+    document.getElementById('sidebar').style.display = '';
     renderSidebar();
     populateAgentFilter();
     populateLeadFilter();
