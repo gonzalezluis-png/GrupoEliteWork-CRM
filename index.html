@@ -1989,7 +1989,7 @@
     <!-- Hero header -->
     <div class="reg-hero">
       <button class="reg-close-btn" onclick="closeRegisterForm()">✕</button>
-      <div class="reg-hero-logo">Grupo Elite Work</div>
+      <div class="reg-hero-logo" id="reg-hero-org-name">Grupo Elite Work</div>
       <div class="reg-hero-title">Solicitar Acceso</div>
       <div class="reg-hero-sub">Completa el formulario y un administrador<br>revisará tu solicitud para darte acceso.</div>
     </div>
@@ -5278,6 +5278,8 @@ async function savePendingUsers(list) {
 function openRegisterForm() {
   _googleRegisterMode    = false;
   _googleRegisterPayload = null;
+  const orgEl = document.getElementById('reg-hero-org-name');
+  if (orgEl) orgEl.textContent = loadAppName();
   document.getElementById('reg-name').value        = '';
   document.getElementById('reg-email').value       = '';
   document.getElementById('reg-pass').value        = '';
