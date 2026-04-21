@@ -2553,11 +2553,13 @@ async function permanentDeleteLead(leadId) {
 // ════════════════════════════════════════════
 function exportCSV() {
   if (!currentBoardId) return;
-  const board = getBoard(currentBoardId);
-  const leads = loadLeads(currentBoardId);
+  const board   = getBoard(currentBoardId);
+  const allLeads = loadLeads(currentBoardId);
+  const hasSelection = selectedIds.size > 0;
+  const leads   = hasSelection ? allLeads.filter(l => selectedIds.has(l.id)) : filteredLeads.length > 0 ? filteredLeads : allLeads;
   if (leads.length === 0) { showToast('No hay leads para exportar','error'); return; }
 
-  const cols = getColumns(board).filter(c => c.key !== '_actions');
+  const cols = getColumns(board).filter(c => c.key !== '_actions' && c.key !== '_check');
   const header = cols.map(c => `"${c.label}"`).join(',');
   const rows = leads.map(l =>
     cols.map(c => `"${(l[c.key]||'').toString().replace(/"/g,'""')}"`).join(',')
@@ -2567,10 +2569,10 @@ function exportCSV() {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `${board.id}_leads_${today()}.csv`;
+  a.download = `${board.id}_leads${hasSelection ? `_seleccion_${leads.length}` : ''}_${today()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast('CSV exportado ✓','success');
+  showToast(`CSV exportado — ${leads.length} lead${leads.length !== 1 ? 's' : ''}${hasSelection ? ' seleccionados' : ''} ✓`, 'success');
 }
 
 // ════════════════════════════════════════════
@@ -3168,38 +3170,72 @@ function cancelReassign() {
 }
 
 function saveInlineField(sel, leadId, field) {
-  const boardId = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
+  const boardId  = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
   if (!boardId) return;
-  const leads = loadLeads(boardId);
-  const lead  = leads.find(l => l.id === leadId);
-  if (!lead) return;
+  const newValue = sel.value;
+  const isMulti  = selectedIds.size > 1 && selectedIds.has(leadId);
+  const snapshotIds = isMulti ? new Set(selectedIds) : null;
+
+  // Hide the dropdown immediately
+  sel.style.display = 'none';
+  const spanEl = sel.previousElementSibling;
+  if (spanEl) spanEl.style.display = '';
 
   if (field === 'asignado') {
-    const newAgent = sel.value;
-    checkReassign(lead, newAgent, (mode) => {
-      applyReassignMode(lead, newAgent, mode);
+    if (isMulti) {
+      // Bulk inline reassign — reuse bulk-edit logic
+      const leads = loadLeads(boardId);
+      const reassignSet = new Set(
+        leads.filter(l => snapshotIds.has(l.id) && l.asignado && l.asignado !== newValue).map(l => l.id)
+      );
+      const doApply = (mode) => {
+        leads.forEach(l => {
+          if (!snapshotIds.has(l.id)) return;
+          applyReassignMode(l, newValue, reassignSet.has(l.id) ? mode : 'full');
+        });
+        saveLeads(boardId, leads);
+        renderTable();
+        showToast(`${snapshotIds.size} lead${snapshotIds.size !== 1 ? 's' : ''} transferidos ✓`, 'success');
+      };
+      if (reassignSet.size > 0) {
+        _reassignPending = { lead: {}, newAgent: newValue, onConfirm: doApply };
+        document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
+        document.getElementById('reassign-new-name').textContent = newValue;
+        document.getElementById('reassign-modal-overlay').classList.add('open');
+      } else {
+        doApply('full');
+      }
+      return;
+    }
+    // Single lead reassign
+    const leads = loadLeads(boardId);
+    const lead  = leads.find(l => l.id === leadId);
+    if (!lead) return;
+    checkReassign(lead, newValue, (mode) => {
+      applyReassignMode(lead, newValue, mode);
       saveLeads(boardId, leads);
-      const span = sel.previousElementSibling;
-      const isEmpty = !newAgent;
-      span.className = 'inline-display' + (isEmpty ? ' empty-val' : '');
-      span.innerHTML = esc(newAgent || 'Sin asignar') + ' <span class="caret">▾</span>';
+      if (spanEl) { spanEl.className = 'inline-display' + (!newValue ? ' empty-val' : ''); spanEl.innerHTML = esc(newValue || 'Sin asignar') + ' <span class="caret">▾</span>'; }
       const row = sel.closest('tr');
-      if (row) row.classList.toggle('unassigned-row', isEmpty);
-      sel.style.display = 'none'; span.style.display = '';
+      if (row) row.classList.toggle('unassigned-row', !newValue);
       showToast('Lead transferido ✓', 'success');
     });
-    sel.style.display = 'none';
-    const span2 = sel.previousElementSibling;
-    if (span2) span2.style.display = '';
     return;
   }
 
-  lead[field] = sel.value;
+  // Non-asignado field
+  const leads = loadLeads(boardId);
+  if (isMulti) {
+    leads.forEach(l => { if (snapshotIds.has(l.id)) l[field] = newValue; });
+    saveLeads(boardId, leads);
+    renderTable();
+    showToast(`${snapshotIds.size} lead${snapshotIds.size !== 1 ? 's' : ''} actualizados ✓`, 'success');
+    return;
+  }
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  lead[field] = newValue;
   saveLeads(boardId, leads);
-  const span = sel.previousElementSibling;
-  const displayVal = sel.value;
-  span.className = 'inline-display' + (!displayVal ? ' empty-val' : '');
-  span.innerHTML = esc(displayVal || 'Sin asignar') + ' <span class="caret">▾</span>';
+  if (spanEl) { spanEl.className = 'inline-display' + (!newValue ? ' empty-val' : ''); spanEl.innerHTML = esc(newValue || '—') + ' <span class="caret">▾</span>'; }
   showToast('Guardado ✓', 'success');
 }
 
