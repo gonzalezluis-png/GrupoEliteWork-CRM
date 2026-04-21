@@ -1081,7 +1081,7 @@
     <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Resultado</label>
-        <select id="notes-resultado-sel" onchange="saveNotesResultado()" style="flex:1;max-width:260px;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-family:var(--font);font-size:12px">
+        <select id="notes-resultado-sel" style="flex:1;max-width:260px;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-family:var(--font);font-size:12px">
           <option value="">— Sin resultado —</option>
         </select>
       </div>
@@ -3373,29 +3373,6 @@ function openNotesPanel(leadId) {
   document.getElementById('notes-panel-overlay').classList.add('open');
 }
 
-async function saveNotesResultado() {
-  const val = document.getElementById('notes-resultado-sel').value;
-  if (!_notesBoardId || !_notesLeadId) return;
-  const leads = loadLeads(_notesBoardId);
-  const lead  = leads.find(l => l.id === _notesLeadId);
-  if (!lead) return;
-  const prev = lead.resultado || '';
-  if (prev === val) return;
-  lead.resultado = val;
-  // auto-log the change as a note
-  const session = getSession();
-  const notes = parseNotes(lead._notes);
-  notes.push({
-    text:   `Resultado cambiado: ${prev || 'Sin resultado'} → ${val || 'Sin resultado'}`,
-    author: session ? session.name : 'Usuario',
-    date:   new Date().toISOString(),
-    system: true
-  });
-  lead._notes = JSON.stringify(notes);
-  await saveLeads(_notesBoardId, leads);
-  _renderNotesJournal(lead);
-  showToast('Resultado guardado ✓', 'success');
-}
 
 function _renderNotesJournal(lead) {
   const notes = parseNotes(lead._notes);
@@ -3430,27 +3407,39 @@ function closeNotesPanel() {
 }
 
 async function submitNote() {
-  const text = document.getElementById('notes-new-input').value.trim();
-  if (!text) { showToast('Escribe algo antes de guardar', 'error'); return; }
-  const session = getSession();
+  const text    = document.getElementById('notes-new-input').value.trim();
+  const newRes  = document.getElementById('notes-resultado-sel').value;
   if (!_notesBoardId || !_notesLeadId) return;
 
   const leads = loadLeads(_notesBoardId);
   const lead  = leads.find(l => l.id === _notesLeadId);
   if (!lead) return;
 
-  const notes = parseNotes(lead._notes);
-  notes.push({
-    text,
-    author: session ? session.name : 'Usuario',
-    date:   new Date().toISOString()
-  });
-  lead._notes = JSON.stringify(notes);
+  const resChanged = newRes !== (lead.resultado || '');
+  if (!text && !resChanged) { showToast('Escribe una nota o cambia el resultado', 'error'); return; }
 
+  const session = getSession();
+  const notes   = parseNotes(lead._notes);
+  const now     = new Date().toISOString();
+  const author  = session ? session.name : 'Usuario';
+
+  if (resChanged) {
+    const prev = lead.resultado || '';
+    lead.resultado = newRes;
+    notes.push({
+      text:   `Resultado: ${prev || 'Sin resultado'} → ${newRes || 'Sin resultado'}`,
+      author, date: now, system: true
+    });
+  }
+  if (text) {
+    notes.push({ text, author, date: now });
+  }
+
+  lead._notes = JSON.stringify(notes);
   await saveLeads(_notesBoardId, leads);
   document.getElementById('notes-new-input').value = '';
   _renderNotesJournal(lead);
-  showToast('Nota guardada ✓', 'success');
+  showToast('Guardado ✓', 'success');
 }
 
 // ════════════════════════════════════════════
