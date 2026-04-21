@@ -1199,13 +1199,13 @@ function formatDate(str) {
 // ════════════════════════════════════════════
 function renderSidebar() {
   const session = getSession();
-  const canManage = session && (session.role === 'admin' || session.role === 'master');
+  const isMaster = session && session.role === 'master';
   const list = document.getElementById('board-list');
   const defaultIds = new Set(DEFAULT_BOARDS.map(b => b.id));
 
   list.innerHTML = BOARDS.map(b => {
     const isCustom = !defaultIds.has(b.id);
-    const delBtn = (canManage && isCustom)
+    const delBtn = (isMaster && isCustom)
       ? `<button class="board-del" onclick="event.stopPropagation();deleteBoard('${b.id}')" title="Eliminar board">✕</button>`
       : '';
     return `
@@ -1217,7 +1217,7 @@ function renderSidebar() {
       </div>`;
   }).join('');
 
-  if (canManage) {
+  if (isMaster) {
     list.innerHTML += `<button class="add-board-btn" onclick="openBoardModal()">＋ Nuevo Board</button>`;
   }
   allBoards();
@@ -2469,6 +2469,8 @@ function closeBoardModal() {
 }
 
 function saveBoard() {
+  const session = getSession();
+  if (!session || session.role !== 'master') { showToast('Solo el maestro puede crear boards', 'error'); return; }
   const name  = document.getElementById('b-nombre').value.trim().toUpperCase();
   const icon  = document.getElementById('b-icon').value.trim() || '📋';
   const ubRaw = document.getElementById('b-ubicaciones').value.trim();
@@ -2493,6 +2495,8 @@ function saveBoard() {
 }
 
 function deleteBoard(id) {
+  const session = getSession();
+  if (!session || session.role !== 'master') { showToast('Solo el maestro puede eliminar boards', 'error'); return; }
   const board = BOARDS.find(b => b.id === id);
   if (!board) return;
   const count = loadLeads(id).length;
