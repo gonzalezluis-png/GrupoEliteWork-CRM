@@ -1032,6 +1032,36 @@
   </div>
 </div>
 
+<!-- REASSIGN MODAL -->
+<div class="overlay" id="reassign-modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2>⚠️ Transferir Lead</h2>
+      <button class="modal-close" onclick="cancelReassign()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:rgba(253,171,61,.08);border:1px solid rgba(253,171,61,.3);border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:12px;color:var(--yellow);line-height:1.6">
+        Este lead está actualmente asignado a <strong id="reassign-old-name"></strong>.<br>
+        Al transferirlo a <strong id="reassign-new-name"></strong>, el agente anterior <strong>ya no podrá ver esta información</strong>.
+      </div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:14px">¿Cómo deseas transferir el lead?</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-primary" style="justify-content:flex-start;padding:14px 16px;text-align:left;flex-direction:column;align-items:flex-start;gap:3px;height:auto" onclick="doReassign('full')">
+          <span style="font-size:13px;font-weight:700">Transferir con toda la información</span>
+          <span style="font-size:11px;font-weight:400;opacity:.8">Incluye notas, resultado y datos agregados por el agente anterior</span>
+        </button>
+        <button class="btn btn-secondary" style="justify-content:flex-start;padding:14px 16px;text-align:left;flex-direction:column;align-items:flex-start;gap:3px;height:auto" onclick="doReassign('original')">
+          <span style="font-size:13px;font-weight:700">Transferir con datos originales</span>
+          <span style="font-size:11px;font-weight:400;opacity:.8">Solo los datos con los que fue importado (notas y resultado se borrarán)</span>
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cancelReassign()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- BOARD MODAL -->
 <div class="overlay" id="board-modal-overlay" onclick="if(event.target===this)closeBoardModal()">
   <div class="modal" style="max-width:480px">
@@ -1595,7 +1625,27 @@ function saveLead() {
 
   if (editingLeadId) {
     const idx = leads.findIndex(l => l.id === editingLeadId);
-    if (idx !== -1) { leads[idx] = { ...leads[idx], ...data }; }
+    if (idx === -1) return;
+    const oldLead  = leads[idx];
+    const newAgent = data.asignado || '';
+    if (oldLead.asignado && oldLead.asignado !== newAgent) {
+      checkReassign(oldLead, newAgent, (mode) => {
+        const merged = { ...oldLead, ...data };
+        if (mode === 'original') {
+          const keep = ['id','nombre','lead','email','telefono','hijos','direccion','ubicacion','creacion','_testLead'];
+          Object.keys(merged).forEach(k => { if (!keep.includes(k)) delete merged[k]; });
+          merged.notas = ''; merged.resultado = ''; merged.estado = '';
+          merged.asignado = newAgent;
+        }
+        leads[idx] = merged;
+        saveLeads(currentBoardId, leads);
+        closeModal();
+        renderTable();
+        showToast('Lead transferido ✓', 'success');
+      });
+      return; // wait for modal
+    }
+    leads[idx] = { ...oldLead, ...data };
   } else {
     data.id      = uid();
     data.creacion = today();
@@ -2143,18 +2193,38 @@ function applyBulkEdit() {
   }
 
   const leads = loadLeads(currentBoardId);
-  let changed = 0;
-  leads.forEach(l => {
-    if (!selectedIds.has(l.id)) return;
-    if (asignado)  l.asignado  = asignado;
-    if (ubicacion) l.ubicacion = ubicacion;
-    if (resultado) l.resultado = resultado;
-    changed++;
-  });
-  saveLeads(currentBoardId, leads);
-  clearSelection();
-  renderTable();
-  showToast(`${changed} lead${changed !== 1 ? 's' : ''} actualizados ✓`, 'success');
+  const toReassign = asignado ? leads.filter(l => selectedIds.has(l.id) && l.asignado && l.asignado !== asignado) : [];
+
+  const doApply = (mode) => {
+    let changed = 0;
+    leads.forEach(l => {
+      if (!selectedIds.has(l.id)) return;
+      if (asignado) {
+        applyReassignMode(l, asignado, (toReassign.find(r => r.id === l.id) ? mode : 'full'));
+      }
+      if (ubicacion) l.ubicacion = ubicacion;
+      if (resultado) l.resultado = resultado;
+      changed++;
+    });
+    saveLeads(currentBoardId, leads);
+    clearSelection();
+    renderTable();
+    showToast(`${changed} lead${changed !== 1 ? 's' : ''} actualizados ✓`, 'success');
+  };
+
+  if (toReassign.length > 0) {
+    const firstOld = toReassign[0].asignado;
+    _reassignPending = {
+      lead: { asignado: `${toReassign.length} lead(s) con agente previo` },
+      newAgent: asignado,
+      onConfirm: doApply
+    };
+    document.getElementById('reassign-old-name').textContent = `${toReassign.length} lead(s) ya asignados`;
+    document.getElementById('reassign-new-name').textContent = asignado;
+    document.getElementById('reassign-modal-overlay').classList.add('open');
+  } else {
+    doApply('full');
+  }
 }
 
 function bulkDelete() {
@@ -2187,24 +2257,76 @@ function closeInlineSel(sel) {
   }, 120);
 }
 
+// ── Reassign confirmation ──
+let _reassignPending = null;
+
+function checkReassign(lead, newAgent, onConfirm) {
+  const oldAgent = lead.asignado || '';
+  if (!oldAgent || !newAgent || oldAgent === newAgent) {
+    onConfirm('full');
+    return;
+  }
+  _reassignPending = { lead, newAgent, onConfirm };
+  document.getElementById('reassign-old-name').textContent = oldAgent;
+  document.getElementById('reassign-new-name').textContent = newAgent;
+  document.getElementById('reassign-modal-overlay').classList.add('open');
+}
+
+function applyReassignMode(lead, newAgent, mode) {
+  if (mode === 'original') {
+    const keep = ['id','nombre','lead','email','telefono','hijos','direccion','ubicacion','creacion','_testLead'];
+    Object.keys(lead).forEach(k => { if (!keep.includes(k)) delete lead[k]; });
+    lead.notas = ''; lead.resultado = ''; lead.estado = '';
+  }
+  lead.asignado = newAgent;
+}
+
+function doReassign(mode) {
+  if (!_reassignPending) return;
+  const { lead, newAgent, onConfirm } = _reassignPending;
+  _reassignPending = null;
+  document.getElementById('reassign-modal-overlay').classList.remove('open');
+  onConfirm(mode);
+}
+
+function cancelReassign() {
+  if (_reassignPending && _reassignPending.onCancel) _reassignPending.onCancel();
+  _reassignPending = null;
+  document.getElementById('reassign-modal-overlay').classList.remove('open');
+}
+
 function saveInlineField(sel, leadId, field) {
   const leads = loadLeads(currentBoardId);
   const lead  = leads.find(l => l.id === leadId);
   if (!lead) return;
+
+  if (field === 'asignado') {
+    const newAgent = sel.value;
+    checkReassign(lead, newAgent, (mode) => {
+      applyReassignMode(lead, newAgent, mode);
+      saveLeads(currentBoardId, leads);
+      const span = sel.previousElementSibling;
+      const isEmpty = !newAgent;
+      span.className = 'inline-display' + (isEmpty ? ' empty-val' : '');
+      span.innerHTML = esc(newAgent || 'Sin asignar') + ' <span class="caret">▾</span>';
+      const row = sel.closest('tr');
+      if (row) row.classList.toggle('unassigned-row', isEmpty);
+      sel.style.display = 'none'; span.style.display = '';
+      showToast('Lead transferido ✓', 'success');
+    });
+    // close dropdown visually while waiting
+    sel.style.display = 'none';
+    const span2 = sel.previousElementSibling;
+    if (span2) span2.style.display = '';
+    return;
+  }
+
   lead[field] = sel.value;
   saveLeads(currentBoardId, leads);
   const span = sel.previousElementSibling;
   const displayVal = sel.value;
-  const isAgent = field === 'asignado';
-  const isEmpty = !displayVal || (isAgent && displayVal === 'Sin asignar');
-  span.className = 'inline-display' + (isEmpty ? ' empty-val' : '');
-  span.innerHTML = esc(displayVal || (isAgent ? 'Sin asignar' : 'Ubicación')) + ' <span class="caret">▾</span>';
-  // update unassigned row class
-  if (field === 'asignado') {
-    const row = sel.closest('tr');
-    const unassigned = !val || val === 'Sin asignar';
-    row.classList.toggle('unassigned-row', unassigned);
-  }
+  span.className = 'inline-display' + (!displayVal ? ' empty-val' : '');
+  span.innerHTML = esc(displayVal || 'Sin asignar') + ' <span class="caret">▾</span>';
   showToast('Guardado ✓', 'success');
 }
 
