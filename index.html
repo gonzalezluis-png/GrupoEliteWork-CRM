@@ -1562,6 +1562,8 @@ setTimeout(function(){
       <button class="btn btn-primary" id="btn-new-lead" onclick="openModal()">＋ Nuevo Lead</button>
       <button class="btn btn-secondary" id="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
       <button class="btn btn-secondary" id="btn-scripts-panel" onclick="toggleScriptsPanel()" title="Scripts de Llamada">📋 Scripts</button>
+      <button class="btn btn-secondary" id="btn-undo" onclick="undoAction()" title="Deshacer (Ctrl+Z)" disabled style="opacity:.4;min-width:36px;padding:6px 10px">↩</button>
+      <button class="btn btn-secondary" id="btn-redo" onclick="redoAction()" title="Rehacer (Ctrl+Y)" disabled style="opacity:.4;min-width:36px;padding:6px 10px">↪</button>
       <div id="sync-status" title="Estado de sincronización con la nube" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);user-select:none">
         <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;transition:background .3s"></span>
         <span id="sync-label">Guardado</span>
@@ -3143,7 +3145,62 @@ function setSyncStatus(state) {
   }
 }
 
-async function saveLeads(boardId, leads) {
+// ── Undo / Redo ───────────────────────────────────────────
+const _undoStack = [];
+const _redoStack = [];
+const _MAX_HISTORY = 50;
+
+function _pushHistory(boardId, before, after) {
+  _undoStack.push({ boardId, before: JSON.parse(JSON.stringify(before)), after: JSON.parse(JSON.stringify(after)) });
+  if (_undoStack.length > _MAX_HISTORY) _undoStack.shift();
+  _redoStack.length = 0;
+  _updateUndoRedoBtns();
+}
+function _updateUndoRedoBtns() {
+  const u = document.getElementById('btn-undo');
+  const r = document.getElementById('btn-redo');
+  if (u) { u.disabled = _undoStack.length === 0; u.style.opacity = _undoStack.length ? '1' : '.4'; }
+  if (r) { r.disabled = _redoStack.length === 0; r.style.opacity = _redoStack.length ? '1' : '.4'; }
+}
+async function _applyHistory(boardId, leadsSnapshot) {
+  const key = 'gew_leads_' + boardId;
+  localStorage.setItem(key, JSON.stringify(leadsSnapshot));
+  updateSidebarCount(boardId);
+  renderSidebar();
+  if (currentBoardId === boardId) renderTable();
+  setSyncStatus('saving');
+  const ok = await supaSync(key, JSON.stringify(leadsSnapshot));
+  setSyncStatus(ok ? 'saved' : 'error');
+}
+async function undoAction() {
+  if (_undoStack.length === 0) return;
+  const entry = _undoStack.pop();
+  _redoStack.push(entry);
+  await _applyHistory(entry.boardId, entry.before);
+  _updateUndoRedoBtns();
+  showToast('Acción deshecha ↩', 'success');
+}
+async function redoAction() {
+  if (_redoStack.length === 0) return;
+  const entry = _redoStack.pop();
+  _undoStack.push(entry);
+  await _applyHistory(entry.boardId, entry.after);
+  _updateUndoRedoBtns();
+  showToast('Acción rehecha ↪', 'success');
+}
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoAction(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redoAction(); }
+});
+
+async function saveLeads(boardId, leads, opts = {}) {
+  const session = getSession();
+  const isMaster = session && session.role === 'master';
+  // Track history for all saves except notes (non-master notes are fixed)
+  if (!opts.isNote || isMaster) {
+    const before = loadLeads(boardId);
+    _pushHistory(boardId, before, leads);
+  }
   const key = 'gew_leads_' + boardId;
   localStorage.setItem(key, JSON.stringify(leads));
   updateSidebarCount(boardId);
@@ -7942,7 +7999,7 @@ async function submitNote() {
   }
 
   lead._notes = JSON.stringify(notes);
-  await saveLeads(_notesBoardId, leads);
+  await saveLeads(_notesBoardId, leads, { isNote: true });
   document.getElementById('notes-new-input').value = '';
   _renderNotesJournal(lead);
   showToast('Guardado ✓', 'success');
