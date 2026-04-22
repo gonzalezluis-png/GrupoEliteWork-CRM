@@ -1572,9 +1572,15 @@ setTimeout(function(){
     <!-- BULK ACTION BAR -->
     <div id="bulk-bar">
       <span class="bulk-count" id="bulk-count">0 seleccionados</span>
+      <button id="bulk-select-all-btn" onclick="selectAllInBoard()" style="display:none;background:rgba(0,115,234,.15);color:var(--accent);border:1px solid rgba(0,115,234,.3);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">Seleccionar todos</button>
       <div class="bulk-sep"></div>
       <span class="bulk-label">Asignado A:</span>
       <select class="bulk-select" id="bulk-asignado">
+        <option value="">— Sin cambio —</option>
+      </select>
+      <div class="bulk-sep"></div>
+      <span class="bulk-label">Tipo de lead:</span>
+      <select class="bulk-select" id="bulk-lead">
         <option value="">— Sin cambio —</option>
       </select>
       <div class="bulk-sep"></div>
@@ -1591,6 +1597,11 @@ setTimeout(function(){
         <option>BUZÓN DE VOZ</option><option>CITA AGENDADA</option>
         <option>CLIENTE ACTIVO</option><option>PENDIENTE</option>
         <option>SIN RESULTADO</option>
+      </select>
+      <div class="bulk-sep" id="bulk-sep-board" style="display:none"></div>
+      <span class="bulk-label" id="bulk-label-board" style="display:none">Mover a board:</span>
+      <select class="bulk-select" id="bulk-board" style="display:none">
+        <option value="">— Sin cambio —</option>
       </select>
       <button class="bulk-apply" onclick="applyBulkEdit()">✓ Aplicar</button>
       <button class="bulk-apply danger" onclick="bulkDelete()">🗑 Eliminar</button>
@@ -4969,6 +4980,19 @@ function syncHeaderCheckbox() {
   hcb.indeterminate = checked.length > 0 && checked.length < all.length;
 }
 
+function selectAllInBoard() {
+  if (!currentBoardId) return;
+  loadLeads(currentBoardId).forEach(l => selectedIds.add(l.id));
+  // also check visible checkboxes
+  document.querySelectorAll('.row-checkbox').forEach(cb => {
+    cb.checked = true;
+    cb.closest('tr').classList.add('selected-row');
+  });
+  syncHeaderCheckbox();
+  updateBulkBar();
+  showToast(`${selectedIds.size} leads seleccionados ✓`, 'success');
+}
+
 function clearSelection() {
   selectedIds.clear();
   document.querySelectorAll('.row-checkbox').forEach(cb => {
@@ -4981,16 +5005,21 @@ function clearSelection() {
 }
 
 function updateBulkBar() {
-  const bar = document.getElementById('bulk-bar');
-  const count = selectedIds.size;
-  if (count === 0) {
-    bar.classList.remove('visible');
-    return;
-  }
+  const bar     = document.getElementById('bulk-bar');
+  const count   = selectedIds.size;
+  const session = getSession();
+  const isMaster = session && session.role === 'master';
+  if (count === 0) { bar.classList.remove('visible'); return; }
   bar.classList.add('visible');
-  document.getElementById('bulk-count').textContent = `${count} seleccionado${count !== 1 ? 's' : ''}`;
 
-  // populate ubicacion options for current board
+  const totalInBoard = currentBoardId ? loadLeads(currentBoardId).length : 0;
+  document.getElementById('bulk-count').textContent = `${count} seleccionado${count !== 1 ? 's' : ''}${totalInBoard > count ? ` de ${totalInBoard}` : ''}`;
+
+  // "Seleccionar todos" button — master only, when not all are selected
+  const selAllBtn = document.getElementById('bulk-select-all-btn');
+  if (selAllBtn) selAllBtn.style.display = (isMaster && totalInBoard > count) ? '' : 'none';
+
+  // populate ubicacion
   const board = getBoard(currentBoardId);
   const ubSel = document.getElementById('bulk-ubicacion');
   if (ubSel && board) {
@@ -5007,6 +5036,26 @@ function updateBulkBar() {
     agSel.innerHTML = '<option value="">— Sin cambio —</option>' +
       getAgents().map(a => `<option value="${esc(a)}">${a}</option>`).join('');
   }
+
+  // populate tipo de lead
+  const leadSel = document.getElementById('bulk-lead');
+  if (leadSel) {
+    leadSel.innerHTML = '<option value="">— Sin cambio —</option>' +
+      getLeadTypes().map(t => `<option value="${esc(t)}">${t}</option>`).join('');
+  }
+
+  // mover a board — master only
+  const boardSel  = document.getElementById('bulk-board');
+  const boardSep  = document.getElementById('bulk-sep-board');
+  const boardLbl  = document.getElementById('bulk-label-board');
+  if (boardSel && boardSep && boardLbl) {
+    const show = isMaster && currentBoardId;
+    boardSep.style.display = boardLbl.style.display = boardSel.style.display = show ? '' : 'none';
+    if (show) {
+      boardSel.innerHTML = '<option value="">— Sin cambio —</option>' +
+        BOARDS.filter(b => b.id !== currentBoardId).map(b => `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
+    }
+  }
 }
 
 function applyBulkEdit() {
@@ -5014,9 +5063,27 @@ function applyBulkEdit() {
   const asignado  = document.getElementById('bulk-asignado').value;
   const ubicacion = document.getElementById('bulk-ubicacion').value;
   const resultado = document.getElementById('bulk-resultado').value;
+  const leadType  = document.getElementById('bulk-lead').value;
+  const targetBoard = document.getElementById('bulk-board')?.value || '';
 
-  if (!asignado && !ubicacion && !resultado) {
+  if (!asignado && !ubicacion && !resultado && !leadType && !targetBoard) {
     showToast('Selecciona al menos un campo a editar', 'error'); return;
+  }
+
+  // Handle board move separately
+  if (targetBoard) {
+    const snapshotIds = new Set(selectedIds);
+    const srcLeads  = loadLeads(currentBoardId);
+    const toMove    = srcLeads.filter(l => snapshotIds.has(l.id));
+    if (!confirm(`¿Mover ${toMove.length} lead${toMove.length!==1?'s':''} al board "${BOARDS.find(b=>b.id===targetBoard)?.name}"?`)) return;
+    const destLeads = loadLeads(targetBoard);
+    toMove.forEach(l => { destLeads.push({ ...l }); });
+    saveLeads(targetBoard, destLeads);
+    saveLeads(currentBoardId, srcLeads.filter(l => !snapshotIds.has(l.id)));
+    selectedIds.clear();
+    renderTableKeepSelection();
+    showToast(`${toMove.length} lead${toMove.length!==1?'s':''} movidos ✓`, 'success');
+    return;
   }
 
   // Snapshot selected IDs immediately so re-renders don't wipe them
@@ -5033,9 +5100,10 @@ function applyBulkEdit() {
     let changed = 0;
     leads.forEach(l => {
       if (!snapshotIds.has(l.id)) return;
-      if (asignado) applyReassignMode(l, asignado, reassignSet.has(l.id) ? mode : 'full');
+      if (asignado)  applyReassignMode(l, asignado, reassignSet.has(l.id) ? mode : 'full');
       if (ubicacion) l.ubicacion = ubicacion;
       if (resultado) l.resultado = resultado;
+      if (leadType)  l.lead      = leadType;
       changed++;
     });
     saveLeads(boardId, leads);
