@@ -8099,6 +8099,7 @@ function initApp(user) {
   }
   applyToolbarGap();
   initToolbarGapHandle();
+  initRealtimeSync();
 }
 
 function showAgentView() {
@@ -9538,14 +9539,64 @@ const SUPA_URL = 'https://vpwbczzmonboirjckpmy.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwd2Jjenptb25ib2lyamNrcG15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MjAwMDUsImV4cCI6MjA5MjI5NjAwNX0._JCs7b6xMKgqskbCAdg6j9nW6UdMfPRPcwScLp9YCZM';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
+// Track keys this client just wrote so we don't re-apply our own changes
+const _ownWrites = new Map();
+
 async function supaSync(key, value) {
   try {
+    _ownWrites.set(key, Date.now());
     const { error } = await supa.from('kv_store').upsert({ key, value }, { onConflict: 'key' });
     if (error) { console.error('supaSync error:', key, error.message); return false; }
     return true;
   } catch(e) {
     console.error('supaSync exception:', key, e);
     return false;
+  }
+}
+
+// ── Real-time live sync ──────────────────────
+function initRealtimeSync() {
+  supa.channel('crm_live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kv_store' }, payload => {
+      const key = payload.new?.key;
+      const val = payload.new?.value;
+      if (!key || !key.startsWith('gew_')) return;
+      // Skip changes this client wrote within the last 4 s
+      const own = _ownWrites.get(key);
+      if (own && Date.now() - own < 4000) return;
+      localStorage.setItem(key, val);
+      _applyRealtimeKey(key);
+    })
+    .subscribe();
+}
+
+function _applyRealtimeKey(key) {
+  const session = getSession();
+  if (!session) return;
+
+  if (key.startsWith('gew_leads_')) {
+    const boardId = key.slice('gew_leads_'.length);
+    if (currentBoardId === boardId) renderTableKeepSelection();
+    else if (currentBoardId === '__agent__') renderTableKeepSelection();
+    updateTabCounts();
+    updateTrashBadge();
+    return;
+  }
+  if (key === 'gew_deleted_leads') {
+    updateTrashBadge();
+    const tp = document.getElementById('trash-page');
+    if (tp && tp.classList.contains('visible')) renderTrashTable();
+    return;
+  }
+  if (key === 'gew_users') {
+    populateAgentFilter();
+    const ug = document.getElementById('users-grid');
+    if (ug) renderUsersGrid();
+    return;
+  }
+  if (key === 'gew_calendar_events') {
+    if (typeof renderCalendar === 'function') renderCalendar();
+    return;
   }
 }
 
