@@ -294,44 +294,47 @@
 
   /* toolbar */
   #toolbar {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 24px 14px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px 12px;
     border-bottom: 1px solid var(--border);
-    background: var(--card2);
+    background: var(--bg);
     flex-wrap: wrap;
   }
 
   .search-wrap { position: relative; }
   .search-wrap input {
-    background: var(--card); border: 1px solid var(--border);
-    color: var(--text); border-radius: var(--radius);
-    padding: 6px 10px 6px 30px;
-    font-family: var(--font); font-size: 12px; width: 200px;
-    outline: none; transition: border-color .2s;
+    background: var(--card); border: 1px solid rgba(255,255,255,.1);
+    color: var(--text); border-radius: 8px;
+    padding: 7px 12px 7px 32px;
+    font-family: var(--font); font-size: 12px; width: 210px;
+    outline: none; transition: border-color .2s, box-shadow .2s;
   }
-  .search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,115,234,.15); }
-  .search-wrap .ico { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text2); font-size: 13px; }
+  .search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,115,234,.12); }
+  .search-wrap input::placeholder { color: var(--text2); }
+  .search-wrap .ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text2); font-size: 12px; }
 
   select.filter-select {
-    background: var(--card); border: 1px solid var(--border);
-    color: var(--text); border-radius: var(--radius);
-    padding: 6px 10px; font-family: var(--font); font-size: 12px;
+    background: var(--card); border: 1px solid rgba(255,255,255,.1);
+    color: var(--text); border-radius: 8px;
+    padding: 7px 28px 7px 12px; font-family: var(--font); font-size: 12px;
     outline: none; cursor: pointer; transition: border-color .2s;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
   }
-  select.filter-select:focus { border-color: var(--accent); }
+  select.filter-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,115,234,.12); }
 
-  .toolbar-count { margin-left: auto; font-size: 11px; color: var(--text2); white-space: nowrap; }
+  .toolbar-count { margin-left: auto; font-size: 11px; color: var(--text2); white-space: nowrap; background:rgba(255,255,255,.06); padding:4px 10px; border-radius:20px; }
 
-  .date-filter-wrap { display: flex; align-items: center; gap: 6px; }
+  .date-filter-wrap { display: flex; align-items: center; gap: 6px; background:var(--card); border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:0 10px; height:34px; }
   .date-filter-label { font-size: 11px; color: var(--text2); white-space: nowrap; }
   .filter-date {
-    background: var(--card); border: 1px solid var(--border);
-    color: var(--text); border-radius: 6px;
-    padding: 5px 8px; font-family: var(--font); font-size: 12px;
-    outline: none; cursor: pointer; width: 130px;
+    background: transparent; border: none;
+    color: var(--text); padding: 0;
+    font-family: var(--font); font-size: 12px;
+    outline: none; cursor: pointer; width: 110px;
     color-scheme: dark;
   }
-  .filter-date:focus { border-color: var(--accent); }
   .date-filter-clear {
     background: none; border: none; color: var(--text2);
     font-size: 13px; cursor: pointer; padding: 2px 4px;
@@ -340,14 +343,14 @@
     display: none;
   }
   .date-filter-clear.visible { display: block; }
-  .date-filter-clear:hover { color: var(--red); background: rgba(226,68,92,.1); }
+  .date-filter-clear:hover { color: var(--red); }
 
   /* assign tabs */
   #assign-strip {
-    display: flex; align-items: center; gap: 0;
-    padding: 0 20px;
+    display: flex; align-items: center; gap: 4px;
+    padding: 10px 20px;
     margin-top: 18px;
-    background: var(--card2);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
   #assign-strip.hidden { display: none; }
@@ -362,24 +365,27 @@
     background: var(--border); transition: background .15s, width .15s;
   }
   #topbar-gap-resizer:hover .tgr-grip { background: var(--accent); width: 48px; }
-  .assign-tabs { display: flex; gap: 0; }
+  .assign-tabs { display: flex; gap: 4px; }
   .assign-tab {
-    padding: 10px 18px; border: none; border-bottom: 2px solid transparent;
+    padding: 6px 14px; border: 1px solid transparent; border-radius: 8px;
     background: transparent; color: var(--text2);
-    font-family: var(--font); font-size: 12.5px; font-weight: 500;
-    cursor: pointer; transition: color .13s, border-color .13s;
-    white-space: nowrap;
+    font-family: var(--font); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all .15s;
+    white-space: nowrap; display: flex; align-items: center; gap: 6px;
   }
-  .assign-tab:hover { color: var(--text); }
-  .assign-tab.active { color: var(--text); border-bottom-color: var(--accent); }
-  .assign-tab.tab-unassigned.active { color: var(--yellow); border-bottom-color: var(--yellow); }
-  .assign-strip-count {
-    margin-left: 6px; font-size: 10.5px; color: var(--text2);
-    background: rgba(255,255,255,.08); padding: 1px 7px; border-radius: 20px;
+  .assign-tab:hover { background: rgba(255,255,255,.06); color: var(--text); border-color: rgba(255,255,255,.08); }
+  .assign-tab.active { background: rgba(0,115,234,.15); color: #fff; border-color: rgba(0,115,234,.35); font-weight: 600; }
+  .assign-tab.tab-unassigned.active { background: rgba(255,190,11,.15); color: var(--yellow); border-color: rgba(255,190,11,.35); }
+  .assign-tab.tab-deleted.active { background: rgba(226,68,92,.15); color: var(--red); border-color: rgba(226,68,92,.35); }
+  .assign-tab.tab-dist.active { background: rgba(167,139,250,.15); color: #a78bfa; border-color: rgba(167,139,250,.35); }
+  .tab-cnt {
+    font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 20px;
+    background: rgba(255,255,255,.1); color: var(--text2);
   }
-  .assign-tab.active .assign-strip-count { background: var(--accent); color: #fff; }
-  .assign-tab.tab-unassigned.active .assign-strip-count { background: var(--yellow); color: #1a1a1a; }
-  .assign-tab.tab-dist.active { color: #a78bfa; border-bottom-color: #a78bfa; }
+  .assign-tab.active .tab-cnt { background: rgba(255,255,255,.2); color: #fff; }
+  .assign-tab.tab-unassigned.active .tab-cnt { background: rgba(255,190,11,.3); color: var(--yellow); }
+  .assign-tab.tab-deleted.active .tab-cnt { background: rgba(226,68,92,.3); color: var(--red); }
+  .assign-tab.tab-dist.active .tab-cnt { background: rgba(167,139,250,.3); color: #a78bfa; }
   .assign-tab.tab-deleted.active { color: var(--red); border-bottom-color: var(--red); }
   .assign-tab.tab-deleted.active .assign-strip-count { background: var(--red); color: #fff; }
   /* discrete tab count badge */
