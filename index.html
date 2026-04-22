@@ -6338,6 +6338,39 @@ async function seedDefaultAdmin() {
   }
 }
 
+async function seedAlexanderAgents() {
+  if (localStorage.getItem('gew_seed_alexander_agents_v1')) return;
+  const users = loadUsers();
+  const alexander = users.find(u => u.name && u.name.toLowerCase().includes('alexander') && u.role === 'manager');
+  if (!alexander) return; // Alexander not found yet, skip
+  const names = ['Harold','Kenia','Lisbeth','Chacha','Barbara','Augusto','Bryan','Yarlys','Yarisleidy','Madison','Marta','Guadalupe','Neyda','Maria Lugo','Elizabeth'];
+  let changed = false;
+  names.forEach(name => {
+    const emailName = name.toLowerCase().replace(/\s+/g, '');
+    const alreadyExists = users.find(u => u.email === emailName + '@gmail.com');
+    if (alreadyExists) return;
+    users.push({
+      id: uid(),
+      name: name,
+      email: emailName + '@gmail.com',
+      password: '123456',
+      role: 'agent',
+      orgManagerId: alexander.id,
+      termsAccepted: true,
+      mustChangePassword: true,
+      createdAt: today()
+    });
+    changed = true;
+  });
+  if (changed) {
+    await saveUsers(users);
+    localStorage.setItem('gew_seed_alexander_agents_v1', '1');
+    showToast('15 agentes de Alexander agregados ✓', 'success');
+  } else {
+    localStorage.setItem('gew_seed_alexander_agents_v1', '1');
+  }
+}
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pass  = document.getElementById('login-pass').value;
@@ -7926,6 +7959,7 @@ async function loadFromSupabase() {
   syncEl.classList.add('hidden');
 
   await seedDefaultAdmin();
+  await seedAlexanderAgents();
   refreshBoards();
   seedTestLeads();
   // show org name on login screen
