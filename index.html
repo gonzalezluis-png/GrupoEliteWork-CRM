@@ -2026,7 +2026,7 @@ setTimeout(function(){
             <button class="settings-nav-item active" data-tab="org" onclick="switchSettingsTab('org')">
               <span class="sni-icon-wrap">🏢</span>Organización
             </button>
-            <button class="settings-nav-item" data-tab="boards" onclick="switchSettingsTab('boards')">
+            <button class="settings-nav-item" id="snav-boards" data-tab="boards" onclick="switchSettingsTab('boards')">
               <span class="sni-icon-wrap">📊</span>Boards &amp; Columnas
             </button>
             <button class="settings-nav-item" id="snav-leadtypes" data-tab="leadtypes" onclick="switchSettingsTab('leadtypes')">
@@ -6989,6 +6989,8 @@ function showSettingsPage() {
   if (ltNav) ltNav.style.display = (session && session.role === 'master') ? 'block' : 'none';
   const backupNav = document.getElementById('snav-sec-backup');
   if (backupNav) backupNav.style.display = (session && session.role === 'master') ? 'block' : 'none';
+  const boardsNav = document.getElementById('snav-boards');
+  if (boardsNav) boardsNav.style.display = isAdminOrMaster ? 'block' : 'none';
 
   // Default tab by role
   const defaultTab = isAdminOrMaster ? 'org' : 'account';
