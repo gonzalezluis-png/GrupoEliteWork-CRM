@@ -8508,8 +8508,10 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
   }
 </style>
 
-<div id="tour-overlay">
+<div id="tour-overlay" onclick="_tourBackdropClick(event)">
   <div id="tour-spotlight"></div>
+  <!-- Always-visible escape button -->
+  <button onclick="skipTour()" id="tour-esc-btn" style="position:fixed;top:14px;right:14px;z-index:12010;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);backdrop-filter:blur(6px)">✕ Cerrar guía</button>
   <div id="tour-card" style="display:none">
     <div class="tour-card-header">
       <div class="tour-card-step" id="tour-step-label"></div>
@@ -8707,7 +8709,11 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
     document.getElementById('tour-card').style.display = 'none';
     document.getElementById('tour-arrow').style.display = 'none';
     document.getElementById('tour-spotlight').style.boxShadow = 'none';
+    document.getElementById('tour-spotlight').style.width  = '0';
+    document.getElementById('tour-spotlight').style.height = '0';
     document.getElementById('tour-overlay').classList.remove('active');
+    const esc = document.getElementById('tour-esc-btn');
+    if (esc) esc.style.display = 'none';
   }
 
   function clearHighlight() {
@@ -8831,10 +8837,18 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
 
   // Re-position on resize
   window.addEventListener('resize', () => {
-    if (document.getElementById('tour-overlay').classList.contains('active')) {
-      renderStep();
-    }
+    if (document.getElementById('tour-overlay').classList.contains('active')) renderStep();
   });
+
+  // Escape key closes tour
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('tour-overlay').classList.contains('active')) skipTour();
+  });
+
+  // Clicking backdrop (not card) closes tour
+  window._tourBackdropClick = function(e) {
+    if (e.target === document.getElementById('tour-overlay') || e.target === document.getElementById('tour-spotlight')) skipTour();
+  };
 
   // Hook into initApp
   const _origInitApp = window.initApp;
