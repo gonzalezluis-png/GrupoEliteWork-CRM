@@ -8453,7 +8453,7 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
   }
   #tour-spotlight {
     position:fixed;z-index:12001;border-radius:10px;
-    box-shadow:0 0 0 9999px rgba(0,0,0,.72);
+    box-shadow:none;
     transition:all .35s cubic-bezier(.4,0,.2,1);
     pointer-events:none;
   }
@@ -8500,9 +8500,9 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
 </style>
 
 <div id="tour-overlay" onclick="_tourBackdropClick(event)">
-  <div id="tour-spotlight"></div>
+  <div id="tour-spotlight" style="width:0;height:0;box-shadow:none"></div>
   <!-- Always-visible escape button -->
-  <button id="tour-esc-btn" onclick="(function(b){['tour-overlay','tour-spotlight','tour-card','tour-arrow'].forEach(function(id){var el=document.getElementById(id);if(!el)return;if(id==='tour-overlay'){el.classList.remove('active');el.style.pointerEvents='none';}else if(id==='tour-spotlight'){el.style.boxShadow='none';el.style.width='0';el.style.height='0';}else{el.style.display='none';}});b.style.display='none';try{if(typeof skipTour==='function')skipTour();}catch(e){}})(this)" style="position:fixed;top:14px;right:14px;z-index:13000;background:rgba(30,30,60,.92);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.5)">✕ Cerrar guía</button>
+  <button id="tour-esc-btn" onclick="(function(b){['tour-overlay','tour-spotlight','tour-card','tour-arrow'].forEach(function(id){var el=document.getElementById(id);if(!el)return;if(id==='tour-overlay'){el.classList.remove('active');el.style.pointerEvents='none';}else if(id==='tour-spotlight'){el.style.boxShadow='none';el.style.width='0';el.style.height='0';}else{el.style.display='none';}});b.style.display='none';try{if(typeof skipTour==='function')skipTour();}catch(e){}})(this)" style="display:none;position:fixed;top:14px;right:14px;z-index:13000;background:rgba(30,30,60,.92);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.5)">✕ Cerrar guía</button>
   <div id="tour-card" style="display:none">
     <div class="tour-card-header">
       <div class="tour-card-step" id="tour-step-label"></div>
