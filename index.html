@@ -3785,6 +3785,8 @@ function selectBoard(id) {
   document.getElementById('import-panel').classList.remove('visible');
   document.getElementById('leads-table').style.display = '';
 
+  populateAgentFilter();
+  populateLeadFilter();
   renderTable();
   updateTabCounts();
 }
@@ -3892,10 +3894,10 @@ function applyFilters() {
   const lineNames = (session && _lineRoles.includes(session.role))
     ? new Set(_getLineUsers(session).map(u => u.name))
     : null;
-  const q       = document.getElementById('search-input').value.toLowerCase();
-  const fAsig   = document.getElementById('f-asignado').value;
-  const fLead   = document.getElementById('f-lead').value;
-  const fRes    = document.getElementById('f-resultado').value;
+  const q       = document.getElementById('search-input').value.trim().toLowerCase();
+  const fAsig   = document.getElementById('f-asignado').value.trim();
+  const fLead   = document.getElementById('f-lead').value.trim();
+  const fRes    = document.getElementById('f-resultado').value.trim();
   const fDesde  = document.getElementById('f-fecha-desde').value;
   const fHasta  = document.getElementById('f-fecha-hasta').value;
   const clearBtn = document.getElementById('btn-clear-dates');
@@ -3905,10 +3907,10 @@ function applyFilters() {
   updateBulkBar();
   filteredLeads = leads.filter(l => {
     if (lineNames && !lineNames.has(l.asignado)) return false;
-    if (q && ![ l.nombre, l.email, l.telefono ].some(v => (v||'').toLowerCase().includes(q))) return false;
-    if (fAsig && l.asignado  !== fAsig) return false;
-    if (fLead && l.lead      !== fLead) return false;
-    if (fRes  && l.resultado !== fRes)  return false;
+    if (q && ![ l.nombre, l.email, l.telefono, l.asignado ].some(v => (v||'').toLowerCase().includes(q))) return false;
+    if (fAsig && (l.asignado||'').trim() !== fAsig) return false;
+    if (fLead && (l.lead||'').trim()     !== fLead) return false;
+    if (fRes  && (l.resultado||'').trim() !== fRes) return false;
     if (fDesde && (l.creacion||'') < fDesde) return false;
     if (fHasta && (l.creacion||'') > fHasta) return false;
     const isUnassigned = !l.asignado || l.asignado === '' || l.asignado === 'Sin asignar';
