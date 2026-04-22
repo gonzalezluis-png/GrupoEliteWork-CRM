@@ -7000,11 +7000,13 @@ function orgDragEnd(e) {
 }
 
 function _orgIsValidDrop(dragged, target) {
-  if (dragged.role === 'master_manager') return target.role === 'admin';
-  if (dragged.role === 'manager')        return ['master_manager'].includes(target.role);
-  if (dragged.role === 'supervisor_agent') return ['master_manager','manager'].includes(target.role);
-  if (dragged.role === 'agent')          return ['master_manager','manager','supervisor_agent'].includes(target.role);
-  return false;
+  // Forbidden destinations: master, admin, MGA
+  if (['master','admin','master_manager'].includes(target.role)) return false;
+  // Same role cannot go under same role
+  if (dragged.role === target.role) return false;
+  // Agents are not drop targets
+  if (target.role === 'agent') return false;
+  return true;
 }
 
 function orgDragOver(e, targetId) {
@@ -7056,11 +7058,6 @@ async function orgDrop(e, targetId) {
     u.orgManagerId       = target.id;
     u.orgMasterManagerId = target.orgMasterManagerId || null;
     u.orgAdminId         = target.orgAdminId         || null;
-  } else if (target.role === 'master_manager') {
-    u.orgMasterManagerId = target.id;
-    u.orgAdminId         = target.orgAdminId         || null;
-  } else if (target.role === 'admin') {
-    u.orgAdminId = target.id;
   }
 
   await saveUsers(users);
