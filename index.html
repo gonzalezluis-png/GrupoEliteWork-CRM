@@ -6421,7 +6421,7 @@ async function saveCitaDetails() {
   if (lead) {
     lead.citaFecha = fecha;
     lead.citaHora  = hora;
-    if (notas) lead.notas = (lead.notas ? lead.notas + '\n\n' : '') + `📅 Cita ${fecha}${hora?' a las '+hora:''}: ${notas}`;
+    if (notas) { const _cn = parseNotes(lead._notes); _cn.push({ text: `📅 Cita ${fecha}${hora?' a las '+hora:''}: ${notas}`, author: 'Sistema', date: new Date().toISOString(), system: true }); lead._notes = JSON.stringify(_cn); }
     saveLeads(_citaBoardId, leads);
     // Auto-create calendar event
     const session = getSession();
@@ -7936,8 +7936,9 @@ function confirmDeleteWithReason() {
   const leads = loadLeads(_deleteReasonBoardId);
   const lead  = leads.find(l => l.id === _deleteReasonLeadId);
   if (lead) {
-    const entry = `[${ts}] ${who}: Eliminado — ${reason}`;
-    lead.notas = lead.notas ? entry + '\n\n' + lead.notas : entry;
+    const _notes = parseNotes(lead._notes);
+    _notes.push({ text: `Eliminado — ${reason}`, author: who, date: new Date().toISOString(), system: true });
+    lead._notes = JSON.stringify(_notes);
     saveLeads(_deleteReasonBoardId, leads);
   }
   document.getElementById('delete-reason-overlay').classList.remove('open');
@@ -7982,8 +7983,9 @@ function confirmResultadoNote() {
   if (!lead) return;
   const isDelete = value === '__delete_lead__';
   const resultLabel = isDelete ? 'ELIMINAR' : value;
-  const entry = `[${ts}] ${who}: Resultado → ${resultLabel} — ${note}`;
-  lead.notas = lead.notas ? entry + '\n\n' + lead.notas : entry;
+  const _notes = parseNotes(lead._notes);
+  _notes.push({ text: `Resultado → ${resultLabel} — ${note}`, author: who, date: new Date().toISOString(), system: true });
+  lead._notes = JSON.stringify(_notes);
   if (!isDelete) lead.resultado = value;
   saveLeads(boardId, leads);
   if (isDelete || value === 'NO INTERESADO' || value === 'NÚMERO EQUIVOCADO') {
