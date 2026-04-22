@@ -2000,6 +2000,7 @@ setTimeout(function(){
         <div class="dist-section-title">🗂 Filtrar por board</div>
         <div class="dist-board-filter" id="dist-board-filter"></div>
       </div>
+      <div id="dist-donut-wrap" style="margin:18px 0 4px"></div>
       <div id="dist-managers-section"></div>
       <div id="dist-agents-section"></div>
     </div>
@@ -6925,6 +6926,7 @@ function renderDistPanel() {
     return;
   }
 
+  renderDistDonut(agentList);
   agSec.innerHTML = `<div class="dist-section-title">👤 Agentes</div>` +
     agentList.map((a, idx) => {
       const isVirtual = vuNames.includes(a.name);
@@ -6947,6 +6949,67 @@ function renderDistPanel() {
           </div>
         </div>`;
     }).join('');
+}
+
+function renderDistDonut(agentList) {
+  const wrap = document.getElementById('dist-donut-wrap');
+  if (!wrap) return;
+  const data = agentList.filter(a => a.leads.length > 0);
+  if (!data.length) { wrap.innerHTML = ''; return; }
+
+  const total = data.reduce((s, a) => s + a.leads.length, 0);
+  const R = 80, cx = 100, cy = 100, stroke = 28;
+  const circ = 2 * Math.PI * R;
+
+  // bright palette for donut slices
+  const COLORS = ['#0073ea','#a78bfa','#00c875','#fbbf24','#e2445c','#00b7c3',
+    '#ff7b54','#6fcf97','#f472b6','#38bdf8','#fb923c','#a3e635'];
+
+  let offset = -circ / 4; // start at top
+  const slices = data.map((a, i) => {
+    const pct = a.leads.length / total;
+    const dash = pct * circ;
+    const gap  = circ - dash;
+    const color = COLORS[i % COLORS.length];
+    const s = `<circle cx="${cx}" cy="${cy}" r="${R}"
+      fill="none" stroke="${color}" stroke-width="${stroke}"
+      stroke-dasharray="${dash.toFixed(3)} ${gap.toFixed(3)}"
+      stroke-dashoffset="${(-offset).toFixed(3)}"
+      stroke-linecap="butt"
+      style="cursor:pointer;transition:opacity .2s"
+      onmouseenter="this.style.opacity='.7';document.getElementById('dist-donut-tip').innerHTML='<b>${esc(a.name)}</b><br>${a.leads.length} leads (${Math.round(pct*100)}%)'"
+      onmouseleave="this.style.opacity='1';document.getElementById('dist-donut-tip').innerHTML=''"
+    />`;
+    offset += pct * circ;
+    return { s, color, name: a.name, count: a.leads.length, pct };
+  });
+
+  const svg = `<svg viewBox="0 0 200 200" width="200" height="200" style="flex-shrink:0">
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="${stroke}"/>
+    ${slices.map(s => s.s).join('')}
+    <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="var(--text)" font-size="22" font-weight="700">${total}</text>
+    <text x="${cx}" y="${cy + 12}" text-anchor="middle" fill="var(--text2)" font-size="10" letter-spacing=".5">LEADS</text>
+  </svg>`;
+
+  const legend = `<div style="display:flex;flex-direction:column;gap:7px;flex:1;min-width:0;max-height:200px;overflow-y:auto;padding-right:4px">
+    ${slices.map(s => `
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:10px;height:10px;border-radius:2px;background:${s.color};flex-shrink:0"></span>
+        <span style="font-size:12px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.name)}</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text);flex-shrink:0">${s.count}</span>
+        <span style="font-size:11px;color:var(--text2);flex-shrink:0;min-width:30px;text-align:right">${Math.round(s.pct*100)}%</span>
+      </div>`).join('')}
+  </div>`;
+
+  wrap.innerHTML = `
+    <div class="dist-section-title">📊 Distribución de leads</div>
+    <div style="display:flex;align-items:center;gap:24px;padding:12px 0 8px">
+      <div style="position:relative;flex-shrink:0">
+        ${svg}
+        <div id="dist-donut-tip" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:11px;color:var(--text);pointer-events:none;line-height:1.5;max-width:90px"></div>
+      </div>
+      ${legend}
+    </div>`;
 }
 
 function toggleDistAgent(id) {
