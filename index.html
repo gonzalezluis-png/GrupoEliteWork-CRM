@@ -4012,11 +4012,12 @@ function renderRows(board, leads) {
         const leadOpts = ['', ...getLeadTypes()].map(t =>
           `<option value="${esc(t)}"${l.lead===t?' selected':''}>${t||'— Sin tipo —'}</option>`
         ).join('');
-        const _leadPill = l.lead
-          ? `display:inline-flex;align-items:center;gap:4px;background:${_hexToRgba(bg,.14)};border:1px solid ${_hexToRgba(bg,.45)};color:${bg};border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.4px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;cursor:pointer;filter:brightness(1.35)`
-          : `display:inline-flex;align-items:center;font-size:11px;color:var(--text2);cursor:pointer;gap:4px`;
+        const _leadTag = l.lead
+          ? `display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;cursor:pointer;letter-spacing:.2px`
+          : `display:inline-flex;align-items:center;font-size:11px;color:var(--text2);cursor:pointer;gap:6px`;
+        const _leadDot = l.lead ? `<span style="width:7px;height:7px;border-radius:50%;background:${bg};flex-shrink:0;display:inline-block"></span>` : '';
         return `<td style="text-align:center;vertical-align:middle" class="td-inline" onclick="event.stopPropagation()">
-          <div style="${_leadPill}" onclick="openInlineSel(this)">${esc(l.lead||'—')} <span style="opacity:.5;font-size:9px">▾</span></div>
+          <div style="${_leadTag}" onclick="openInlineSel(this)">${_leadDot}${esc(l.lead||'—')} <span style="opacity:.4;font-size:9px;margin-left:2px">▾</span></div>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','lead')"
             onblur="closeInlineSel(this)">${leadOpts}</select>
@@ -4049,11 +4050,12 @@ function renderRows(board, leads) {
         const displayVal = l.ubicacion || '';
         const emptyClass = displayVal ? '' : ' empty-val';
         const ubBg = displayVal ? strToTableColor(displayVal) : null;
-        const _ubPill = ubBg
-          ? `display:inline-flex;align-items:center;gap:4px;background:${_hexToRgba(ubBg,.14)};border:1px solid ${_hexToRgba(ubBg,.45)};color:${ubBg};border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.4px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;cursor:pointer;filter:brightness(1.35)`
-          : `display:inline-flex;align-items:center;font-size:11px;color:var(--text2);cursor:pointer;gap:4px`;
+        const _ubTag = ubBg
+          ? `display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;cursor:pointer;letter-spacing:.2px`
+          : `display:inline-flex;align-items:center;font-size:11px;color:var(--text2);cursor:pointer;gap:6px`;
+        const _ubDot = ubBg ? `<span style="width:7px;height:7px;border-radius:50%;background:${ubBg};flex-shrink:0;display:inline-block"></span>` : '';
         return `<td style="text-align:center;vertical-align:middle" class="td-inline" onclick="event.stopPropagation()">
-          <div style="${_ubPill}" onclick="openInlineSel(this)">${esc(displayVal||'—')} <span style="opacity:.5;font-size:9px">▾</span></div>
+          <div style="${_ubTag}" onclick="openInlineSel(this)">${_ubDot}${esc(displayVal||'—')} <span style="opacity:.4;font-size:9px;margin-left:2px">▾</span></div>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','ubicacion')"
             onblur="closeInlineSel(this)">${opts}</select>
