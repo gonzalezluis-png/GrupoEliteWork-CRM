@@ -2264,7 +2264,7 @@ setTimeout(function(){
                   <div class="st-card-icon" style="background:rgba(0,183,195,.12)">🏷️</div>
                   <div class="st-card-text">
                     <div class="st-card-title">Categorías activas</div>
-                    <div class="st-card-desc">Solo el Maestro puede agregar o eliminar tipos de lead.</div>
+                    <div class="st-card-desc">Solo el Desarrollador puede agregar o eliminar tipos de lead.</div>
                   </div>
                 </div>
               </div>
@@ -5041,7 +5041,7 @@ function renderActivityPage() {
     return;
   }
 
-  const ROLE_LABELS = { master:'Maestro', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente' };
+  const ROLE_LABELS = { master:'Desarrollador', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente' };
 
   let html = '';
   let lastDay = '';
@@ -6980,7 +6980,7 @@ async function changePassword() {
   if (!confirm('¿Confirmas el cambio de contraseña?')) return;
 
   if (session.role === 'master') {
-    showToast('El maestro tiene contraseña fija. Contacta al desarrollador.', 'error');
+    showToast('El desarrollador tiene contraseña fija. Contacta al desarrollador.', 'error');
     return;
   }
   const users = loadUsers();
@@ -7482,7 +7482,7 @@ const SESSION_KEY       = 'gew_session';
 // Ve a: console.cloud.google.com → APIs & Services → Credentials
 const GOOGLE_CLIENT_ID = '109274524960-a4vfb0q45fa1dqcre2579024plc2jntd.apps.googleusercontent.com';
 
-// Usuario Maestro — hardcoded, no editable ni visible desde UI
+// Usuario Desarrollador — hardcoded, no editable ni visible desde UI
 const MASTER_USER = { id: 'master', name: 'Luis González', email: 'gonzalezluis@grupoelitework.com', password: '21241800', role: 'master', termsAccepted: true };
 
 function loadUsers() {
@@ -7936,7 +7936,7 @@ function initToolbarGapHandle() {
 }
 
 function initApp(user) {
-  logActivity('login', 'Inicio de sesión', `Accedió como ${({ master:'Maestro', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente' }[user.role] || user.role)}`);
+  logActivity('login', 'Inicio de sesión', `Accedió como ${({ master:'Desarrollador', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente' }[user.role] || user.role)}`);
   if (typeof showWelcomeSplash === 'function') showWelcomeSplash(user);
   renderTopbarUser(user);
   applyAppName();
@@ -8463,7 +8463,7 @@ function _renderDeletedUsersHistory(grid, session) {
 
   if (visible.length === 0) return;
 
-  const roleLabel = r => ({ master:'Maestro', admin:'Administrador', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
+  const roleLabel = r => ({ master:'Desarrollador', admin:'Administrador', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
   const fmtDate  = iso => iso ? new Date(iso).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric' }) : '—';
 
   const cards = visible.map(u => {
@@ -9007,7 +9007,7 @@ async function confirmUserAction() {
 async function deleteUser(userId) {
   const session = getSession();
   if (!session || (session.role !== 'master' && session.role !== 'admin')) {
-    showToast('Solo el administrador o maestro puede eliminar usuarios', 'error');
+    showToast('Solo el administrador o desarrollador puede eliminar usuarios', 'error');
     return;
   }
   const users = loadUsers();
@@ -10085,7 +10085,7 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
     },
     {
       title: '🎯 Asignar a un Agente',
-      body: `En la columna <strong>"Asignado a"</strong>, haz clic en la pastilla azul para desplegar el menú de agentes disponibles.<br><br>Solo tú (maestro) y el administrador pueden asignar o reasignar leads.`,
+      body: `En la columna <strong>"Asignado a"</strong>, haz clic en la pastilla azul para desplegar el menú de agentes disponibles.<br><br>Solo tú (desarrollador) y el administrador pueden asignar o reasignar leads.`,
       target: '#leads-table', pos: 'top'
     },
     {
