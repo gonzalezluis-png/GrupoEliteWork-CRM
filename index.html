@@ -325,7 +325,7 @@
   .bulk-clear:hover { color: var(--text); }
 
   /* unassigned row highlight */
-  tbody tr.unassigned-row td:first-child { border-left: 3px solid var(--yellow); padding-left: 17px; }
+  tbody tr.unassigned-row td.td-check { border-left: 3px solid var(--yellow); }
   tbody tr.unassigned-row .td-name span { color: #fff; }
 
   /* inline dropdown cell */
@@ -378,35 +378,42 @@
   .col-resizer:hover::after,
   .col-resizer.dragging::after { background: var(--accent); }
   thead { position: sticky; top: 0; z-index: 10; }
-  thead tr { background: var(--card2); }
+  thead tr { background: #12141f; }
   th {
-    padding: 10px 20px 10px 12px;
-    text-align: left; font-size: 11px; font-weight: 700;
-    color: var(--text2); letter-spacing: .5px; text-transform: uppercase;
+    padding: 13px 12px;
+    text-align: center; font-size: 11px; font-weight: 700;
+    color: var(--text2); letter-spacing: .6px; text-transform: uppercase;
     border-bottom: 2px solid var(--border);
+    border-right: 1px solid var(--border);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  th:first-child { padding-left: 20px; }
+  th:first-child { padding-left: 16px; text-align: left; border-right: none; }
+  th:last-child { border-right: none; }
 
   tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background .1s;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    transition: background .12s;
     cursor: pointer;
   }
-  tbody tr:hover { background: rgba(255,255,255,.04); }
+  tbody tr:hover { background: rgba(255,255,255,.035); }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.015); }
+  tbody tr:nth-child(even):hover { background: rgba(255,255,255,.05); }
 
   td {
-    padding: 9px 12px; vertical-align: middle;
-    font-size: 12px; color: var(--text);
+    padding: 0 12px; height: 52px; vertical-align: middle;
+    font-size: 13px; color: var(--text);
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
     max-width: 0;
+    text-align: center;
+    border-right: 1px solid rgba(255,255,255,.05);
   }
-  td:first-child { padding-left: 20px; }
+  td:first-child { padding-left: 16px; text-align: left; border-right: none; }
+  td:last-child { border-right: none; }
 
-  .td-name { font-weight: 600; color: #fff; max-width: 160px; }
-  .td-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .td-name { font-weight: 600; color: #fff; max-width: 200px; text-align: left; }
+  .td-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size:13px; }
 
   .td-notes { max-width: 160px; color: var(--text2); }
   .td-notes span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3450,7 +3457,24 @@ function renderRows(board, leads) {
         </div></td>`;
       }
       if (c.key === 'nombre') return `<td class="td-name"><span title="${esc(l.nombre||'')}">${esc(l.nombre||'—')}</span></td>`;
-      if (c.key === 'lead')   return `<td><span class="pill pill-lead">${esc(l.lead||'')}</span></td>`;
+      if (c.key === 'lead') {
+        const _leadColors = {
+          'BIENES DE DISTRIBUCIÓN': '#3ecf8e',
+          'GUÍA DE INFORMACIÓN':    '#3ecf8e',
+          'GUIA DE INFORMACIÓN':    '#3ecf8e',
+          'GUIA DE INF':            '#3ecf8e',
+          'GUÍA MÉDICO':            '#f59e0b',
+          'GUIA MÉDICO':            '#f59e0b',
+          'GUÍA MÉDICO RESGUARDAR': '#f59e0b',
+          'GUIA MÉDICO RESGUARDAR': '#f59e0b',
+          'CSKID':                  '#6366f1',
+        };
+        const val = (l.lead||'').toUpperCase();
+        const bg  = _leadColors[val] || _leadColors[Object.keys(_leadColors).find(k=>val.includes(k.toUpperCase().slice(0,6)))||''] || '#4da8ff';
+        return l.lead
+          ? `<td style="padding:0;text-align:center"><div style="height:52px;display:flex;align-items:center;justify-content:center;background:${bg};color:#fff;font-weight:700;font-size:11px;letter-spacing:.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px">${esc(l.lead)}</div></td>`
+          : `<td style="text-align:center;color:var(--text2);font-size:11px">—</td>`;
+      }
       if (c.key === 'estado') {
         const cls = STATE_PILL[l.estado] || 'pill-gray';
         return `<td><span class="pill ${cls}">${esc(l.estado||'')}</span></td>`;
@@ -3515,7 +3539,13 @@ function renderRows(board, leads) {
             onblur="closeInlineSel(this)">${agOpts}</select>
         </td>`;
       }
-      if (c.key === 'creacion') return `<td style="white-space:nowrap">${esc(formatDate(l.creacion||''))}</td>`;
+      if (c.key === 'creacion') {
+        const sess = getSession();
+        const avatarName = sess ? sess.name : '';
+        const initials = avatarName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const avatar = `<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,.15)">${initials}</div>`;
+        return `<td><div style="display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap">${avatar}<span style="font-size:12px;color:var(--text2)">${esc(formatDate(l.creacion||''))}</span></div></td>`;
+      }
       if (c.key === 'notas') return `<td class="td-notes"><span title="${esc(l.notas||'')}">${esc(l.notas||'')}</span></td>`;
       // custom column
       if (c.customDef) {
