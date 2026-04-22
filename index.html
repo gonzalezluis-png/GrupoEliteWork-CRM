@@ -519,6 +519,44 @@
   .bulk-clear { margin-left: auto; font-size: 11px; color: var(--text2); cursor: pointer; }
   .bulk-clear:hover { color: var(--text); }
 
+  /* ── ASSIGN UNDO SNACKBAR ── */
+  #assign-undo-bar {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1e2540; border: 1px solid #3a4060;
+    border-radius: 10px; padding: 11px 16px;
+    display: none; align-items: center; gap: 14px;
+    font-size: 12.5px; color: #d0d3e8;
+    box-shadow: 0 6px 28px rgba(0,0,0,.45);
+    z-index: 9000; white-space: nowrap;
+    opacity: 0; transition: opacity .2s, transform .2s;
+    min-width: 260px;
+  }
+  #assign-undo-bar.visible {
+    display: flex; opacity: 1; transform: translateX(-50%) translateY(0);
+  }
+  #assign-undo-btn {
+    background: rgba(0,115,234,.2); border: 1px solid rgba(0,115,234,.4);
+    color: #4da8ff; border-radius: 6px;
+    padding: 4px 12px; font-size: 11.5px; font-weight: 600;
+    cursor: pointer; font-family: var(--font);
+    transition: background .12s;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  #assign-undo-btn:hover { background: rgba(0,115,234,.35); }
+  #assign-undo-progress {
+    position: absolute; bottom: 0; left: 0;
+    height: 3px; background: var(--accent);
+    border-radius: 0 0 10px 10px;
+    transition: width linear;
+  }
+  html.light-mode #assign-undo-bar {
+    background: #ffffff; border-color: #dde0ec; color: #323338;
+    box-shadow: 0 6px 28px rgba(0,0,0,.14);
+  }
+  html.light-mode #assign-undo-btn { background: rgba(0,115,234,.08); border-color: rgba(0,115,234,.25); color: #0073ea; }
+  html.light-mode #assign-undo-btn:hover { background: rgba(0,115,234,.15); }
+  html.light-mode #assign-undo-progress { background: var(--accent); }
+
   /* unassigned row highlight */
   tbody tr.unassigned-row td.td-check { border-left: 3px solid var(--yellow); }
   tbody tr.unassigned-row .td-name span { color: #fff; }
@@ -2717,7 +2755,7 @@ setTimeout(function(){
         Este lead está actualmente asignado a <strong id="reassign-old-name"></strong>.<br>
         Al transferirlo a <strong id="reassign-new-name"></strong>, el agente anterior <strong>ya no podrá ver esta información</strong>.
       </div>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:14px">¿Cómo deseas transferir el lead?</p>
+      <p id="reassign-confirm-msg" style="font-size:12px;color:var(--text2);margin-bottom:14px">¿Cómo deseas transferir el lead?</p>
       <div style="display:flex;flex-direction:column;gap:10px">
         <button class="btn btn-primary" style="justify-content:flex-start;padding:14px 16px;text-align:left;flex-direction:column;align-items:flex-start;gap:3px;height:auto" onclick="doReassign('full')">
           <span style="font-size:13px;font-weight:700">Transferir con toda la información</span>
@@ -2733,6 +2771,13 @@ setTimeout(function(){
       <button class="btn btn-secondary" onclick="cancelReassign()">Cancelar</button>
     </div>
   </div>
+</div>
+
+<!-- ASSIGN UNDO SNACKBAR -->
+<div id="assign-undo-bar">
+  <span id="assign-undo-text"></span>
+  <button id="assign-undo-btn" onclick="undoLastAssign()">↩ Deshacer</button>
+  <div id="assign-undo-progress"></div>
 </div>
 
 <!-- RESTORE LEAD MODAL -->
@@ -5945,13 +5990,25 @@ let _reassignPending = null;
 
 function checkReassign(lead, newAgent, onConfirm) {
   const oldAgent = lead.asignado || '';
-  if (!oldAgent || !newAgent || oldAgent === newAgent) {
-    onConfirm('full');
-    return;
-  }
+  if (!newAgent || oldAgent === newAgent) { onConfirm('full'); return; }
   _reassignPending = { lead, newAgent, onConfirm };
-  document.getElementById('reassign-old-name').textContent = oldAgent;
-  document.getElementById('reassign-new-name').textContent = newAgent;
+  const isTransfer = !!oldAgent;
+  const header = document.querySelector('#reassign-modal-overlay .modal-header h2');
+  if (header) header.textContent = isTransfer ? '⚠️ Transferir Lead' : '👤 Asignar Lead';
+  const warningBox = document.querySelector('#reassign-modal-overlay .modal-body > div');
+  if (warningBox) {
+    if (isTransfer) {
+      warningBox.style.display = '';
+      document.getElementById('reassign-old-name').textContent = oldAgent;
+      document.getElementById('reassign-new-name').textContent = newAgent;
+    } else {
+      warningBox.style.display = 'none';
+    }
+  }
+  const confirmMsg = document.getElementById('reassign-confirm-msg');
+  if (confirmMsg) confirmMsg.textContent = isTransfer
+    ? '¿Cómo deseas transferir el lead?'
+    : `¿Asignar este lead a ${newAgent}?`;
   document.getElementById('reassign-modal-overlay').classList.add('open');
 }
 
@@ -5982,6 +6039,48 @@ function cancelReassign() {
   document.getElementById('reassign-modal-overlay').classList.remove('open');
 }
 
+// ── Assign undo snackbar ──
+let _assignUndoTimer = null;
+let _assignUndoData  = null;
+
+function showAssignUndoBar(leadId, boardId, prevAsignado, newAsignado) {
+  _assignUndoData = { leadId, boardId, prevAsignado };
+  if (_assignUndoTimer) clearTimeout(_assignUndoTimer);
+  const bar  = document.getElementById('assign-undo-bar');
+  const text = document.getElementById('assign-undo-text');
+  const prog = document.getElementById('assign-undo-progress');
+  const label = newAsignado || 'Sin asignar';
+  text.textContent = `✓ Asignado a ${label}`;
+  bar.classList.add('visible');
+  prog.style.transition = 'none';
+  prog.style.width = '100%';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      prog.style.transition = 'width 3s linear';
+      prog.style.width = '0%';
+    });
+  });
+  _assignUndoTimer = setTimeout(() => {
+    bar.classList.remove('visible');
+    _assignUndoData = null;
+  }, 3000);
+}
+
+function undoLastAssign() {
+  if (!_assignUndoData) return;
+  const { leadId, boardId, prevAsignado } = _assignUndoData;
+  if (_assignUndoTimer) clearTimeout(_assignUndoTimer);
+  document.getElementById('assign-undo-bar').classList.remove('visible');
+  _assignUndoData = null;
+  const leads = loadLeads(boardId);
+  const lead  = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  lead.asignado = prevAsignado || '';
+  saveLeads(boardId, leads);
+  renderTableKeepSelection();
+  showToast('Asignación deshecha ✓', 'success');
+}
+
 function saveInlineField(sel, leadId, field) {
   const boardId  = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
   if (!boardId) return;
@@ -6009,6 +6108,7 @@ function saveInlineField(sel, leadId, field) {
         saveLeads(boardId, leads);
         renderTableKeepSelection();
         showToast(`${snapshotIds.size} lead${snapshotIds.size !== 1 ? 's' : ''} transferidos ✓`, 'success');
+        showAssignUndoBar(leadId, boardId, '', newValue);
       };
       if (reassignSet.size > 0) {
         _reassignPending = { lead: {}, newAgent: newValue, onConfirm: doApply };
@@ -6024,13 +6124,14 @@ function saveInlineField(sel, leadId, field) {
     const leads = loadLeads(boardId);
     const lead  = leads.find(l => l.id === leadId);
     if (!lead) return;
+    const prevAsignado = lead.asignado || '';
     checkReassign(lead, newValue, (mode) => {
       applyReassignMode(lead, newValue, mode);
       saveLeads(boardId, leads);
       if (spanEl) { spanEl.className = 'inline-display' + (!newValue ? ' empty-val' : ''); spanEl.innerHTML = esc(newValue || 'Sin asignar') + ' <span class="caret">▾</span>'; }
       const row = sel.closest('tr');
       if (row) row.classList.toggle('unassigned-row', !newValue);
-      showToast('Lead transferido ✓', 'success');
+      showAssignUndoBar(leadId, boardId, prevAsignado, newValue);
     });
     return;
   }
