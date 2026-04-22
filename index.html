@@ -2063,6 +2063,11 @@ setTimeout(function(){
           <div class="settings-nav-profile">
             <div class="snp-card" id="snp-card"></div>
           </div>
+
+          <!-- Vault trigger — developer only, very discreet -->
+          <div id="vault-trigger" style="display:none;padding:0 8px 10px;text-align:right">
+            <span onclick="openVault()" title="" style="font-size:9px;color:var(--border);cursor:pointer;letter-spacing:1px;user-select:none;transition:color .2s" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--border)'">···</span>
+          </div>
         </nav>
 
         <!-- ── Content ── -->
@@ -5203,7 +5208,10 @@ async function confirmRestore() {
 
 async function permanentDeleteLead(leadId) {
   if (!confirm('¿Eliminar permanentemente este lead? Esta acción no se puede deshacer.')) return;
-  const trash = loadDeletedLeads().filter(l => l.id !== leadId);
+  const allTrash = loadDeletedLeads();
+  const lead = allTrash.find(l => l.id === leadId);
+  if (lead) _vaultLeads([lead]);
+  const trash = allTrash.filter(l => l.id !== leadId);
   await saveDeletedLeads(trash);
   updateTrashBadge();
   renderTrashTable();
@@ -5216,6 +5224,7 @@ async function emptyTrash() {
   const count = loadDeletedLeads().length;
   if (count === 0) { showToast('La papelera ya está vacía', 'success'); return; }
   if (!confirm(`¿Vaciar la papelera? Se eliminarán permanentemente ${count} lead${count !== 1 ? 's' : ''}. Esta acción no se puede deshacer.`)) return;
+  _vaultLeads(loadDeletedLeads());
   await saveDeletedLeads([]);
   updateTrashBadge();
   renderTrashTable();
@@ -7033,6 +7042,8 @@ function showSettingsPage() {
   if (orgnameCard) orgnameCard.style.display = isAdminOrMaster ? '' : 'none';
   const diagWrap = document.getElementById('diag-btn-wrap');
   if (diagWrap) diagWrap.style.display = (session && session.role === 'master') ? '' : 'none';
+  const vaultTrigger = document.getElementById('vault-trigger');
+  if (vaultTrigger) vaultTrigger.style.display = (session && session.role === 'master') ? '' : 'none';
 
   // Default tab by role
   const defaultTab = isAdminOrMaster ? 'org' : 'account';
@@ -10396,6 +10407,146 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
     startTour(session.role, true);
   };
 })();
+</script>
+
+<!-- ══════════════════════════════════════════════
+     VAULT OVERLAY (developer only)
+══════════════════════════════════════════════ -->
+<div id="vault-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:98000;flex-direction:column">
+  <div style="display:flex;align-items:center;gap:14px;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.07);background:#070d1a;flex-shrink:0">
+    <div style="flex:1">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.25);margin-bottom:2px">ACCESO RESTRINGIDO</div>
+      <div style="font-size:16px;font-weight:800;color:rgba(255,255,255,.6)">Archivo · Eliminados Respaldados</div>
+    </div>
+    <input id="vault-search" type="text" placeholder="Buscar por nombre, teléfono, email…" oninput="renderVaultTable()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 14px;font-size:12px;color:#fff;width:280px;outline:none;font-family:var(--font)" />
+    <button onclick="closeVault()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:22px;cursor:pointer;line-height:1;padding:4px 8px" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.3)'">✕</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px 24px">
+    <div id="vault-empty" style="display:none;text-align:center;padding:60px 0;color:rgba(255,255,255,.2);font-size:13px">Sin registros en el archivo.</div>
+    <table id="vault-table" style="width:100%;border-collapse:collapse;font-size:12px"></table>
+  </div>
+  <div style="padding:10px 24px;border-top:1px solid rgba(255,255,255,.06);background:#070d1a;flex-shrink:0;display:flex;align-items:center;gap:10px">
+    <span id="vault-count" style="font-size:11px;color:rgba(255,255,255,.2)"></span>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  VAULT — archived permanently-deleted leads
+// ════════════════════════════════════════════
+const VAULT_KEY = 'gew_vault';
+
+function loadVault() {
+  try { return JSON.parse(localStorage.getItem(VAULT_KEY)) || []; } catch { return []; }
+}
+async function saveVault(leads) {
+  localStorage.setItem(VAULT_KEY, JSON.stringify(leads));
+  supaSync(VAULT_KEY, JSON.stringify(leads));
+}
+
+function _vaultLeads(leads) {
+  const session = getSession();
+  const vault   = loadVault();
+  const now     = new Date().toISOString();
+  leads.forEach(l => vault.unshift({
+    ...l,
+    _vaultedAt: now,
+    _vaultedBy: session ? session.name : 'Sistema'
+  }));
+  saveVault(vault);
+}
+
+function openVault() {
+  const session = getSession();
+  if (!session || session.role !== 'master') return;
+  document.getElementById('vault-overlay').style.display = 'flex';
+  document.getElementById('vault-search').value = '';
+  renderVaultTable();
+}
+function closeVault() {
+  document.getElementById('vault-overlay').style.display = 'none';
+}
+
+function renderVaultTable() {
+  const q     = (document.getElementById('vault-search')?.value || '').toLowerCase();
+  const all   = loadVault();
+  const items = q ? all.filter(l =>
+    (l.nombre||'').toLowerCase().includes(q) ||
+    (l.telefono||'').toLowerCase().includes(q) ||
+    (l.email||'').toLowerCase().includes(q) ||
+    (l.lead||'').toLowerCase().includes(q) ||
+    (l.asignado||'').toLowerCase().includes(q)
+  ) : all;
+
+  const cnt = document.getElementById('vault-count');
+  if (cnt) cnt.textContent = `${items.length} registro${items.length !== 1 ? 's' : ''}${q ? ' encontrados' : ' en el archivo'}`;
+
+  const empty = document.getElementById('vault-empty');
+  const tbl   = document.getElementById('vault-table');
+  if (!items.length) {
+    if (empty) empty.style.display = '';
+    if (tbl)   tbl.innerHTML = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  if (!tbl) return;
+
+  tbl.innerHTML = `
+    <thead>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.08)">
+        <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.25)">NOMBRE</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.25)">TELÉFONO</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.25)">BOARD</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.25)">AGENTE</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.25)">ARCHIVADO</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.25)">POR</th>
+        <th style="padding:8px 10px;width:80px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      ${items.map(l => `
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04)" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+          <td style="padding:9px 10px;color:rgba(255,255,255,.7);font-weight:600">${esc(l.nombre||'—')}</td>
+          <td style="padding:9px 10px;color:rgba(255,255,255,.4)">${esc(l.telefono||'—')}</td>
+          <td style="padding:9px 10px;color:rgba(255,255,255,.4)">${esc(l._originalBoardName||l._boardName||'—')}</td>
+          <td style="padding:9px 10px;color:rgba(255,255,255,.4)">${esc(l.asignado||'—')}</td>
+          <td style="padding:9px 10px;color:rgba(255,255,255,.25);font-size:11px">${l._vaultedAt ? new Date(l._vaultedAt).toLocaleDateString('es',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
+          <td style="padding:9px 10px;color:rgba(255,255,255,.25);font-size:11px">${esc(l._vaultedBy||'—')}</td>
+          <td style="padding:9px 10px">
+            <button onclick="vaultRestore('${l.id}')" style="background:rgba(0,115,234,.2);border:1px solid rgba(0,115,234,.3);color:rgba(0,115,234,.9);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:var(--font)" onmouseover="this.style.background='rgba(0,115,234,.35)'" onmouseout="this.style.background='rgba(0,115,234,.2)'">Restaurar</button>
+          </td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+}
+
+async function vaultRestore(leadId) {
+  const vault = loadVault();
+  const idx   = vault.findIndex(l => l.id === leadId);
+  if (idx === -1) return;
+  const lead  = { ...vault[idx] };
+  const destId = lead._originalBoardId || (BOARDS[0] && BOARDS[0].id);
+  if (!destId) { showToast('No se puede determinar el board destino', 'error'); return; }
+
+  delete lead._vaultedAt; delete lead._vaultedBy;
+  delete lead._deletedAt; delete lead._deletedBy;
+  delete lead._originalBoardId; delete lead._originalBoardName;
+
+  const existing = loadLeads(destId);
+  existing.unshift(lead);
+  await saveLeads(destId, existing);
+
+  vault.splice(idx, 1);
+  await saveVault(vault);
+
+  renderVaultTable();
+  const board = getBoard(destId);
+  showToast(`Lead restaurado en ${board ? board.name : destId} ✓`, 'success');
+}
+
+// Show vault trigger in settings for master
+document.addEventListener('DOMContentLoaded', () => {});
 </script>
 
 <script>
