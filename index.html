@@ -2095,7 +2095,7 @@ setTimeout(function(){
               </div>
             </div>
 
-            <div class="st-card">
+            <div class="st-card" id="orgname-card">
               <div class="st-card-header">
                 <div class="st-card-header-left">
                   <div class="st-card-icon" style="background:rgba(0,115,234,.15)">🏢</div>
@@ -6991,6 +6991,8 @@ function showSettingsPage() {
   if (backupNav) backupNav.style.display = (session && session.role === 'master') ? 'block' : 'none';
   const boardsNav = document.getElementById('snav-boards');
   if (boardsNav) boardsNav.style.display = isAdminOrMaster ? 'block' : 'none';
+  const orgnameCard = document.getElementById('orgname-card');
+  if (orgnameCard) orgnameCard.style.display = isAdminOrMaster ? '' : 'none';
 
   // Default tab by role
   const defaultTab = isAdminOrMaster ? 'org' : 'account';
