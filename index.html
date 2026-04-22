@@ -659,6 +659,8 @@
   .td-name { font-weight: 400; color: var(--text); text-align: left; position: sticky; left: 36px; z-index: 1; background: inherit; box-shadow: 2px 0 6px rgba(0,0,0,.12); }
   .td-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size:12.5px; }
 
+  .td-hijos { text-align: center !important; }
+  .th-hijos { text-align: center !important; }
   .td-notes { max-width: 160px; color: var(--text2); }
   .td-notes span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -3770,7 +3772,7 @@ function renderTable() {
       ? `<span onclick="event.stopPropagation();toggleSort('${c.key}')" style="margin-left:5px;cursor:pointer;user-select:none;font-size:11px;opacity:${isActive?'1':'.35'};color:${isActive?'var(--accent)':'inherit'}" title="Ordenar">${isActive && _sortDir === 'desc' ? '▼' : '▲'}</span>`
       : '';
     const resizer = c.key !== '_actions' ? `<div class="col-resizer" data-col="${c.key}"></div>` : '';
-    const thClass = c.key === 'nombre' ? ' class="th-nombre"' : '';
+    const thClass = c.key === 'nombre' ? ' class="th-nombre"' : c.key === 'hijos' ? ' class="th-hijos"' : '';
     return `<th${thClass} style="width:${COL_WIDTHS[c.key]||130}px">${c.label}${arrow}${resizer}</th>`;
   }).join('');
   initResizers();
@@ -4000,6 +4002,7 @@ function renderRows(board, leads) {
         }
         return inlineText(c.key, def.type === 'number' ? 'number' : 'text', def.label, l, id);
       }
+      if (c.key === 'hijos') return `<td class="td-hijos">${esc(l.hijos||'')}</td>`;
       return `<td>${esc(l[c.key]||'')}</td>`;
     }).join('');
     return `<tr class="${rowClass}" onclick="openNotesPanel('${l.id}')" style="cursor:pointer">${cells}</tr>`;
@@ -6765,7 +6768,7 @@ const COL_CONFIG_KEY = 'gew_col_config';
 
 const OPTIONAL_COLS = [
   { key: 'lead',      label: 'LEAD',              desc: 'Tipo de lead (Guía Médico, CSKID, etc.)' },
-  { key: 'hijos',     label: 'HIJOS MENORES',      desc: 'Cantidad de hijos menores de edad' },
+  { key: 'hijos',     label: 'CANTIDAD SOLICITADA', desc: 'Cantidad solicitada' },
   { key: 'asignado',  label: 'ASIGNADO A',         desc: 'Agente responsable del lead' },
   { key: 'resultado', label: 'RESULTADO',           desc: 'Estado de la llamada/contacto' },
   { key: 'notas',     label: 'NOTAS',              desc: 'Comentarios adicionales' },
