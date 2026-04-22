@@ -2756,7 +2756,7 @@ setTimeout(function(){
         Al transferirlo a <strong id="reassign-new-name"></strong>, el agente anterior <strong>ya no podrá ver esta información</strong>.
       </div>
       <p id="reassign-confirm-msg" style="font-size:12px;color:var(--text2);margin-bottom:14px">¿Cómo deseas transferir el lead?</p>
-      <div style="display:flex;flex-direction:column;gap:10px">
+      <div id="reassign-transfer-opts" style="display:flex;flex-direction:column;gap:10px">
         <button class="btn btn-primary" style="justify-content:flex-start;padding:14px 16px;text-align:left;flex-direction:column;align-items:flex-start;gap:3px;height:auto" onclick="doReassign('full')">
           <span style="font-size:13px;font-weight:700">Transferir con toda la información</span>
           <span style="font-size:11px;font-weight:400;opacity:.8">Incluye notas, resultado y datos agregados por el agente anterior</span>
@@ -2765,6 +2765,9 @@ setTimeout(function(){
           <span style="font-size:13px;font-weight:700">Transferir con datos originales</span>
           <span style="font-size:11px;font-weight:400;opacity:.8">Solo los datos con los que fue importado (notas y resultado se borrarán)</span>
         </button>
+      </div>
+      <div id="reassign-confirm-simple" style="display:none">
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px 16px" onclick="doReassign('full')">Confirmar asignación</button>
       </div>
     </div>
     <div class="modal-footer">
@@ -5943,14 +5946,32 @@ function applyBulkEdit() {
     showToast(`${changed} lead${changed !== 1 ? 's' : ''} actualizados ✓`, 'success');
   };
 
-  if (reassignSet.size > 0) {
+  if (asignado) {
+    const isTransfer = reassignSet.size > 0;
     _reassignPending = {
       lead: { asignado: `${reassignSet.size} lead(s) con agente previo` },
       newAgent: asignado,
       onConfirm: doApply
     };
-    document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
-    document.getElementById('reassign-new-name').textContent = asignado;
+    const hdr = document.querySelector('#reassign-modal-overlay .modal-header h2');
+    if (hdr) hdr.textContent = isTransfer ? '⚠️ Reasignar Leads' : '👥 Asignar Leads';
+    const wb = document.querySelector('#reassign-modal-overlay .modal-body > div');
+    if (wb) {
+      wb.style.display = isTransfer ? '' : 'none';
+      if (isTransfer) {
+        document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
+        document.getElementById('reassign-new-name').textContent = asignado;
+      }
+    }
+    const n = snapshotIds.size;
+    const cmsg = document.getElementById('reassign-confirm-msg');
+    if (cmsg) cmsg.textContent = isTransfer
+      ? `¿Cómo transferir los ${reassignSet.size} lead(s) ya asignados a ${asignado}?`
+      : `¿Asignar ${n} lead${n!==1?'s':''} a ${asignado}?`;
+    const tOpts = document.getElementById('reassign-transfer-opts');
+    const cSimp = document.getElementById('reassign-confirm-simple');
+    if (tOpts) tOpts.style.display = isTransfer ? 'flex' : 'none';
+    if (cSimp) cSimp.style.display = isTransfer ? 'none' : 'block';
     document.getElementById('reassign-modal-overlay').classList.add('open');
   } else {
     doApply('full');
@@ -6009,6 +6030,10 @@ function checkReassign(lead, newAgent, onConfirm) {
   if (confirmMsg) confirmMsg.textContent = isTransfer
     ? '¿Cómo deseas transferir el lead?'
     : `¿Asignar este lead a ${newAgent}?`;
+  const transferOpts  = document.getElementById('reassign-transfer-opts');
+  const confirmSimple = document.getElementById('reassign-confirm-simple');
+  if (transferOpts)  transferOpts.style.display  = isTransfer ? 'flex' : 'none';
+  if (confirmSimple) confirmSimple.style.display = isTransfer ? 'none' : 'block';
   document.getElementById('reassign-modal-overlay').classList.add('open');
 }
 
@@ -6110,13 +6135,28 @@ function saveInlineField(sel, leadId, field) {
         showToast(`${snapshotIds.size} lead${snapshotIds.size !== 1 ? 's' : ''} transferidos ✓`, 'success');
         showAssignUndoBar(leadId, boardId, '', newValue);
       };
-      if (reassignSet.size > 0) {
+      {
+        const isTransfer = reassignSet.size > 0;
         _reassignPending = { lead: {}, newAgent: newValue, onConfirm: doApply };
-        document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
-        document.getElementById('reassign-new-name').textContent = newValue;
+        const hdr = document.querySelector('#reassign-modal-overlay .modal-header h2');
+        if (hdr) hdr.textContent = isTransfer ? '⚠️ Reasignar Leads' : '👥 Asignar Leads';
+        const wb = document.querySelector('#reassign-modal-overlay .modal-body > div');
+        if (wb) {
+          wb.style.display = isTransfer ? '' : 'none';
+          if (isTransfer) {
+            document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
+            document.getElementById('reassign-new-name').textContent = newValue;
+          }
+        }
+        const cmsg = document.getElementById('reassign-confirm-msg');
+        if (cmsg) cmsg.textContent = isTransfer
+          ? `¿Cómo transferir los ${reassignSet.size} lead(s) ya asignados a ${newValue}?`
+          : `¿Asignar ${snapshotIds.size} lead${snapshotIds.size!==1?'s':''} a ${newValue}?`;
+        const tOpts = document.getElementById('reassign-transfer-opts');
+        const cSimp = document.getElementById('reassign-confirm-simple');
+        if (tOpts) tOpts.style.display = isTransfer ? 'flex' : 'none';
+        if (cSimp) cSimp.style.display = isTransfer ? 'none' : 'block';
         document.getElementById('reassign-modal-overlay').classList.add('open');
-      } else {
-        doApply('full');
       }
       return;
     }
