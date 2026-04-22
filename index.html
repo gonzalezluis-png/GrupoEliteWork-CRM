@@ -2863,6 +2863,32 @@ setTimeout(function(){
   </div>
 </div>
 
+<!-- RESULTADO NOTE MODAL (non-master users) -->
+<div id="resultado-note-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:55000;align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:14px;padding:28px;width:min(480px,94vw);display:flex;flex-direction:column;gap:18px;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+      <div>
+        <h3 style="margin:0;font-size:16px;font-weight:700">Cambiar resultado</h3>
+        <p id="rn-subtitle" style="margin:6px 0 0;font-size:13px;color:var(--text2)"></p>
+      </div>
+      <button onclick="closeResultadoNoteModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text2);padding:0;line-height:1;flex-shrink:0">×</button>
+    </div>
+    <div id="rn-warning" style="display:none;background:rgba(226,68,92,.12);border:1px solid rgba(226,68,92,.4);border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.6;color:#e2445c">
+      ⚠️ <strong>Atención:</strong> Al guardar esta acción, el lead será <strong>movido a la papelera</strong> y ya no estará disponible en el tablero para ti. Toma precaución antes de confirmar.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px">Nota obligatoria <span style="color:#e2445c">*</span></label>
+      <textarea id="rn-text" placeholder="Explica el motivo de este resultado…" rows="4"
+        style="resize:vertical;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-family:var(--font);font-size:13px;outline:none;width:100%;box-sizing:border-box"
+        oninput="document.getElementById('rn-submit').disabled=!this.value.trim()"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeResultadoNoteModal()" class="btn btn-secondary">Cancelar</button>
+      <button id="rn-submit" onclick="confirmResultadoNote()" class="btn btn-primary" disabled>Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ASSIGN UNDO SNACKBAR -->
 <div id="assign-undo-bar">
   <span id="assign-undo-text"></span>
@@ -6234,8 +6260,27 @@ function saveInlineField(sel, leadId, field) {
     const spanElD = sel.previousElementSibling;
     if (spanElD) spanElD.style.display = '';
     const bIdD = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
-    openDeleteReasonModal(leadId, bIdD);
+    const _sessD = getSession();
+    if (_sessD && _sessD.role !== 'master') {
+      openResultadoNoteModal(leadId, bIdD, '__delete_lead__');
+    } else {
+      openDeleteReasonModal(leadId, bIdD);
+    }
     return;
+  }
+  // Non-master: intercept any resultado change and require a justification note
+  if (field === 'resultado' && sel.value) {
+    const _sessR = getSession();
+    if (_sessR && _sessR.role !== 'master') {
+      const capturedVal = sel.value;
+      sel.value = '';
+      sel.style.display = 'none';
+      const spanElR = sel.previousElementSibling;
+      if (spanElR) spanElR.style.display = '';
+      const bIdR = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
+      openResultadoNoteModal(leadId, bIdR, capturedVal);
+      return;
+    }
   }
   const boardId  = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
   if (!boardId) return;
@@ -7897,6 +7942,60 @@ function confirmDeleteWithReason() {
   _deleteReasonLeadId = _deleteReasonBoardId = null;
   renderTable();
   showToast('Lead eliminado ✓', 'error');
+}
+
+// ── Resultado note modal (non-master) ──
+let _rnLeadId = null, _rnBoardId = null, _rnValue = null;
+const RESULTADO_DESTRUCTIVE = new Set(['NO INTERESADO', 'NÚMERO EQUIVOCADO', '__delete_lead__']);
+
+function openResultadoNoteModal(leadId, boardId, value) {
+  _rnLeadId  = leadId;
+  _rnBoardId = boardId;
+  _rnValue   = value;
+  const label = value === '__delete_lead__' ? 'ELIMINAR' : value;
+  document.getElementById('rn-subtitle').textContent = 'Nuevo resultado: ' + label;
+  document.getElementById('rn-text').value = '';
+  document.getElementById('rn-submit').disabled = true;
+  document.getElementById('rn-warning').style.display = RESULTADO_DESTRUCTIVE.has(value) ? '' : 'none';
+  document.getElementById('resultado-note-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('rn-text').focus(), 60);
+}
+
+function closeResultadoNoteModal() {
+  document.getElementById('resultado-note-overlay').style.display = 'none';
+  _rnLeadId = _rnBoardId = _rnValue = null;
+}
+
+function confirmResultadoNote() {
+  const note = document.getElementById('rn-text').value.trim();
+  if (!note) return;
+  const session = getSession();
+  const who = session ? (session.name || session.email) : 'Sistema';
+  const ts  = new Date().toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' });
+  const leadId = _rnLeadId, boardId = _rnBoardId, value = _rnValue;
+  closeResultadoNoteModal();
+  const leads = loadLeads(boardId);
+  const lead  = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const isDelete = value === '__delete_lead__';
+  const resultLabel = isDelete ? 'ELIMINAR' : value;
+  const entry = `[${ts}] ${who}: Resultado → ${resultLabel} — ${note}`;
+  lead.notas = lead.notas ? entry + '\n\n' + lead.notas : entry;
+  if (!isDelete) lead.resultado = value;
+  saveLeads(boardId, leads);
+  if (isDelete || value === 'NO INTERESADO' || value === 'NÚMERO EQUIVOCADO') {
+    softDeleteLead(leadId, boardId);
+    renderTable();
+    showToast('Lead movido a papelera ✓', 'error');
+    return;
+  }
+  if (value === 'CITA AGENDADA') {
+    renderTable();
+    openCitaModal(leadId, boardId, lead.nombre || lead.email || '');
+    return;
+  }
+  renderTableKeepSelection();
+  showToast('Resultado guardado ✓', 'success');
 }
 
 // ── Toolbar gap (master-adjustable, synced) ──
