@@ -3781,10 +3781,10 @@ function selectBoard(id) {
     document.getElementById(fid).value = '';
   });
   clearDateFilter(false);
-  assignFilter = 'all';
+  assignFilter = 'unassigned';
   document.querySelectorAll('.assign-tab').forEach(t => t.classList.remove('active'));
-  const _allTab = document.querySelector('.assign-tab[data-assign="all"]');
-  if (_allTab) _allTab.classList.add('active');
+  const _unassignedTab = document.querySelector('.assign-tab[data-assign="unassigned"]');
+  if (_unassignedTab) _unassignedTab.classList.add('active');
   document.getElementById('dist-panel').classList.remove('visible');
   selectedIds.clear();
   updateBulkBar();
