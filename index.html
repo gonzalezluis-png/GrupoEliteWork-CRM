@@ -3950,7 +3950,7 @@ function renderRows(board, leads) {
         }
         const agOpts = ['', ...getAgents()].map(a =>
           `<option value="${esc(a)}"${l.asignado===a?' selected':''}>${a||'— Sin asignar —'}</option>`
-        ).join('');
+        ).join('') + `<option value="__add_agent__" style="color:var(--accent);font-style:italic">+ Agregar agente…</option>`;
         return `<td style="${cellStyle}" class="td-inline" onclick="event.stopPropagation()">
           <div style="${innerStyle};cursor:pointer" onclick="openInlineSel(this)">${esc(displayVal||'Sin Asignar')}${inactiveTag} <span style="opacity:.6;font-size:10px">▾</span></div>
           <select class="inline-select" style="display:none"
@@ -6107,6 +6107,14 @@ function undoLastAssign() {
 }
 
 function saveInlineField(sel, leadId, field) {
+  if (field === 'asignado' && sel.value === '__add_agent__') {
+    sel.value = '';
+    sel.style.display = 'none';
+    const spanEl = sel.previousElementSibling;
+    if (spanEl) spanEl.style.display = '';
+    showUsersPage();
+    return;
+  }
   const boardId  = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
   if (!boardId) return;
   const newValue = field === 'asignado' ? normalizeAsignado(sel.value) : sel.value;
