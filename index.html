@@ -1998,6 +1998,20 @@ setTimeout(function(){
       <div id="dist-agents-section"></div>
     </div>
 
+    <!-- ASSIGNED DELETED BANNER -->
+    <div id="assigned-deleted-banner" style="display:none;margin:14px 24px 0;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:10px;padding:14px 18px;display:none">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <span style="font-size:20px;line-height:1">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:4px">Leads Asignados Eliminados</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6">
+            Este board muestra los leads que fueron eliminados de usuarios y transferidos por el administrador.<br>
+            <strong style="color:var(--text)">Solo estarán aquí por 30 días</strong> — luego serán enviados automáticamente a Eliminados. Cada lead muestra su cuenta regresiva.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="table-wrap">
       <div id="import-panel"></div>
       <table id="leads-table">
@@ -6651,6 +6665,7 @@ function setAssignTab(el, val) {
     document.getElementById('dist-panel').classList.remove('visible');
     document.getElementById('toolbar').style.display    = '';
     document.getElementById('table-wrap').style.display = '';
+    _hideAssignedDeletedBanner();
     applyFilters();
   }
 }
@@ -6659,9 +6674,31 @@ function renderAssignedDeletedTable() {
   const _ads = getSession();
   const _adln = (_ads && _ads.role !== 'master' && _ads.role !== 'admin')
     ? new Set(_getLineUsers(_ads).map(u => u.name)) : null;
+  const allDeleted = loadDeletedLeads();
+
+  // Auto-purge leads older than 30 days → vault
+  const DAYS_LIMIT = 30;
+  const now = Date.now();
+  const toVault = allDeleted.filter(l => {
+    if (!l._originalBoardId || !l.asignado || l.asignado === 'Sin asignar') return false;
+    if (!l._deletedAt) return false;
+    return (now - new Date(l._deletedAt).getTime()) > DAYS_LIMIT * 86400000;
+  });
+  if (toVault.length > 0) {
+    _vaultLeads(toVault);
+    const remaining = allDeleted.filter(l => !toVault.find(v => v.id === l.id));
+    saveDeletedLeads(remaining);
+    updateTrashBadge();
+  }
+
   const deleted = loadDeletedLeads()
     .filter(l => l._originalBoardId === currentBoardId && l.asignado && l.asignado !== 'Sin asignar'
       && (!_adln || _adln.has(l.asignado)));
+
+  // Banner
+  const bannerEl = document.getElementById('assigned-deleted-banner');
+  if (bannerEl) bannerEl.style.display = '';
+
   const tbody = document.querySelector('#leads-table tbody');
   if (!tbody) return;
   if (deleted.length === 0) {
@@ -6673,13 +6710,28 @@ function renderAssignedDeletedTable() {
   const board = getBoard(currentBoardId);
   const cols  = board ? (board.columns || []) : [];
   tbody.innerHTML = deleted.map(l => {
+    const deletedMs  = l._deletedAt ? new Date(l._deletedAt).getTime() : now;
+    const daysGone   = Math.floor((now - deletedMs) / 86400000);
+    const daysLeft   = Math.max(0, DAYS_LIMIT - daysGone);
+    const urgency    = daysLeft <= 5 ? '#e2445c' : daysLeft <= 10 ? '#fbbf24' : '#3ecf8e';
+    const countdownCell = `<td style="text-align:center;white-space:nowrap">
+      <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 10px;font-size:11px;font-weight:700;color:${urgency}">
+        ⏱ ${daysLeft}d restantes
+      </span>
+    </td>`;
     const cells = cols.map(c => {
       if (c.key === '_check') return `<td></td>`;
+      if (c.key === '_actions') return countdownCell;
       if (c.key === 'asignado') return `<td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(226,68,92,.12);color:var(--red);border:1px solid rgba(226,68,92,.3)">${esc(l.asignado)}</span></td>`;
       return `<td>${esc(l[c.key]||'')}</td>`;
     }).join('');
-    return `<tr style="opacity:.7">${cells}</tr>`;
+    return `<tr style="opacity:.8">${cells}</tr>`;
   }).join('');
+}
+
+function _hideAssignedDeletedBanner() {
+  const b = document.getElementById('assigned-deleted-banner');
+  if (b) b.style.display = 'none';
 }
 
 // ════════════════════════════════════════════
