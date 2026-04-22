@@ -2803,6 +2803,24 @@ setTimeout(function(){
   </div>
 </div>
 
+<!-- DELETE REASON MODAL -->
+<div class="overlay" id="delete-reason-overlay">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h2>🗑 Eliminar Lead</h2>
+      <button class="modal-close" onclick="cancelDeleteReason()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px">¿Por qué deseas eliminar este lead? La razón quedará guardada en sus notas.</p>
+      <textarea id="delete-reason-text" style="width:100%;min-height:100px;resize:vertical;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-family:var(--font);font-size:12.5px;outline:none;box-sizing:border-box" placeholder="Escribe la razón de eliminación…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cancelDeleteReason()">Cancelar</button>
+      <button class="btn btn-primary" style="background:var(--red);border-color:var(--red)" onclick="confirmDeleteWithReason()">🗑 Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ASSIGN UNDO SNACKBAR -->
 <div id="assign-undo-bar">
   <span id="assign-undo-text"></span>
@@ -3873,18 +3891,21 @@ function renderRows(board, leads) {
       if (c.key === '_check') return `<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-checkbox" data-id="${l.id}" onchange="toggleRowSelect(this,'${l.id}')" ${selectedIds.has(l.id)?'checked':''} /></td>`;
       if (c.key === '_actions') {
         const sess2 = getSession();
-        if (sess2 && (sess2.role === 'agent' || sess2.role === 'manager' || sess2.role === 'master_manager')) {
-          return `<td><div class="row-actions">
-            <button class="row-btn" onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas">📝</button>
-          </div></td>`;
-        }
+        const isMasterRow = sess2 && sess2.role === 'master';
+        if (!isMasterRow) return `<td></td>`;
         return `<td><div class="row-actions">
           <button class="row-btn" onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas">📝</button>
           <button class="row-btn" onclick="event.stopPropagation();openModal('${l.id}')" title="Editar">✏️</button>
           <button class="row-btn del" onclick="event.stopPropagation();askDelete('${l.id}')" title="Eliminar">🗑</button>
         </div></td>`;
       }
-      if (c.key === 'nombre') return `<td class="td-name"><div style="display:flex;align-items:center;gap:8px"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(l.nombre||'')}">${esc(l.nombre||'—')}</span><button onclick="event.stopPropagation()" title="Favorito" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:2px;flex-shrink:0;line-height:1">✦</button><button onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">≡</button></div></td>`;
+      if (c.key === 'nombre') {
+        const sess2 = getSession();
+        const masterBtns = (sess2 && sess2.role === 'master')
+          ? `<button onclick="event.stopPropagation()" title="Favorito" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:2px;flex-shrink:0;line-height:1">✦</button><button onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">≡</button>`
+          : '';
+        return `<td class="td-name"><div style="display:flex;align-items:center;gap:8px"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(l.nombre||'')}">${esc(l.nombre||'—')}</span>${masterBtns}</div></td>`;
+      }
       if (c.key === 'lead') {
         const _leadColors = {
           'BIENES DE DISTRIBUCIÓN': '#3ecf8e',
@@ -3927,7 +3948,7 @@ function renderRows(board, leads) {
       if (c.key === 'resultado') {
         const resOpts = ['', ...RESULTADOS].map(r =>
           `<option value="${esc(r)}"${l.resultado===r?' selected':''}>${r||'— Sin resultado —'}</option>`
-        ).join('');
+        ).join('') + `<option value="__delete_lead__" style="color:var(--red);font-weight:600">🗑 ELIMINAR</option>`;
         const displayVal = l.resultado || '';
         const emptyClass = displayVal ? '' : ' empty-val';
         return `<td class="td-inline" onclick="event.stopPropagation()">
@@ -4161,6 +4182,13 @@ function saveLead() {
   }
 
   saveLeads(saveBoardId, leads);
+  if (data.resultado === 'NO INTERESADO') {
+    closeModal();
+    softDeleteLead(editingLeadId || data.id, saveBoardId);
+    renderTable();
+    showToast('Lead eliminado: No Interesado', 'error');
+    return;
+  }
   const isEdit = !!editingLeadId;
   if (isEdit && oldLead && data.resultado && data.resultado !== oldLead.resultado) {
     logActivity('lead_edit', 'Cambio de resultado', `${data.nombre} · resultado: "${oldLead.resultado||'—'}" → "${data.resultado}"`, { boardId: saveBoardId });
@@ -6156,6 +6184,15 @@ function saveInlineField(sel, leadId, field) {
     showUsersPage();
     return;
   }
+  if (field === 'resultado' && sel.value === '__delete_lead__') {
+    sel.value = '';
+    sel.style.display = 'none';
+    const spanElD = sel.previousElementSibling;
+    if (spanElD) spanElD.style.display = '';
+    const bIdD = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
+    openDeleteReasonModal(leadId, bIdD);
+    return;
+  }
   const boardId  = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
   if (!boardId) return;
   const newValue = field === 'asignado' ? normalizeAsignado(sel.value) : sel.value;
@@ -6239,6 +6276,12 @@ function saveInlineField(sel, leadId, field) {
   lead[field] = newValue;
   saveLeads(boardId, leads);
   if (spanEl) { spanEl.className = 'inline-display' + (!newValue ? ' empty-val' : ''); spanEl.innerHTML = esc(newValue || '—') + ' <span class="caret">▾</span>'; }
+  if (field === 'resultado' && newValue === 'NO INTERESADO') {
+    softDeleteLead(leadId, boardId);
+    renderTable();
+    showToast('Lead eliminado: No Interesado', 'error');
+    return;
+  }
   if (field === 'resultado' && newValue === 'CITA AGENDADA') {
     const row = sel.closest('tr');
     if (row) {
@@ -7763,6 +7806,42 @@ function doLogout() {
   const gsBtn = document.getElementById('google-signin-btn');
   if (gsBtn) gsBtn.innerHTML = '';
   initGoogleSignIn();
+}
+
+// ── Delete with reason ──
+let _deleteReasonLeadId = null, _deleteReasonBoardId = null;
+
+function openDeleteReasonModal(leadId, boardId) {
+  _deleteReasonLeadId  = leadId;
+  _deleteReasonBoardId = boardId;
+  document.getElementById('delete-reason-text').value = '';
+  document.getElementById('delete-reason-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('delete-reason-text').focus(), 50);
+}
+
+function cancelDeleteReason() {
+  _deleteReasonLeadId = _deleteReasonBoardId = null;
+  document.getElementById('delete-reason-overlay').classList.remove('open');
+}
+
+function confirmDeleteWithReason() {
+  const reason = document.getElementById('delete-reason-text').value.trim();
+  if (!reason) { showToast('Escribe una razón para eliminar', 'error'); return; }
+  const session = getSession();
+  const who = session ? (session.name || session.email) : 'Sistema';
+  const ts  = new Date().toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' });
+  const leads = loadLeads(_deleteReasonBoardId);
+  const lead  = leads.find(l => l.id === _deleteReasonLeadId);
+  if (lead) {
+    const entry = `[${ts}] ${who}: Eliminado — ${reason}`;
+    lead.notas = lead.notas ? entry + '\n\n' + lead.notas : entry;
+    saveLeads(_deleteReasonBoardId, leads);
+  }
+  document.getElementById('delete-reason-overlay').classList.remove('open');
+  softDeleteLead(_deleteReasonLeadId, _deleteReasonBoardId);
+  _deleteReasonLeadId = _deleteReasonBoardId = null;
+  renderTable();
+  showToast('Lead eliminado ✓', 'error');
 }
 
 // ── Toolbar gap (master-adjustable, synced) ──
