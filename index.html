@@ -2525,7 +2525,7 @@ setTimeout(function(){
                 </div>
                 <div id="backup-preview" style="display:none;margin-top:14px">
                   <div id="backup-preview-info" style="background:rgba(0,115,234,.08);border:1px solid rgba(0,115,234,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.8"></div>
-                  <button class="btn" onclick="confirmRestore()" style="background:#e2445c;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-weight:700;cursor:pointer">🔄 Restaurar ahora</button>
+                  <button class="btn" onclick="confirmBackupRestore()" style="background:#e2445c;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-weight:700;cursor:pointer">🔄 Restaurar ahora</button>
                 </div>
               </div>
             </div>
@@ -9375,7 +9375,7 @@ function previewRestore(event) {
   reader.readAsText(file);
 }
 
-async function confirmRestore() {
+async function confirmBackupRestore() {
   if (!_restoreData) return;
   if (!confirm('¿Estás seguro? Esto reemplazará TODOS los datos actuales con los del respaldo. Esta acción no se puede deshacer.')) return;
   try {
@@ -10532,10 +10532,7 @@ window.runDiagnostic = async function() {
   run('showCalendarPage() no throw', () => showCalendarPage());
   run('renderCalendar() no throw', () => renderCalendar());
   run('showStatsPage() no throw', () => { try { showStatsPage(); } catch(e) { /* page may not exist for role */ } });
-  run('showSettingsPage() no throw', () => {
-    try { showSettingsPage(); }
-    catch(e) { throw (e && e.message ? e.message : String(e)) + (e && e.stack ? ' | ' + e.stack.split('\n')[1] : ''); }
-  });
+  run('showSettingsPage() no throw', () => showSettingsPage());
   run('switchSettingsTab account', () => switchSettingsTab('account'));
   run('switchSettingsTab org', () => switchSettingsTab('org'));
   run('showTrashPage() no throw', () => showTrashPage());
@@ -10572,6 +10569,11 @@ window.runDiagnostic = async function() {
   });
   run('_finalizeLogin exists and is function', () => {
     if (typeof _finalizeLogin !== 'function') throw 'missing';
+  });
+  run('confirmRestore (lead) and confirmBackupRestore are separate functions', () => {
+    if (typeof confirmRestore !== 'function') throw 'confirmRestore missing';
+    if (typeof confirmBackupRestore !== 'function') throw 'confirmBackupRestore missing';
+    if (confirmRestore === confirmBackupRestore) throw 'same function — name collision!';
   });
 
   // ── SECTION 9: Inline field sentinels ──
