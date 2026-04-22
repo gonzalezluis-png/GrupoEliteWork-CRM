@@ -6847,7 +6847,7 @@ function renderLeadTypesList() {
 }
 function addLeadType() {
   const session = getSession();
-  if (!session || session.role !== 'master') { showToast('Solo el maestro puede agregar tipos de lead', 'error'); return; }
+  if (!session || session.role !== 'master') { showToast('Solo el desarrollador puede agregar tipos de lead', 'error'); return; }
   const inp = document.getElementById('lt-new');
   const val = inp.value.trim().toUpperCase();
   if (!val) return;
@@ -6862,7 +6862,7 @@ function addLeadType() {
 }
 function removeLeadType(idx) {
   const session = getSession();
-  if (!session || session.role !== 'master') { showToast('Solo el maestro puede eliminar tipos de lead', 'error'); return; }
+  if (!session || session.role !== 'master') { showToast('Solo el desarrollador puede eliminar tipos de lead', 'error'); return; }
   const types = getLeadTypes();
   types.splice(idx, 1);
   saveLeadTypes(types);
@@ -7465,7 +7465,7 @@ function closeBoardModal() {
 
 function saveBoard() {
   const session = getSession();
-  if (!session || session.role !== 'master') { showToast('Solo el maestro puede crear boards', 'error'); return; }
+  if (!session || session.role !== 'master') { showToast('Solo el desarrollador puede crear boards', 'error'); return; }
   const name  = document.getElementById('b-nombre').value.trim().toUpperCase();
   const icon  = document.getElementById('b-icon').value.trim() || '📋';
   const ubRaw = document.getElementById('b-ubicaciones').value.trim();
@@ -7491,7 +7491,7 @@ function saveBoard() {
 
 function deleteBoard(id) {
   const session = getSession();
-  if (!session || session.role !== 'master') { showToast('Solo el maestro puede eliminar boards', 'error'); return; }
+  if (!session || session.role !== 'master') { showToast('Solo el desarrollador puede eliminar boards', 'error'); return; }
   const board = BOARDS.find(b => b.id === id);
   if (!board) return;
   const count = loadLeads(id).length;
@@ -8271,7 +8271,7 @@ function saveAppName() {
 
 function renderTopbarUser(user) {
   const initials = user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-  const roleLabel = user.role === 'master' ? 'Maestro' : user.role === 'admin' ? 'Administrador' : user.role === 'master_manager' ? 'MGA' : user.role === 'manager' ? 'GA' : user.role === 'supervisor_agent' ? 'SA' : 'Agente';
+  const roleLabel = user.role === 'master' ? 'Desarrollador' : user.role === 'admin' ? 'Administrador' : user.role === 'master_manager' ? 'MGA' : user.role === 'manager' ? 'GA' : user.role === 'supervisor_agent' ? 'SA' : 'Agente';
   document.getElementById('topbar-user').innerHTML = `
     <div class="topbar-avatar">${initials}</div>
     <div class="topbar-user-info">
@@ -8352,7 +8352,7 @@ function userCard(u, session) {
 
 function orgNode(u, session) {
   const roleCls   = u.role === 'master' ? 'role-master' : u.role === 'admin' ? 'role-admin' : u.role === 'master_manager' ? 'role-master_manager' : u.role === 'manager' ? 'role-manager' : u.role === 'supervisor_agent' ? 'role-supervisor_agent' : 'role-agent';
-  const roleLabel = u.role === 'master' ? 'Maestro' : u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'MGA' : u.role === 'manager' ? 'GA' : u.role === 'supervisor_agent' ? 'SA' : 'Agente';
+  const roleLabel = u.role === 'master' ? 'Desarrollador' : u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'MGA' : u.role === 'manager' ? 'GA' : u.role === 'supervisor_agent' ? 'SA' : 'Agente';
   const nodeClass = `org-node org-node-${u.role}`;
   const initials  = (u.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatarBg  = u.role==='master'?'var(--yellow)':u.role==='admin'?'var(--accent)':u.role==='master_manager'?'#00b7c3':u.role==='manager'?'var(--green)':u.role==='supervisor_agent'?'#ff8c00':'var(--purple)';
@@ -10001,7 +10001,7 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
 <script>
 (function() {
   const ROLE_LABELS = {
-    master:            'Maestro',
+    master:            'Desarrollador',
     admin:             'Administrador',
     manager:           'GA',
     master_manager:    'MGA',
@@ -10654,7 +10654,7 @@ document.addEventListener('DOMContentLoaded', () => {});
 // ════════════════════════════════════════════
 window.runDiagnostic = async function() {
   const session = getSession();
-  if (!session || session.role !== 'master') { showToast('Solo el maestro puede ejecutar el diagnóstico', 'error'); return; }
+  if (!session || session.role !== 'master') { showToast('Solo el desarrollador puede ejecutar el diagnóstico', 'error'); return; }
 
   // ── Snapshot: save full localStorage state ──
   const _snap = {};
