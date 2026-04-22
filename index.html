@@ -3230,6 +3230,22 @@ function updateSidebarCount(boardId) {
 // ── ID ──
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
+// Deterministic color from string — used for agent & location cells
+function strToTableColor(str) {
+  if (!str) return null;
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  h = Math.abs(h);
+  // Palette of distinct, readable colors (not too dark, not too bright)
+  const palette = [
+    '#2e7d6b','#1e6fa8','#7b5ea7','#a0522d','#2e6b3e',
+    '#8b4560','#1a6b7a','#5a6e1a','#7a4a1a','#1a4a7a',
+    '#6b2e6b','#3a7a5a','#6b5a1a','#1a5a6b','#7a2e4a',
+    '#3a5a8b','#6b3a2e','#2e5a3a','#8b3a6b','#4a6b2e',
+  ];
+  return palette[h % palette.length];
+}
+
 // ── Date ──
 function today() {
   const d = new Date();
@@ -3456,7 +3472,7 @@ function renderRows(board, leads) {
           <button class="row-btn del" onclick="event.stopPropagation();askDelete('${l.id}')" title="Eliminar">🗑</button>
         </div></td>`;
       }
-      if (c.key === 'nombre') return `<td class="td-name"><span title="${esc(l.nombre||'')}">${esc(l.nombre||'—')}</span></td>`;
+      if (c.key === 'nombre') return `<td class="td-name"><div style="display:flex;align-items:center;gap:8px"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(l.nombre||'')}">${esc(l.nombre||'—')}</span><button onclick="event.stopPropagation()" title="Favorito" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:2px;flex-shrink:0;line-height:1">✦</button><button onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">≡</button></div></td>`;
       if (c.key === 'lead') {
         const _leadColors = {
           'BIENES DE DISTRIBUCIÓN': '#3ecf8e',
@@ -3501,39 +3517,41 @@ function renderRows(board, leads) {
         ).join('');
         const displayVal = l.ubicacion || '';
         const emptyClass = displayVal ? '' : ' empty-val';
-        return `<td class="td-inline" onclick="event.stopPropagation()">
-          <span class="inline-display${emptyClass}" onclick="openInlineSel(this)">${esc(displayVal||'Ubicación')} <span class="caret">▾</span></span>
+        const ubBg = displayVal ? strToTableColor(displayVal) : null;
+        const ubCellStyle = ubBg ? 'padding:0;text-align:center' : 'text-align:center';
+        const ubInner = ubBg
+          ? `height:52px;display:flex;align-items:center;justify-content:center;background:${ubBg};color:#fff;font-weight:600;font-size:11px;letter-spacing:.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px;cursor:pointer`
+          : `display:flex;align-items:center;justify-content:center;height:52px;font-size:11px;color:var(--text2);cursor:pointer`;
+        return `<td style="${ubCellStyle}" class="td-inline" onclick="event.stopPropagation()">
+          <div style="${ubInner}" onclick="openInlineSel(this.nextElementSibling)">${esc(displayVal||'Ubicación')} <span style="opacity:.6;font-size:10px;margin-left:4px">▾</span></div>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','ubicacion')"
             onblur="closeInlineSel(this)">${opts}</select>
         </td>`;
       }
       if (c.key === 'asignado') {
-        const sess       = getSession();
-        const displayVal = l.asignado || '';
+        const sess         = getSession();
+        const displayVal   = l.asignado || '';
         const assignedUser = displayVal ? loadUsers().find(u => u.name === displayVal) : null;
-        const isInactive = assignedUser && assignedUser.inactive;
-        const isAssigned = displayVal && displayVal !== 'Sin asignar';
-        const pillStyle  = isInactive
-          ? 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(255,80,80,.10);color:#ff6b6b;border:1px solid rgba(255,80,80,.25)'
-          : isAssigned
-          ? 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(0,200,117,.12);color:#00c875;border:1px solid rgba(0,200,117,.3)'
-          : 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(0,115,234,.12);color:#3b9eff;border:1px solid rgba(0,115,234,.3)';
-        const dot        = isInactive
-          ? '<span style="width:6px;height:6px;border-radius:50%;background:#ff6b6b;flex-shrink:0"></span>'
-          : isAssigned
-          ? '<span style="width:6px;height:6px;border-radius:50%;background:#00c875;flex-shrink:0"></span>'
-          : '<span style="width:6px;height:6px;border-radius:50%;background:#3b9eff;flex-shrink:0"></span>';
-        const inactiveTag = isInactive ? ' <span style="font-size:9px;opacity:.8">(inactivo)</span>' : '';
+        const isInactive   = assignedUser && assignedUser.inactive;
+        const isAssigned   = displayVal && displayVal !== 'Sin asignar';
+        const cellBg       = isInactive ? '#555' : isAssigned ? (strToTableColor(displayVal) || '#2e7d6b') : null;
+        const inactiveTag  = isInactive ? ' <span style="font-size:9px;opacity:.75">(inactivo)</span>' : '';
+        const cellStyle    = cellBg
+          ? `padding:0;text-align:center`
+          : `text-align:center`;
+        const innerStyle   = cellBg
+          ? `height:52px;display:flex;align-items:center;justify-content:center;background:${cellBg};color:#fff;font-weight:700;font-size:11px;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px;gap:4px`
+          : `display:flex;align-items:center;justify-content:center;height:52px;font-size:11px;color:var(--text2)`;
         const canAssign = sess && (sess.role === 'master' || sess.role === 'admin' || sess.role === 'manager' || sess.role === 'master_manager' || sess.role === 'supervisor_agent');
         if (!canAssign) {
-          return `<td><span style="${pillStyle}">${dot}${esc(displayVal||'Sin Asignar')}${inactiveTag}</span></td>`;
+          return `<td style="${cellStyle}"><div style="${innerStyle}">${esc(displayVal||'Sin Asignar')}${inactiveTag}</div></td>`;
         }
         const agOpts = ['', ...getAgents()].map(a =>
           `<option value="${esc(a)}"${l.asignado===a?' selected':''}>${a||'— Sin asignar —'}</option>`
         ).join('');
-        return `<td class="td-inline" onclick="event.stopPropagation()">
-          <span style="${pillStyle};cursor:pointer" onclick="openInlineSel(this)">${dot}${esc(displayVal||'Sin Asignar')}${inactiveTag} <span style="opacity:.6;font-size:10px">▾</span></span>
+        return `<td style="${cellStyle}" class="td-inline" onclick="event.stopPropagation()">
+          <div style="${innerStyle};cursor:pointer" onclick="openInlineSel(this.nextElementSibling)">${esc(displayVal||'Sin Asignar')}${inactiveTag} <span style="opacity:.6;font-size:10px">▾</span></div>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','asignado')"
             onblur="closeInlineSel(this)">${agOpts}</select>
