@@ -462,7 +462,7 @@
   td:first-child { padding-left: 20px; text-align: left; border-right: none; }
   td:last-child  { border-right: none; }
 
-  .td-name { font-weight: 500; color: #fff; max-width: 200px; text-align: left; }
+  .td-name { font-weight: 500; color: #fff; text-align: left; }
   .td-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size:12.5px; }
 
   .td-notes { max-width: 160px; color: var(--text2); }
@@ -1436,7 +1436,6 @@
   /* ─── TABLE ─── */
   #table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #leads-table { min-width:600px; }
-  .col-nombre { max-width:130px !important; min-width:110px !important; }
   .col-notas  { max-width:120px !important; }
   td, th { padding:8px 10px !important; font-size:11px !important; }
   .row-actions { gap:4px !important; }
@@ -3445,7 +3444,7 @@ function renderTable() {
     const arrow      = isSortable
       ? `<span onclick="event.stopPropagation();toggleSort('${c.key}')" style="margin-left:5px;cursor:pointer;user-select:none;font-size:11px;opacity:${isActive?'1':'.35'};color:${isActive?'var(--accent)':'inherit'}" title="Ordenar">${isActive && _sortDir === 'desc' ? '▼' : '▲'}</span>`
       : '';
-    const resizer = c.key !== 'nombre' && c.key !== '_actions' ? `<div class="col-resizer" data-col="${c.key}"></div>` : '';
+    const resizer = c.key !== '_actions' ? `<div class="col-resizer" data-col="${c.key}"></div>` : '';
     return `<th style="width:${COL_WIDTHS[c.key]||130}px">${c.label}${arrow}${resizer}</th>`;
   }).join('');
   initResizers();
