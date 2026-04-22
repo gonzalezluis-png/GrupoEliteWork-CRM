@@ -3481,21 +3481,26 @@ setTimeout(function(){
 function getAgents() {
   const users   = loadUsers();
   const session = getSession();
-  let agents = users.filter(u => u.role === 'agent');
-  if (session && session.role === 'admin') {
-    agents = agents.filter(u => u.orgAdminId === session.id);
-  } else if (session && session.role === 'master_manager') {
-    const agentNames = getMasterManagerAgentNames(session.id);
-    agents = agents.filter(u => agentNames.includes(u.name));
-  } else if (session && session.role === 'manager') {
-    const agentNames = getManagerAgentNames(session.id);
-    agents = agents.filter(u => agentNames.includes(u.name));
-  } else if (session && session.role === 'supervisor_agent') {
-    const agentNames = getSupervisorAgentNames(session.id);
-    agents = agents.filter(u => agentNames.includes(u.name));
+  // Master sees everyone; other roles scoped to their line
+  if (!session || session.role === 'master') {
+    return users.filter(u => !u.inactive).map(u => u.name);
   }
-  // Exclude inactive from assignment selector
-  return agents.filter(u => !u.inactive).map(u => u.name);
+  let agents = users.filter(u => !u.inactive);
+  if (session.role === 'admin') {
+    agents = agents.filter(u => u.orgAdminId === session.id);
+  } else if (session.role === 'master_manager') {
+    const names = getMasterManagerAgentNames(session.id);
+    agents = agents.filter(u => names.includes(u.name));
+  } else if (session.role === 'manager') {
+    const names = getManagerAgentNames(session.id);
+    agents = agents.filter(u => names.includes(u.name));
+  } else if (session.role === 'supervisor_agent') {
+    const names = getSupervisorAgentNames(session.id);
+    agents = agents.filter(u => names.includes(u.name));
+  } else {
+    agents = agents.filter(u => u.role === 'agent');
+  }
+  return agents.map(u => u.name);
 }
 
 function getSupervisorAgentNames(supId) {
