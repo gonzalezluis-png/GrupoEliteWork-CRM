@@ -3745,8 +3745,12 @@ function updateTabCounts() {
   const total    = leads.length;
   const unassign = leads.filter(l => !l.asignado || l.asignado === 'Sin asignar').length;
   const assigned = leads.filter(l => l.asignado && l.asignado !== 'Sin asignar').length;
+  const _sess2    = getSession();
+  const _lineNms2 = (_sess2 && _sess2.role !== 'master' && _sess2.role !== 'admin')
+    ? new Set(_getLineUsers(_sess2).map(u => u.name)) : null;
   const delArr   = loadDeletedLeads().filter(l =>
     l._originalBoardId === currentBoardId && l.asignado && l.asignado !== 'Sin asignar'
+    && (!_lineNms2 || _lineNms2.has(l.asignado))
   );
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   set('tab-cnt-all',      total);
@@ -4285,7 +4289,10 @@ function softDeleteLead(leadId, boardId) {
 }
 
 function updateTrashBadge() {
-  const count = loadDeletedLeads().length;
+  const _s = getSession();
+  const _ln = (_s && _s.role !== 'master' && _s.role !== 'admin')
+    ? new Set(_getLineUsers(_s).map(u => u.name)) : null;
+  const count = loadDeletedLeads().filter(l => !_ln || _ln.has(l.asignado)).length;
   const badge = document.getElementById('sidebar-trash-badge');
   if (badge) { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
 }
@@ -5059,10 +5066,14 @@ function showTrashPage() {
   if (nt) nt.classList.add('active');
   currentBoardId = null;
 
-  // populate board filter
+  // populate board filter scoped to line
   const sel = document.getElementById('trash-board-filter');
   if (sel) {
-    const boardNames = [...new Set(loadDeletedLeads().map(l => l._originalBoardName).filter(Boolean))];
+    const _fs = getSession();
+    const _fln = (_fs && _fs.role !== 'master' && _fs.role !== 'admin')
+      ? new Set(_getLineUsers(_fs).map(u => u.name)) : null;
+    const scopedDeleted = loadDeletedLeads().filter(l => !_fln || _fln.has(l.asignado));
+    const boardNames = [...new Set(scopedDeleted.map(l => l._originalBoardName).filter(Boolean))];
     sel.innerHTML = '<option value="">Todos los boards</option>' +
       boardNames.map(n => `<option value="${n}">${esc(n)}</option>`).join('');
   }
@@ -5074,7 +5085,10 @@ function showTrashPage() {
 }
 
 function renderTrashTable() {
-  const all    = loadDeletedLeads();
+  const _ts = getSession();
+  const _tln = (_ts && _ts.role !== 'master' && _ts.role !== 'admin')
+    ? new Set(_getLineUsers(_ts).map(u => u.name)) : null;
+  const all    = loadDeletedLeads().filter(l => !_tln || _tln.has(l.asignado));
   const q      = (document.getElementById('trash-search')?.value || '').toLowerCase();
   const bFilter= document.getElementById('trash-board-filter')?.value || '';
 
@@ -6446,8 +6460,12 @@ function setAssignTab(el, val) {
 }
 
 function renderAssignedDeletedTable() {
+  const _ads = getSession();
+  const _adln = (_ads && _ads.role !== 'master' && _ads.role !== 'admin')
+    ? new Set(_getLineUsers(_ads).map(u => u.name)) : null;
   const deleted = loadDeletedLeads()
-    .filter(l => l._originalBoardId === currentBoardId && l.asignado && l.asignado !== 'Sin asignar');
+    .filter(l => l._originalBoardId === currentBoardId && l.asignado && l.asignado !== 'Sin asignar'
+      && (!_adln || _adln.has(l.asignado)));
   const tbody = document.querySelector('#leads-table tbody');
   if (!tbody) return;
   if (deleted.length === 0) {
