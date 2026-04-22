@@ -4032,9 +4032,13 @@ function renderRows(board, leads) {
           `<option value="${esc(r)}"${l.resultado===r?' selected':''}>${r||'— Sin resultado —'}</option>`
         ).join('') + `<option value="__delete_lead__" style="color:var(--red);font-weight:600">🗑 ELIMINAR</option>`;
         const displayVal = l.resultado || '';
-        const emptyClass = displayVal ? '' : ' empty-val';
-        return `<td class="td-inline" onclick="event.stopPropagation()">
-          <span class="inline-display${emptyClass}" onclick="openInlineSel(this)">${esc(displayVal||'Sin resultado')} <span class="caret">▾</span></span>
+        const _resDotColor = {'INTERESADO':'#3ecf8e','CITA AGENDADA':'#2dd4bf','CLIENTE ACTIVO':'#a78bfa','NO INTERESADO':'#e2445c','NO CONTESTA':'#94a3b8','NÚMERO EQUIVOCADO':'#94a3b8','BUZÓN DE VOZ':'#fbbf24','PENDIENTE':'#fbbf24','SIN RESULTADO':'#64748b'}[displayVal] || '#64748b';
+        const _resTag = displayVal
+          ? `display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;cursor:pointer;letter-spacing:.2px`
+          : `display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:5px;padding:6px 12px;font-size:11px;font-weight:500;color:var(--text2);white-space:nowrap;cursor:pointer`;
+        const _resDot = `<span style="width:7px;height:7px;border-radius:50%;background:${_resDotColor};flex-shrink:0;display:inline-block"></span>`;
+        return `<td style="text-align:center;vertical-align:middle" class="td-inline" onclick="event.stopPropagation()">
+          <div style="${_resTag}" onclick="openInlineSel(this)">${_resDot}${esc(displayVal||'Sin resultado')} <span style="opacity:.4;font-size:9px;margin-left:2px">▾</span></div>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','resultado')"
             onblur="closeInlineSel(this)">${resOpts}</select>
