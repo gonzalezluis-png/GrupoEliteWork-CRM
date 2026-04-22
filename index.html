@@ -29,6 +29,55 @@
     --shadow:  0 4px 24px rgba(0,0,0,.45);
   }
 
+  /* ── LIGHT MODE ── */
+  html.light-mode {
+    --bg:      #f0f2f7;
+    --sidebar: #ffffff;
+    --card:    #ffffff;
+    --card2:   #f7f8fc;
+    --border:  #e0e3ee;
+    --accent:  #3b6ef0;
+    --green:   #0ea472;
+    --red:     #e63557;
+    --yellow:  #d97706;
+    --purple:  #7c3aed;
+    --gray:    #9ca3b4;
+    --text:    #1a1d2e;
+    --text2:   #6b7280;
+    --shadow:  0 4px 24px rgba(0,0,0,.10);
+  }
+  html.light-mode body { background: var(--bg); color: var(--text); }
+  html.light-mode #sidebar { box-shadow: 2px 0 12px rgba(0,0,0,.07); }
+  html.light-mode .board-item:hover { background: rgba(59,110,240,.07); }
+  html.light-mode .board-item.active { background: rgba(59,110,240,.10); }
+  html.light-mode tbody tr:hover { background: rgba(59,110,240,.05); }
+  html.light-mode tbody tr:nth-child(even) { background: rgba(0,0,0,.018); }
+  html.light-mode .btn-secondary { background: #fff; border-color: var(--border); color: var(--text); }
+  html.light-mode .btn-secondary:hover { background: #f0f2f7; }
+  html.light-mode input, html.light-mode select, html.light-mode textarea {
+    background: #fff !important; color: var(--text) !important; border-color: var(--border) !important;
+  }
+  html.light-mode .modal-content, html.light-mode .modal-overlay { background: #fff; }
+  html.light-mode #topbar { background: #fff; box-shadow: 0 1px 0 var(--border); }
+  html.light-mode #toolbar { background: #f7f8fc; }
+  html.light-mode #assign-strip { background: #f7f8fc; }
+  html.light-mode .assign-tab:hover { background: rgba(0,0,0,.04); }
+  html.light-mode th { color: #7b82a0; background: #f0f2f7; }
+  html.light-mode .sidebar-logo h1 { color: #1a1d2e; }
+  html.light-mode .theme-toggle-btn { background: #e8eaf4; color: #1a1d2e; border-color: #d0d4e8; }
+  html.light-mode .theme-toggle-btn:hover { background: #dde0f0; }
+
+  /* theme toggle button */
+  .theme-toggle-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.08); border: 1px solid var(--border);
+    color: var(--text2); border-radius: 20px;
+    padding: 5px 12px; font-family: var(--font); font-size: 11.5px; font-weight: 500;
+    cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+    user-select: none; white-space: nowrap;
+  }
+  .theme-toggle-btn:hover { background: rgba(255,255,255,.13); color: var(--text); }
+
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
   html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); font-size: 13px; }
@@ -1574,6 +1623,7 @@ setTimeout(function(){
       <button class="btn btn-secondary" id="btn-scripts-panel" onclick="toggleScriptsPanel()" title="Scripts de Llamada">📋 Scripts</button>
       <button class="btn btn-secondary" id="btn-undo" onclick="undoAction()" title="Deshacer (Ctrl+Z)" disabled style="opacity:.4;min-width:36px;padding:6px 10px">↩</button>
       <button class="btn btn-secondary" id="btn-redo" onclick="redoAction()" title="Rehacer (Ctrl+Y)" disabled style="opacity:.4;min-width:36px;padding:6px 10px">↪</button>
+      <button class="theme-toggle-btn" id="btn-theme" onclick="toggleTheme()" title="Cambiar tema"></button>
       <div id="sync-status" title="Estado de sincronización con la nube" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);user-select:none">
         <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;transition:background .3s"></span>
         <span id="sync-label">Guardado</span>
@@ -6571,6 +6621,26 @@ function getSession() {
 }
 function setSession(user) { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+/* ── THEME ── */
+function applyTheme(mode) {
+  const isLight = mode === 'light';
+  document.documentElement.classList.toggle('light-mode', isLight);
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.innerHTML = isLight ? '🌙 Oscuro' : '☀️ Claro';
+}
+function toggleTheme() {
+  const current = localStorage.getItem('gew_theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('gew_theme', next);
+  applyTheme(next);
+}
+/* apply class immediately (before paint) then update button text after DOM ready */
+(function() {
+  const saved = localStorage.getItem('gew_theme') || 'dark';
+  if (saved === 'light') document.documentElement.classList.add('light-mode');
+  document.addEventListener('DOMContentLoaded', () => applyTheme(saved));
+})();
 
 function seedTestLeads() {
   BOARDS.forEach(b => {
