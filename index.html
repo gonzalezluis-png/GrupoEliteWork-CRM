@@ -6341,7 +6341,7 @@ async function seedDefaultAdmin() {
 async function seedAlexanderAgents() {
   if (localStorage.getItem('gew_seed_alexander_agents_v1')) return;
   const users = loadUsers();
-  const alexander = users.find(u => u.name && u.name.toLowerCase().includes('alexander') && u.role === 'manager');
+  const alexander = users.find(u => u.email === 'alexander@gmail.com') || users.find(u => u.name && u.name.toLowerCase().includes('alexander'));
   if (!alexander) return; // Alexander not found yet, skip
   const names = ['Harold','Kenia','Lisbeth','Chacha','Barbara','Augusto','Bryan','Yarlys','Yarisleidy','Madison','Marta','Guadalupe','Neyda','Maria Lugo','Elizabeth'];
   let changed = false;
