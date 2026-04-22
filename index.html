@@ -3883,7 +3883,7 @@ function renderRows(board, leads) {
           : `height:40px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text2);cursor:pointer`;
         const cellStyle = l.lead ? 'padding:0;text-align:center' : 'text-align:center';
         return `<td style="${cellStyle}" class="td-inline" onclick="event.stopPropagation()">
-          <div style="${barStyle}" onclick="openInlineSel(this.nextElementSibling)">${esc(l.lead||'Tipo de lead')} <span style="opacity:.6;font-size:10px;margin-left:4px">▾</span></div>
+          <div style="${barStyle}" onclick="openInlineSel(this)">${esc(l.lead||'Tipo de lead')} <span style="opacity:.6;font-size:10px;margin-left:4px">▾</span></div>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','lead')"
             onblur="closeInlineSel(this)">${leadOpts}</select>
@@ -3921,7 +3921,7 @@ function renderRows(board, leads) {
           ? `height:40px;display:flex;align-items:center;justify-content:center;background:${ubBg};color:#fff;font-weight:600;font-size:11.5px;letter-spacing:.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px;cursor:pointer`
           : `display:flex;align-items:center;justify-content:center;height:40px;font-size:12px;color:var(--text2);cursor:pointer`;
         return `<td style="${ubCellStyle}" class="td-inline" onclick="event.stopPropagation()">
-          <div style="${ubInner}" onclick="openInlineSel(this.nextElementSibling)">${esc(displayVal||'Ubicación')} <span style="opacity:.6;font-size:10px;margin-left:4px">▾</span></div>
+          <div style="${ubInner}" onclick="openInlineSel(this)">${esc(displayVal||'Ubicación')} <span style="opacity:.6;font-size:10px;margin-left:4px">▾</span></div>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','ubicacion')"
             onblur="closeInlineSel(this)">${opts}</select>
@@ -3949,7 +3949,7 @@ function renderRows(board, leads) {
           `<option value="${esc(a)}"${l.asignado===a?' selected':''}>${a||'— Sin asignar —'}</option>`
         ).join('');
         return `<td style="${cellStyle}" class="td-inline" onclick="event.stopPropagation()">
-          <div style="${innerStyle};cursor:pointer" onclick="openInlineSel(this.nextElementSibling)">${esc(displayVal||'Sin Asignar')}${inactiveTag} <span style="opacity:.6;font-size:10px">▾</span></div>
+          <div style="${innerStyle};cursor:pointer" onclick="openInlineSel(this)">${esc(displayVal||'Sin Asignar')}${inactiveTag} <span style="opacity:.6;font-size:10px">▾</span></div>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','asignado')"
             onblur="closeInlineSel(this)">${agOpts}</select>
