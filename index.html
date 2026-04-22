@@ -2892,6 +2892,15 @@ setTimeout(function(){
   </div>
 </div>
 
+<!-- AGENT PICKER DROPDOWN -->
+<div id="agent-picker" style="display:none;position:fixed;z-index:70000;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);width:240px;overflow:hidden;flex-direction:column">
+  <div style="padding:10px 10px 6px">
+    <input id="agent-picker-search" type="text" placeholder="Buscar…" oninput="filterAgentPicker(this.value)"
+      style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box" />
+  </div>
+  <div id="agent-picker-list" style="max-height:280px;overflow-y:auto;padding:4px 6px 8px"></div>
+</div>
+
 <!-- ASSIGN UNDO SNACKBAR -->
 <div id="assign-undo-bar">
   <span id="assign-undo-text"></span>
@@ -4088,14 +4097,8 @@ function renderRows(board, leads) {
         if (!canAssign) {
           return `<td style="${cellStyle}"><div style="${innerStyle}">${esc(displayVal||'Sin Asignar')}${inactiveTag}</div></td>`;
         }
-        const agOpts = ['', ...getAgents()].map(a =>
-          `<option value="${esc(a)}"${l.asignado===a?' selected':''}>${a||'— Sin asignar —'}</option>`
-        ).join('') + `<option value="__add_agent__" style="color:var(--accent);font-style:italic">+ Agregar agente…</option>`;
         return `<td style="${cellStyle}" class="td-inline" onclick="event.stopPropagation()">
-          <div style="${innerStyle};cursor:pointer" onclick="openInlineSel(this)">${esc(displayVal||'Sin Asignar')}${inactiveTag} <span style="opacity:.6;font-size:10px">▾</span></div>
-          <select class="inline-select" style="display:none"
-            onchange="saveInlineField(this,'${l.id}','asignado')"
-            onblur="closeInlineSel(this)">${agOpts}</select>
+          <div style="${innerStyle};cursor:pointer" onclick="openAgentPicker('${l.id}',this)">${esc(displayVal||'Sin Asignar')}${inactiveTag} <span style="opacity:.6;font-size:10px">▾</span></div>
         </td>`;
       }
       if (c.key === 'creacion') {
@@ -6149,6 +6152,102 @@ function bulkDelete() {
   clearSelection();
   renderTable();
   showToast(`${count} lead${count !== 1 ? 's' : ''} movidos a Eliminados`, 'error');
+}
+
+// ════════════════════════════════════════════
+//  AGENT PICKER
+// ════════════════════════════════════════════
+const _AP_ROLE_LABELS = { master:'Desarrollador', admin:'Administrador', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' };
+const _AP_ROLE_COLOR  = { master:'#6366f1', admin:'#0073ea', master_manager:'#f59e0b', manager:'#3ecf8e', supervisor_agent:'#2dd4bf', agent:'#94a3b8' };
+let _apLeadId = null, _apCloseHandler = null;
+
+function openAgentPicker(leadId, anchorEl) {
+  _apLeadId = leadId;
+  const users = loadUsers().filter(u => !u.inactive);
+  const session = getSession();
+  let pool = users;
+  if (session && session.role !== 'master') {
+    const names = new Set(getAgents());
+    pool = users.filter(u => names.has(u.name));
+  }
+  _renderAgentPickerList(pool, '');
+  const picker = document.getElementById('agent-picker');
+  picker.style.display = 'flex';
+  const rect = anchorEl.getBoundingClientRect();
+  let top = rect.bottom + 4, left = rect.left;
+  if (top + 340 > window.innerHeight) top = rect.top - 340;
+  if (left + 240 > window.innerWidth) left = window.innerWidth - 248;
+  picker.style.top  = top  + 'px';
+  picker.style.left = left + 'px';
+  const inp = document.getElementById('agent-picker-search');
+  inp.value = '';
+  setTimeout(() => inp.focus(), 40);
+  if (_apCloseHandler) document.removeEventListener('mousedown', _apCloseHandler);
+  _apCloseHandler = e => {
+    if (!picker.contains(e.target) && e.target !== anchorEl) closeAgentPicker();
+  };
+  setTimeout(() => document.addEventListener('mousedown', _apCloseHandler), 100);
+}
+
+function _renderAgentPickerList(pool, q) {
+  const filtered = q ? pool.filter(u => u.name.toLowerCase().includes(q.toLowerCase())) : pool;
+  const list = document.getElementById('agent-picker-list');
+  let html = `<div class="_ap-item" data-val="" onmousedown="pickAgent('')" style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;cursor:pointer;color:var(--text2);font-size:12px" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">
+    <span style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text2)">—</span>
+    <span>Sin asignar</span>
+  </div>`;
+  filtered.forEach(u => {
+    const initials = (u.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const color = strToTableColor(u.name) || '#2e7d6b';
+    const roleLabel = _AP_ROLE_LABELS[u.role] || u.role;
+    const roleColor = _AP_ROLE_COLOR[u.role] || '#94a3b8';
+    html += `<div class="_ap-item" onmousedown="pickAgent('${esc(u.name)}')"
+      style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;cursor:pointer"
+      onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">
+      <span style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${initials}</span>
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(u.name)}</span>
+        <span style="display:block;font-size:10px;color:${roleColor};font-weight:600;margin-top:1px">${roleLabel}</span>
+      </span>
+    </div>`;
+  });
+  if (!filtered.length) html += `<div style="padding:12px;text-align:center;font-size:12px;color:var(--text2)">Sin resultados</div>`;
+  list.innerHTML = html;
+}
+
+function filterAgentPicker(q) {
+  const users = loadUsers().filter(u => !u.inactive);
+  const session = getSession();
+  let pool = users;
+  if (session && session.role !== 'master') {
+    const names = new Set(getAgents());
+    pool = users.filter(u => names.has(u.name));
+  }
+  _renderAgentPickerList(pool, q);
+}
+
+function pickAgent(name) {
+  const leadId = _apLeadId;
+  closeAgentPicker();
+  if (!leadId) return;
+  const boardId = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
+  if (!boardId) return;
+  const leads = loadLeads(boardId);
+  const lead  = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const prevAsignado = lead.asignado || '';
+  const newAgent = normalizeAsignado(name);
+  checkReassign(lead, newAgent, (mode) => {
+    applyReassignMode(lead, newAgent, mode);
+    saveLeads(boardId, leads);
+    renderTableKeepSelection();
+    showAssignUndoBar(leadId, boardId, prevAsignado, newAgent);
+  });
+}
+
+function closeAgentPicker() {
+  document.getElementById('agent-picker').style.display = 'none';
+  if (_apCloseHandler) { document.removeEventListener('mousedown', _apCloseHandler); _apCloseHandler = null; }
 }
 
 // ════════════════════════════════════════════
