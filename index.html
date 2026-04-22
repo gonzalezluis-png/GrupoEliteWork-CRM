@@ -94,6 +94,9 @@
   html.light-mode thead tr { background: var(--card2); }
   html.light-mode th { color: var(--text2); background: var(--card2); border-bottom-color: var(--border); }
   html.light-mode td { color: var(--text); }
+  html.light-mode tbody tr { background: var(--card); }
+  html.light-mode .th-check, html.light-mode .th-nombre { background: var(--card2); }
+  html.light-mode .td-name { box-shadow: 2px 0 6px rgba(0,0,0,.06); }
   html.light-mode .td-name { color: var(--text); }
   html.light-mode tbody tr { border-bottom-color: var(--border); }
   html.light-mode tbody tr:hover { background: rgba(0,115,234,.05); }
@@ -476,8 +479,8 @@
   .dist-progress-fill { height: 100%; border-radius: 3px; background: #a78bfa; }
 
   /* ── CHECKBOX ── */
-  .td-check { width: 36px; padding: 0 0 0 12px !important; }
-  .th-check { width: 36px; padding: 0 0 0 12px !important; }
+  .td-check { width: 36px; padding: 0 0 0 12px !important; position: sticky; left: 0; z-index: 1; background: inherit; }
+  .th-check { width: 36px; padding: 0 0 0 12px !important; position: sticky; left: 0; z-index: 12; background: var(--card2); }
   .row-checkbox, .header-checkbox {
     width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent);
     border-radius: 4px;
@@ -623,6 +626,7 @@
   th:last-child  { }
 
   tbody tr {
+    background: var(--card);
     border-bottom: 1px solid var(--border);
     transition: background .1s;
     cursor: pointer;
@@ -635,11 +639,12 @@
     padding: 0 12px; height: 40px; vertical-align: middle;
     font-size: 12.5px; color: var(--text);
     overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0;
-    text-align: center;
+    text-align: left;
   }
   td:first-child { padding-left: 16px; text-align: left; }
 
-  .td-name { font-weight: 400; color: var(--text); text-align: left; }
+  .th-nombre { position: sticky; left: 36px; z-index: 12; background: var(--card2); box-shadow: 2px 0 6px rgba(0,0,0,.12); }
+  .td-name { font-weight: 400; color: var(--text); text-align: left; position: sticky; left: 36px; z-index: 1; background: inherit; box-shadow: 2px 0 6px rgba(0,0,0,.12); }
   .td-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size:12.5px; }
 
   .td-notes { max-width: 160px; color: var(--text2); }
@@ -3749,7 +3754,8 @@ function renderTable() {
       ? `<span onclick="event.stopPropagation();toggleSort('${c.key}')" style="margin-left:5px;cursor:pointer;user-select:none;font-size:11px;opacity:${isActive?'1':'.35'};color:${isActive?'var(--accent)':'inherit'}" title="Ordenar">${isActive && _sortDir === 'desc' ? '▼' : '▲'}</span>`
       : '';
     const resizer = c.key !== '_actions' ? `<div class="col-resizer" data-col="${c.key}"></div>` : '';
-    return `<th style="width:${COL_WIDTHS[c.key]||130}px">${c.label}${arrow}${resizer}</th>`;
+    const thClass = c.key === 'nombre' ? ' class="th-nombre"' : '';
+    return `<th${thClass} style="width:${COL_WIDTHS[c.key]||130}px">${c.label}${arrow}${resizer}</th>`;
   }).join('');
   initResizers();
   applyFilters();
