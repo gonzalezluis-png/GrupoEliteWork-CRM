@@ -180,6 +180,8 @@
   .assign-tab.active .assign-strip-count { background: var(--accent); color: #fff; }
   .assign-tab.tab-unassigned.active .assign-strip-count { background: var(--yellow); color: #1a1a1a; }
   .assign-tab.tab-dist.active { color: #a78bfa; border-bottom-color: #a78bfa; }
+  .assign-tab.tab-deleted.active { color: var(--red); border-bottom-color: var(--red); }
+  .assign-tab.tab-deleted.active .assign-strip-count { background: var(--red); color: #fff; }
 
   /* ── DIST PANEL ── */
   #dist-panel {
@@ -1611,9 +1613,10 @@ setTimeout(function(){
     </div>
 
     <div id="assign-strip" class="hidden">
-      <button class="assign-tab active" data-assign="all" onclick="setAssignTab(this,'all')">Todos</button>
-      <button class="assign-tab" data-assign="assigned" onclick="setAssignTab(this,'assigned')">Asignados</button>
       <button class="assign-tab tab-unassigned" data-assign="unassigned" onclick="setAssignTab(this,'unassigned')">Sin asignar</button>
+      <button class="assign-tab" data-assign="assigned" onclick="setAssignTab(this,'assigned')">Asignados Activos</button>
+      <button class="assign-tab tab-deleted" data-assign="assigned-deleted" onclick="setAssignTab(this,'assigned-deleted')">Asignados Eliminados</button>
+      <button class="assign-tab active" data-assign="all" onclick="setAssignTab(this,'all')">Todos</button>
       <button class="assign-tab tab-dist" data-assign="dist" onclick="setAssignTab(this,'dist')">📊 Distribución</button>
     </div>
 
@@ -5467,12 +5470,40 @@ function setAssignTab(el, val) {
     document.getElementById('bulk-bar').classList.remove('visible');
     renderDistPanel();
     document.getElementById('dist-panel').classList.add('visible');
+  } else if (val === 'assigned-deleted') {
+    document.getElementById('dist-panel').classList.remove('visible');
+    document.getElementById('toolbar').style.display    = 'none';
+    document.getElementById('table-wrap').style.display = '';
+    renderAssignedDeletedTable();
   } else {
     document.getElementById('dist-panel').classList.remove('visible');
     document.getElementById('toolbar').style.display    = '';
     document.getElementById('table-wrap').style.display = '';
     applyFilters();
   }
+}
+
+function renderAssignedDeletedTable() {
+  const deleted = loadDeletedLeads()
+    .filter(l => l._originalBoardId === currentBoardId && l.asignado && l.asignado !== 'Sin asignar');
+  const tbody = document.querySelector('#leads-table tbody');
+  if (!tbody) return;
+  if (deleted.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px;color:var(--text2)">No hay leads asignados eliminados en este board.</td></tr>`;
+    document.getElementById('toolbar-count').textContent = '';
+    return;
+  }
+  document.getElementById('toolbar-count').textContent = `${deleted.length} eliminado${deleted.length!==1?'s':''}`;
+  const board = getBoard(currentBoardId);
+  const cols  = board ? (board.columns || []) : [];
+  tbody.innerHTML = deleted.map(l => {
+    const cells = cols.map(c => {
+      if (c.key === '_check') return `<td></td>`;
+      if (c.key === 'asignado') return `<td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(226,68,92,.12);color:var(--red);border:1px solid rgba(226,68,92,.3)">${esc(l.asignado)}</span></td>`;
+      return `<td>${esc(l[c.key]||'')}</td>`;
+    }).join('');
+    return `<tr style="opacity:.7">${cells}</tr>`;
+  }).join('');
 }
 
 // ════════════════════════════════════════════
