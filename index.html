@@ -6342,6 +6342,23 @@ async function seedDefaultAdmin() {
   }
 }
 
+async function seedAlexanderAgentsV2() {
+  if (localStorage.getItem('gew_seed_alexander_agents_v2')) return;
+  const users = loadUsers();
+  const alexander = users.find(u => u.email === 'alexander@gmail.com') || users.find(u => u.name && u.name.toLowerCase().includes('alexander'));
+  if (!alexander) return;
+  const names = ['Orlando','Lianet','Edgar','Christopher','Cecilia'];
+  let changed = false;
+  names.forEach(name => {
+    const emailName = name.toLowerCase().replace(/\s+/g, '');
+    if (users.find(u => u.email === emailName + '@gmail.com')) return;
+    users.push({ id: uid(), name: name, email: emailName + '@gmail.com', password: '123456', role: 'agent', orgManagerId: alexander.id, termsAccepted: true, mustChangePassword: true, createdAt: today() });
+    changed = true;
+  });
+  if (changed) { await saveUsers(users); showToast('5 agentes adicionales de Alexander agregados ✓', 'success'); }
+  localStorage.setItem('gew_seed_alexander_agents_v2', '1');
+}
+
 async function seedAlexanderAgents() {
   if (localStorage.getItem('gew_seed_alexander_agents_v1')) return;
   const users = loadUsers();
@@ -8048,6 +8065,7 @@ async function loadFromSupabase() {
 
   await seedDefaultAdmin();
   await seedAlexanderAgents();
+  await seedAlexanderAgentsV2();
   refreshBoards();
   seedTestLeads();
   // show org name on login screen
