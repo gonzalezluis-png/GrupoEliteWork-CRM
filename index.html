@@ -31,41 +31,165 @@
 
   /* ── LIGHT MODE ── */
   html.light-mode {
-    --bg:      #f0f2f7;
-    --sidebar: #ffffff;
+    --bg:      #eef0f6;
+    --sidebar: #f5f6fa;
     --card:    #ffffff;
-    --card2:   #f7f8fc;
-    --border:  #e0e3ee;
+    --card2:   #f0f2f8;
+    --border:  #dde0ec;
     --accent:  #3b6ef0;
-    --green:   #0ea472;
-    --red:     #e63557;
-    --yellow:  #d97706;
-    --purple:  #7c3aed;
-    --gray:    #9ca3b4;
-    --text:    #1a1d2e;
-    --text2:   #6b7280;
-    --shadow:  0 4px 24px rgba(0,0,0,.10);
+    --green:   #0c9966;
+    --red:     #d63251;
+    --yellow:  #c47300;
+    --purple:  #6d35d9;
+    --gray:    #9198b0;
+    --text:    #1c1f30;
+    --text2:   #5e6680;
+    --shadow:  0 2px 16px rgba(0,0,0,.09);
   }
+  /* base */
   html.light-mode body { background: var(--bg); color: var(--text); }
-  html.light-mode #sidebar { box-shadow: 2px 0 12px rgba(0,0,0,.07); }
+
+  /* sidebar */
+  html.light-mode #sidebar { background: var(--sidebar); border-right-color: var(--border); box-shadow: 2px 0 14px rgba(0,0,0,.06); }
+  html.light-mode .sidebar-logo { border-bottom-color: var(--border); }
+  html.light-mode .sidebar-logo h1 { color: var(--text); }
+  html.light-mode .sidebar-logo-subtitle,
+  html.light-mode .sidebar-logo-bottom { color: var(--text2); }
+  html.light-mode .sidebar-label { color: var(--text2); }
+  html.light-mode .board-item .board-name { color: var(--text); }
   html.light-mode .board-item:hover { background: rgba(59,110,240,.07); }
-  html.light-mode .board-item.active { background: rgba(59,110,240,.10); }
+  html.light-mode .board-item.active { background: rgba(59,110,240,.11); border-left-color: var(--accent); }
+  html.light-mode .board-item.active .board-count { background: var(--accent); color: #fff; }
+  html.light-mode .board-count { background: var(--border); color: var(--text2); }
+
+  /* topbar */
+  html.light-mode #topbar { background: var(--card); border-bottom-color: var(--border); box-shadow: 0 1px 0 var(--border); }
+  html.light-mode #board-title { color: var(--text); }
+  html.light-mode .topbar-user-name { color: var(--text); }
+  html.light-mode .topbar-user-role { color: var(--text2); }
+
+  /* toolbar / assign strip */
+  html.light-mode #toolbar { background: var(--card2); border-bottom-color: var(--border); }
+  html.light-mode #assign-strip { background: var(--card2); border-bottom-color: var(--border); }
+  html.light-mode .assign-tab { color: var(--text2); }
+  html.light-mode .assign-tab:hover { color: var(--text); background: rgba(0,0,0,.04); }
+  html.light-mode .assign-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  html.light-mode .assign-tab.tab-unassigned.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+  html.light-mode .assign-strip-count { background: var(--border); color: var(--text2); }
+  html.light-mode .assign-tab.active .assign-strip-count { background: var(--accent); color: #fff; }
+
+  /* buttons */
+  html.light-mode .btn-secondary { background: var(--card); border-color: var(--border); color: var(--text); }
+  html.light-mode .btn-secondary:hover { background: var(--card2); }
+  html.light-mode .btn-logout { background: rgba(214,50,81,.1); color: var(--red); border: 1px solid rgba(214,50,81,.2); }
+
+  /* theme toggle */
+  html.light-mode .theme-toggle-btn { background: var(--card2); color: var(--text2); border-color: var(--border); }
+  html.light-mode .theme-toggle-btn:hover { background: var(--border); color: var(--text); }
+
+  /* table */
+  html.light-mode thead tr { background: var(--card2); }
+  html.light-mode th { color: var(--text2); background: var(--card2); border-color: var(--border); }
+  html.light-mode td { color: var(--text); border-color: rgba(0,0,0,.06); }
+  html.light-mode .td-name { color: var(--text); }
+  html.light-mode tbody tr { border-bottom-color: rgba(0,0,0,.06); }
   html.light-mode tbody tr:hover { background: rgba(59,110,240,.05); }
-  html.light-mode tbody tr:nth-child(even) { background: rgba(0,0,0,.018); }
-  html.light-mode .btn-secondary { background: #fff; border-color: var(--border); color: var(--text); }
-  html.light-mode .btn-secondary:hover { background: #f0f2f7; }
-  html.light-mode input, html.light-mode select, html.light-mode textarea {
-    background: #fff !important; color: var(--text) !important; border-color: var(--border) !important;
+  html.light-mode tbody tr:nth-child(even) { background: rgba(0,0,0,.02); }
+  html.light-mode .td-notes span { color: var(--text2); }
+  html.light-mode #table-wrap { background: var(--card); }
+
+  /* inline edits */
+  html.light-mode .inline-edit-wrap input,
+  html.light-mode .inline-drop-wrap select { background: var(--card) !important; color: var(--text) !important; border-color: var(--accent) !important; }
+
+  /* inputs / selects / textareas globally */
+  html.light-mode input:not([type=checkbox]):not([type=radio]),
+  html.light-mode select,
+  html.light-mode textarea {
+    background: var(--card) !important; color: var(--text) !important;
+    border-color: var(--border) !important;
   }
-  html.light-mode .modal-content, html.light-mode .modal-overlay { background: #fff; }
-  html.light-mode #topbar { background: #fff; box-shadow: 0 1px 0 var(--border); }
-  html.light-mode #toolbar { background: #f7f8fc; }
-  html.light-mode #assign-strip { background: #f7f8fc; }
-  html.light-mode .assign-tab:hover { background: rgba(0,0,0,.04); }
-  html.light-mode th { color: #7b82a0; background: #f0f2f7; }
-  html.light-mode .sidebar-logo h1 { color: #1a1d2e; }
-  html.light-mode .theme-toggle-btn { background: #e8eaf4; color: #1a1d2e; border-color: #d0d4e8; }
-  html.light-mode .theme-toggle-btn:hover { background: #dde0f0; }
+  html.light-mode input::placeholder,
+  html.light-mode textarea::placeholder { color: var(--text2) !important; opacity: .7; }
+
+  /* modal */
+  html.light-mode .modal-overlay { background: rgba(100,110,160,.35); }
+  html.light-mode .modal-content { background: var(--card); border: 1px solid var(--border); }
+  html.light-mode .modal-header { background: var(--card2); border-bottom-color: var(--border); }
+  html.light-mode .modal-header h2 { color: var(--text); }
+  html.light-mode .modal-close { color: var(--text2); }
+  html.light-mode .modal-close:hover { background: var(--border); color: var(--text); }
+  html.light-mode .modal-footer { background: var(--card2); border-top-color: var(--border); }
+  html.light-mode .field label { color: var(--text2); }
+
+  /* cards / panels */
+  html.light-mode .dist-stat-card,
+  html.light-mode .dist-agent-card,
+  html.light-mode .custom-col-item,
+  html.light-mode .lt-tag { background: var(--card2); border-color: var(--border); }
+  html.light-mode .lt-tag { color: var(--text); }
+  html.light-mode .ce-fixed-badge { background: rgba(0,0,0,.06); color: var(--text2); border-color: var(--border); }
+
+  /* trash page */
+  html.light-mode .trash-title { color: var(--text); }
+  html.light-mode .trash-table th { background: var(--card2); color: var(--text2); border-color: var(--border); }
+  html.light-mode .trash-table td { color: var(--text); border-color: rgba(0,0,0,.07); }
+  html.light-mode .trash-table tr:hover td { background: rgba(0,0,0,.025); }
+
+  /* users page */
+  html.light-mode .user-card { background: var(--card); border-color: var(--border); }
+  html.light-mode .user-card-name { color: var(--text); }
+  html.light-mode .users-header h2 { color: var(--text); }
+
+  /* notes / scripts side panels */
+  html.light-mode #notes-panel-box,
+  html.light-mode #scripts-side-panel { background: var(--card); border-left-color: var(--border); }
+  html.light-mode .ssp-title { color: var(--text); }
+  html.light-mode .ssp-script-title,
+  html.light-mode .ssp-script-content h1,
+  html.light-mode .ssp-script-content h2 { color: var(--text); }
+
+  /* org chart */
+  html.light-mode .org-node { background: var(--card); border-color: var(--border); }
+  html.light-mode .org-node-name { color: var(--text); }
+  html.light-mode .org-node-role { color: var(--text2); }
+
+  /* sync overlay */
+  html.light-mode #sync-overlay { background: var(--bg); }
+  html.light-mode .sync-msg { color: var(--text2); }
+
+  /* login */
+  html.light-mode #login-page { background: var(--bg); }
+  html.light-mode .login-box { background: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 32px rgba(0,0,0,.10); }
+  html.light-mode .login-logo h1 { color: var(--text); }
+
+  /* bulk bar */
+  html.light-mode #bulk-bar { background: var(--accent); }
+  html.light-mode .bulk-count { color: #fff; }
+  html.light-mode .bulk-label { color: rgba(255,255,255,.8); }
+  html.light-mode .bulk-clear { color: rgba(255,255,255,.7); }
+  html.light-mode .bulk-sep { background: rgba(255,255,255,.25); }
+
+  /* settings page */
+  html.light-mode .st-card { background: var(--card); border-color: var(--border); }
+  html.light-mode .st-card-title { color: var(--text); }
+  html.light-mode .st-card-desc { color: var(--text2); }
+
+  /* scrollbar */
+  html.light-mode ::-webkit-scrollbar-track { background: var(--card2); }
+  html.light-mode ::-webkit-scrollbar-thumb { background: #c5c9da; }
+  html.light-mode ::-webkit-scrollbar-thumb:hover { background: #b0b5cc; }
+
+  /* unassigned row names readable on light bg */
+  html.light-mode tbody tr.unassigned-row .td-name span { color: var(--text); }
+  html.light-mode .dist-agent-header:hover { background: rgba(0,0,0,.03); }
+  html.light-mode .board-editor-row { border-bottom-color: var(--border); }
+  html.light-mode .be-icon-inp,
+  html.light-mode .be-ord-btn { background: var(--card); border-color: var(--border); color: var(--text); }
+  html.light-mode .col-editor-row { border-bottom-color: var(--border); }
+
+  /* tour / hint note */
+  html.light-mode .hint-note { background: rgba(59,110,240,.08); border-color: rgba(59,110,240,.2); color: var(--text2); }
 
   /* theme toggle button */
   .theme-toggle-btn {
