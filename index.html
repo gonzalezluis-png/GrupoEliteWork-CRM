@@ -367,6 +367,17 @@
   .assign-tab.tab-dist.active { color: #a78bfa; border-bottom-color: #a78bfa; }
   .assign-tab.tab-deleted.active { color: var(--red); border-bottom-color: var(--red); }
   .assign-tab.tab-deleted.active .assign-strip-count { background: var(--red); color: #fff; }
+  /* discrete tab count badge */
+  .tab-cnt {
+    display: inline-block; margin-left: 5px;
+    font-size: 10px; font-weight: 600; color: var(--text2);
+    background: rgba(255,255,255,.07); border-radius: 10px;
+    padding: 0 5px; line-height: 16px; vertical-align: middle;
+    min-width: 18px; text-align: center;
+  }
+  .assign-tab.active .tab-cnt { background: rgba(255,255,255,.15); color: var(--text); }
+  .assign-tab.tab-unassigned.active .tab-cnt { background: rgba(253,171,61,.2); color: var(--yellow); }
+  .assign-tab.tab-deleted.active .tab-cnt { background: rgba(226,68,92,.2); color: var(--red); }
 
   /* ── DIST PANEL ── */
   #dist-panel {
@@ -1236,6 +1247,56 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .sync-msg { color: var(--text2); font-size: 13px; }
 
+  /* ── STATS PAGE ── */
+  #stats-page { background: var(--bg); }
+  .stats-header { padding: 20px 28px 16px; border-bottom: 1px solid var(--border); background: var(--card2); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .stats-title { font-size: 17px; font-weight: 700; color: var(--text); }
+  .stats-subtitle { font-size: 11.5px; color: var(--text2); margin-top: 3px; }
+  .stats-body { flex: 1; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 24px; }
+  .stats-section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .stats-section-head { padding: 14px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .stats-section-title { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .stats-section-body { padding: 16px 20px; }
+  .stats-cards-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stats-card {
+    flex: 1; min-width: 130px; background: var(--card2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .stats-card-val { font-size: 28px; font-weight: 700; line-height: 1; color: var(--text); }
+  .stats-card-lbl { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; }
+  .stats-card-sub { font-size: 10.5px; color: var(--text2); margin-top: 2px; }
+  /* bar chart */
+  .stats-bar-list { display: flex; flex-direction: column; gap: 8px; }
+  .stats-bar-row { display: flex; align-items: center; gap: 10px; }
+  .stats-bar-label { font-size: 11.5px; color: var(--text2); min-width: 110px; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; flex-shrink: 0; }
+  .stats-bar-track { flex: 1; height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .stats-bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+  .stats-bar-val { font-size: 11.5px; font-weight: 600; color: var(--text); min-width: 28px; text-align: right; flex-shrink: 0; }
+  /* timeline chart */
+  .stats-timeline { display: flex; align-items: flex-end; gap: 4px; height: 120px; padding: 0 2px; overflow-x: auto; }
+  .stats-tl-col { display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; min-width: 28px; }
+  .stats-tl-bar { width: 20px; border-radius: 3px 3px 0 0; transition: height .3s ease; cursor: default; }
+  .stats-tl-bar:hover { opacity: .8; }
+  .stats-tl-lbl { font-size: 9px; color: var(--text2); white-space: nowrap; transform: rotate(-45deg); transform-origin: top right; margin-top: 4px; }
+  .stats-tl-val { font-size: 9px; color: var(--text2); }
+  .stats-tl-toggle { display: flex; gap: 4px; }
+  .stats-tl-btn { padding: 3px 10px; font-size: 11px; border: 1px solid var(--border); background: transparent; color: var(--text2); border-radius: 6px; cursor: pointer; font-family: var(--font); transition: all .12s; }
+  .stats-tl-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  /* table in stats */
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .stats-table th { text-align: left; padding: 8px 12px; color: var(--text2); font-weight: 500; border-bottom: 1px solid var(--border); font-size: 11px; }
+  .stats-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  .stats-table tr:last-child td { border-bottom: none; }
+  .stats-table tr:hover td { background: rgba(0,115,234,.04); }
+  .stats-del-badge { font-size: 9.5px; padding: 1px 7px; border-radius: 8px; font-weight: 600; }
+
+  /* light mode stats */
+  html.light-mode .stats-section { background: var(--card); border-color: var(--border); }
+  html.light-mode .stats-card { background: var(--card2); border-color: var(--border); }
+  html.light-mode .stats-tl-btn { color: var(--text2); border-color: var(--border); }
+  html.light-mode .stats-table th { color: var(--text2); border-color: var(--border); }
+  html.light-mode .stats-table td { color: var(--text); border-color: var(--border); }
+
   /* ── TRASH PAGE ── */
   #trash-page { display:none; flex:1; flex-direction:column; overflow:hidden; }
   #trash-page.visible { display:flex; }
@@ -1727,6 +1788,7 @@ setTimeout(function(){
     </div>
     <div class="sidebar-admin" id="sidebar-admin" style="display:none">
       <div class="sidebar-item" id="nav-trash" onclick="showTrashPage()">🗑 <span>Eliminados</span><span id="sidebar-trash-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
+      <div class="sidebar-item" id="nav-stats" onclick="showStatsPage()">📈 <span>Estadísticas</span></div>
       <div class="sidebar-item" id="nav-calendar" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
       <div class="sidebar-item" id="nav-activity" onclick="showActivityPage()">📊 <span>Actividad</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
@@ -1798,11 +1860,11 @@ setTimeout(function(){
     </div>
 
     <div id="assign-strip" class="hidden">
-      <button class="assign-tab tab-unassigned" data-assign="unassigned" onclick="setAssignTab(this,'unassigned')">Sin asignar</button>
-      <button class="assign-tab" data-assign="assigned" onclick="setAssignTab(this,'assigned')">Asignados Activos</button>
-      <button class="assign-tab tab-deleted" data-assign="assigned-deleted" onclick="setAssignTab(this,'assigned-deleted')">Asignados Eliminados</button>
-      <button class="assign-tab active" data-assign="all" onclick="setAssignTab(this,'all')">Todos</button>
-      <button class="assign-tab tab-dist" data-assign="dist" onclick="setAssignTab(this,'dist')">📊 Distribución</button>
+      <button class="assign-tab tab-unassigned" data-assign="unassigned" onclick="setAssignTab(this,'unassigned')">Sin asignar <span class="tab-cnt" id="tab-cnt-unassigned"></span></button>
+      <button class="assign-tab" data-assign="assigned" onclick="setAssignTab(this,'assigned')">Asignados Activos <span class="tab-cnt" id="tab-cnt-assigned"></span></button>
+      <button class="assign-tab tab-deleted" data-assign="assigned-deleted" onclick="setAssignTab(this,'assigned-deleted')">Asignados Eliminados <span class="tab-cnt" id="tab-cnt-deleted"></span></button>
+      <button class="assign-tab active" data-assign="all" onclick="setAssignTab(this,'all')">Todos <span class="tab-cnt" id="tab-cnt-all"></span></button>
+      <button class="assign-tab tab-dist" data-assign="dist" onclick="setAssignTab(this,'dist')">Distribución</button>
     </div>
 
     <div id="toolbar">
@@ -2386,6 +2448,28 @@ setTimeout(function(){
     </div>
 
     <!-- CALENDAR PAGE -->
+    <!-- ── STATS PAGE ── -->
+    <div id="stats-page" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+      <div class="stats-header">
+        <div>
+          <div class="stats-title">Estadísticas</div>
+          <div class="stats-subtitle">Vista general de todos los leads y su actividad</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="stats-filter-board" class="filter-select" onchange="renderStatsPage()" style="font-size:11px">
+            <option value="">Todos los boards</option>
+          </select>
+          <select id="stats-filter-agent" class="filter-select" onchange="renderStatsPage()" style="font-size:11px">
+            <option value="">Todos los agentes</option>
+          </select>
+          <input type="date" id="stats-filter-from" class="filter-date" style="width:130px;font-size:11px" onchange="renderStatsPage()" title="Desde">
+          <input type="date" id="stats-filter-to" class="filter-date" style="width:130px;font-size:11px" onchange="renderStatsPage()" title="Hasta">
+          <button class="btn btn-secondary btn-sm" onclick="clearStatsFilters()">✕ Limpiar</button>
+        </div>
+      </div>
+      <div class="stats-body" id="stats-body"></div>
+    </div>
+
     <div id="calendar-page" style="display:none;flex:1;flex-direction:column;overflow:hidden">
 
       <!-- Cal Header -->
@@ -3519,6 +3603,25 @@ function selectBoard(id) {
   document.getElementById('leads-table').style.display = '';
 
   renderTable();
+  updateTabCounts();
+}
+
+function updateTabCounts() {
+  if (!currentBoardId) return;
+  const leads = currentBoardId === '__agent__'
+    ? loadAgentLeads(getSession()?.name || '')
+    : loadLeads(currentBoardId);
+  const total    = leads.length;
+  const unassign = leads.filter(l => !l.asignado || l.asignado === 'Sin asignar').length;
+  const assigned = leads.filter(l => l.asignado && l.asignado !== 'Sin asignar').length;
+  const delArr   = loadDeletedLeads().filter(l =>
+    l._originalBoardId === currentBoardId && l.asignado && l.asignado !== 'Sin asignar'
+  );
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('tab-cnt-all',      total);
+  set('tab-cnt-unassigned', unassign);
+  set('tab-cnt-assigned',   assigned);
+  set('tab-cnt-deleted',    delArr.length);
 }
 
 // ════════════════════════════════════════════
@@ -3634,6 +3737,7 @@ function applyFilters() {
   renderRows(board, filteredLeads);
   document.getElementById('toolbar-count').textContent =
     `${filteredLeads.length} de ${leads.length} lead${leads.length !== 1 ? 's' : ''}`;
+  updateTabCounts();
 }
 
 function renderRows(board, leads) {
@@ -3940,7 +4044,11 @@ function saveLead() {
 
   saveLeads(saveBoardId, leads);
   const isEdit = !!editingLeadId;
-  logActivity('lead_edit', isEdit ? 'Lead editado' : 'Lead creado', `${data.nombre}${data.asignado ? ' · Asignado a: '+data.asignado : ''}`);
+  if (isEdit && oldLead && data.resultado && data.resultado !== oldLead.resultado) {
+    logActivity('lead_edit', 'Cambio de resultado', `${data.nombre} · resultado: "${oldLead.resultado||'—'}" → "${data.resultado}"`, { boardId: saveBoardId });
+  } else {
+    logActivity('lead_edit', isEdit ? 'Lead editado' : 'Lead creado', `${data.nombre}${data.asignado ? ' · Asignado a: '+data.asignado : ''}`, { boardId: saveBoardId });
+  }
   closeModal();
   renderTable();
   showToast(isEdit ? 'Lead actualizado ✓' : 'Lead agregado ✓', 'success');
@@ -4381,6 +4489,321 @@ function showActivityPage() {
   currentBoardId = null;
   _populateActivityFilters();
   renderActivityPage();
+}
+
+// ════════════════════════════════════════════
+//  STATS PAGE
+// ════════════════════════════════════════════
+let _statsTlMode = 'day'; // day | week | month
+
+function showStatsPage() {
+  const session = getSession();
+  if (!session || (session.role !== 'master' && session.role !== 'admin')) return;
+  showBoardView();
+  document.getElementById('table-wrap').style.display    = 'none';
+  document.getElementById('toolbar').style.display       = 'none';
+  document.getElementById('bulk-bar').classList.remove('visible');
+  document.getElementById('btn-new-lead').style.display  = 'none';
+  document.getElementById('btn-export').style.display    = 'none';
+  document.getElementById('assign-strip').classList.add('hidden');
+  document.getElementById('stats-page').style.display    = 'flex';
+  document.getElementById('board-title').textContent     = 'Estadísticas';
+  document.querySelectorAll('.board-item, .sidebar-item').forEach(el => el.classList.remove('active'));
+  const nav = document.getElementById('nav-stats');
+  if (nav) nav.classList.add('active');
+  currentBoardId = null;
+  _populateStatsFilters();
+  renderStatsPage();
+}
+
+function _populateStatsFilters() {
+  const bSel = document.getElementById('stats-filter-board');
+  if (!bSel) return;
+  const curB = bSel.value;
+  bSel.innerHTML = '<option value="">Todos los boards</option>' +
+    BOARDS.map(b => `<option value="${b.id}"${b.id===curB?' selected':''}>${esc(b.name)}</option>`).join('');
+  const aSel = document.getElementById('stats-filter-agent');
+  const curA = aSel.value;
+  const allLeads = BOARDS.flatMap(b => loadLeads(b.id));
+  const agents = [...new Set(allLeads.map(l => l.asignado).filter(a => a && a !== 'Sin asignar'))].sort();
+  aSel.innerHTML = '<option value="">Todos los agentes</option>' +
+    agents.map(a => `<option value="${esc(a)}"${a===curA?' selected':''}>${esc(a)}</option>`).join('');
+}
+
+function clearStatsFilters() {
+  ['stats-filter-board','stats-filter-agent','stats-filter-from','stats-filter-to'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderStatsPage();
+}
+
+function setStatsTlMode(mode) {
+  _statsTlMode = mode;
+  renderStatsPage();
+}
+
+function _getStatsLeads() {
+  const board = document.getElementById('stats-filter-board')?.value || '';
+  const agent = document.getElementById('stats-filter-agent')?.value || '';
+  const from  = document.getElementById('stats-filter-from')?.value || '';
+  const to    = document.getElementById('stats-filter-to')?.value || '';
+  const boards = board ? BOARDS.filter(b => b.id === board) : BOARDS;
+  let leads = boards.flatMap(b => loadLeads(b.id).map(l => ({...l, _boardId: b.id, _boardName: b.name})));
+  if (agent) leads = leads.filter(l => l.asignado === agent);
+  if (from)  leads = leads.filter(l => l.creacion >= from);
+  if (to)    leads = leads.filter(l => l.creacion <= to);
+  return leads;
+}
+
+function renderStatsPage() {
+  const body = document.getElementById('stats-body');
+  if (!body) return;
+  const leads   = _getStatsLeads();
+  const deleted = loadDeletedLeads();
+  const actLog  = loadActivityLog();
+  const board   = document.getElementById('stats-filter-board')?.value || '';
+  const agent   = document.getElementById('stats-filter-agent')?.value || '';
+  const from    = document.getElementById('stats-filter-from')?.value || '';
+  const to      = document.getElementById('stats-filter-to')?.value || '';
+
+  // ── SUMMARY CARDS ──
+  const total     = leads.length;
+  const unassigned = leads.filter(l => !l.asignado || l.asignado === 'Sin asignar').length;
+  const assigned   = total - unassigned;
+  const delFiltered = deleted.filter(l =>
+    (!board || l._originalBoardId === board) &&
+    (!agent || l.asignado === agent) &&
+    (!from  || (l.creacion||'') >= from) &&
+    (!to    || (l.creacion||'') <= to)
+  );
+
+  // ── TIMELINE DATA ──
+  function tlKey(dateStr, mode) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d)) return null;
+    if (mode === 'month') return dateStr.slice(0,7);
+    if (mode === 'week') {
+      const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const mon = new Date(d); mon.setDate(diff);
+      return mon.toISOString().slice(0,10);
+    }
+    return dateStr;
+  }
+  const tlMap = {};
+  leads.forEach(l => {
+    const k = tlKey(l.creacion, _statsTlMode);
+    if (k) tlMap[k] = (tlMap[k]||0) + 1;
+  });
+  const tlKeys = Object.keys(tlMap).sort().slice(-60);
+  const tlMax  = Math.max(...tlKeys.map(k => tlMap[k]), 1);
+
+  function tlLabel(k) {
+    if (_statsTlMode === 'month') {
+      const [y,m] = k.split('-');
+      const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      return months[parseInt(m)-1]+' '+y.slice(2);
+    }
+    if (_statsTlMode === 'week') return k.slice(5).replace('-','/');
+    return k.slice(5).replace('-','/');
+  }
+
+  const tlBars = tlKeys.map(k => {
+    const h = Math.max(4, Math.round(tlMap[k] / tlMax * 100));
+    return `<div class="stats-tl-col">
+      <div class="stats-tl-val" style="font-size:9px;color:var(--text2);margin-bottom:2px">${tlMap[k]}</div>
+      <div class="stats-tl-bar" style="height:${h}px;background:var(--accent);opacity:.85" title="${k}: ${tlMap[k]} leads"></div>
+      <div class="stats-tl-lbl">${tlLabel(k)}</div>
+    </div>`;
+  }).join('');
+
+  // ── LEADS BY BOARD ──
+  const boardCounts = BOARDS.map(b => {
+    const cnt = leads.filter(l => l._boardId === b.id).length;
+    return { name: b.name, icon: b.icon, cnt };
+  }).filter(x => x.cnt > 0).sort((a,b) => b.cnt - a.cnt);
+  const maxBoard = Math.max(...boardCounts.map(x => x.cnt), 1);
+
+  // ── LEADS BY AGENT ──
+  const agentMap2 = {};
+  leads.forEach(l => {
+    const a = l.asignado || 'Sin asignar';
+    if (!agentMap2[a]) agentMap2[a] = 0;
+    agentMap2[a]++;
+  });
+  const agentRows = Object.entries(agentMap2).sort((a,b) => b[1]-a[1]).slice(0,20);
+  const maxAgent = Math.max(...agentRows.map(r => r[1]), 1);
+
+  // ── LEADS BY RESULT ──
+  const resultMap = {};
+  leads.forEach(l => {
+    const r = l.resultado || '(Sin resultado)';
+    resultMap[r] = (resultMap[r]||0)+1;
+  });
+  const resultRows = Object.entries(resultMap).sort((a,b) => b[1]-a[1]);
+  const maxResult  = Math.max(...resultRows.map(r => r[1]), 1);
+
+  // ── DELETED LEADS ──
+  const delRows = delFiltered.sort((a,b) => (b._deletedAt||'').localeCompare(a._deletedAt||'')).slice(0,50);
+
+  // ── RESULT CHANGES from activity log ──
+  let resChanges = actLog.filter(e => e.type === 'lead_edit' && e.detail && e.detail.includes('resultado'));
+  if (board) resChanges = resChanges.filter(e => e.boardId === board || (e.detail&&e.detail.includes(board)));
+  if (agent) resChanges = resChanges.filter(e => e.detail&&e.detail.toLowerCase().includes(agent.toLowerCase()));
+  if (from)  resChanges = resChanges.filter(e => e.ts >= from);
+  if (to)    resChanges = resChanges.filter(e => e.ts.slice(0,10) <= to);
+  resChanges = resChanges.slice(0, 50);
+
+  const PALETTE = ['#0073ea','#00c875','#fdab3d','#e2445c','#784bd1','#00b7c3','#ff6b6b','#4ecdc4','#45b7d1','#96ceb4'];
+
+  body.innerHTML = `
+    <!-- SUMMARY -->
+    <div class="stats-section">
+      <div class="stats-section-head">
+        <div class="stats-section-title">Resumen general</div>
+      </div>
+      <div class="stats-section-body">
+        <div class="stats-cards-row">
+          <div class="stats-card">
+            <div class="stats-card-val" style="color:var(--accent)">${total}</div>
+            <div class="stats-card-lbl">Total leads activos</div>
+          </div>
+          <div class="stats-card">
+            <div class="stats-card-val" style="color:var(--green)">${assigned}</div>
+            <div class="stats-card-lbl">Asignados</div>
+            <div class="stats-card-sub">${total ? Math.round(assigned/total*100) : 0}% del total</div>
+          </div>
+          <div class="stats-card">
+            <div class="stats-card-val" style="color:var(--yellow)">${unassigned}</div>
+            <div class="stats-card-lbl">Sin asignar</div>
+            <div class="stats-card-sub">${total ? Math.round(unassigned/total*100) : 0}% del total</div>
+          </div>
+          <div class="stats-card">
+            <div class="stats-card-val" style="color:var(--red)">${delFiltered.length}</div>
+            <div class="stats-card-lbl">Eliminados</div>
+          </div>
+          <div class="stats-card">
+            <div class="stats-card-val">${BOARDS.length}</div>
+            <div class="stats-card-lbl">Boards activos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="stats-section">
+      <div class="stats-section-head">
+        <div class="stats-section-title">📅 Leads por fecha de creación</div>
+        <div class="stats-tl-toggle">
+          <button class="stats-tl-btn${_statsTlMode==='day'?' active':''}" onclick="setStatsTlMode('day')">Día</button>
+          <button class="stats-tl-btn${_statsTlMode==='week'?' active':''}" onclick="setStatsTlMode('week')">Semana</button>
+          <button class="stats-tl-btn${_statsTlMode==='month'?' active':''}" onclick="setStatsTlMode('month')">Mes</button>
+        </div>
+      </div>
+      <div class="stats-section-body">
+        ${tlKeys.length ? `
+          <div style="display:flex;align-items:flex-end;gap:0;overflow-x:auto;padding-bottom:8px;min-height:160px">
+            <div style="display:flex;align-items:flex-end;gap:3px;padding:0 4px;min-height:130px">${tlBars}</div>
+          </div>
+        ` : '<div style="color:var(--text2);font-size:13px;padding:16px 0">Sin datos para el período seleccionado.</div>'}
+      </div>
+    </div>
+
+    <!-- BY BOARD & BY RESULT (2 cols) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="stats-section">
+        <div class="stats-section-head"><div class="stats-section-title">📋 Leads por board</div></div>
+        <div class="stats-section-body">
+          ${boardCounts.length ? `<div class="stats-bar-list">
+            ${boardCounts.map((b,i) => `
+              <div class="stats-bar-row">
+                <div class="stats-bar-label" title="${esc(b.name)}">${b.icon} ${esc(b.name)}</div>
+                <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${Math.round(b.cnt/maxBoard*100)}%;background:${PALETTE[i%PALETTE.length]}"></div></div>
+                <div class="stats-bar-val">${b.cnt}</div>
+              </div>`).join('')}
+          </div>` : '<div style="color:var(--text2);font-size:12px">Sin datos.</div>'}
+        </div>
+      </div>
+      <div class="stats-section">
+        <div class="stats-section-head"><div class="stats-section-title">🏷 Leads por resultado</div></div>
+        <div class="stats-section-body">
+          ${resultRows.length ? `<div class="stats-bar-list">
+            ${resultRows.map((r,i) => `
+              <div class="stats-bar-row">
+                <div class="stats-bar-label" title="${esc(r[0])}">${esc(r[0])}</div>
+                <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${Math.round(r[1]/maxResult*100)}%;background:${PALETTE[i%PALETTE.length]}"></div></div>
+                <div class="stats-bar-val">${r[1]}</div>
+              </div>`).join('')}
+          </div>` : '<div style="color:var(--text2);font-size:12px">Sin datos.</div>'}
+        </div>
+      </div>
+    </div>
+
+    <!-- BY AGENT -->
+    <div class="stats-section">
+      <div class="stats-section-head"><div class="stats-section-title">👤 Leads por agente</div></div>
+      <div class="stats-section-body">
+        ${agentRows.length ? `<div class="stats-bar-list">
+          ${agentRows.map((r,i) => `
+            <div class="stats-bar-row">
+              <div class="stats-bar-label" title="${esc(r[0])}">${esc(r[0])}</div>
+              <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${Math.round(r[1]/maxAgent*100)}%;background:${PALETTE[i%PALETTE.length]}"></div></div>
+              <div class="stats-bar-val">${r[1]}</div>
+            </div>`).join('')}
+        </div>` : '<div style="color:var(--text2);font-size:12px">Sin datos.</div>'}
+      </div>
+    </div>
+
+    <!-- DELETED LEADS -->
+    <div class="stats-section">
+      <div class="stats-section-head">
+        <div class="stats-section-title">🗑 Leads eliminados <span style="font-size:11px;font-weight:400;color:var(--text2);margin-left:6px">(${delFiltered.length} total)</span></div>
+      </div>
+      <div class="stats-section-body" style="padding:0">
+        ${delRows.length ? `
+        <table class="stats-table">
+          <thead><tr>
+            <th>Nombre</th><th>Board</th><th>Asignado a</th><th>Resultado</th><th>Eliminado</th><th>Por</th>
+          </tr></thead>
+          <tbody>${delRows.map(l => {
+            const d = l._deletedAt ? new Date(l._deletedAt).toLocaleString('es-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+            return `<tr>
+              <td style="font-weight:500">${esc(l.nombre||'—')}</td>
+              <td style="color:var(--text2)">${esc(l._originalBoardName||'—')}</td>
+              <td>${esc(l.asignado||'Sin asignar')}</td>
+              <td><span class="stats-del-badge" style="background:rgba(226,68,92,.1);color:var(--red)">${esc(l.resultado||'—')}</span></td>
+              <td style="color:var(--text2);font-size:11px;white-space:nowrap">${d}</td>
+              <td style="color:var(--text2);font-size:11px">${esc(l._deletedBy||'—')}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+        ` : '<div style="text-align:center;padding:32px 20px;color:var(--text2);font-size:12px">No hay leads eliminados para los filtros seleccionados.</div>'}
+      </div>
+    </div>
+
+    <!-- RESULT CHANGES -->
+    <div class="stats-section">
+      <div class="stats-section-head">
+        <div class="stats-section-title">🔄 Cambios de resultado recientes</div>
+      </div>
+      <div class="stats-section-body" style="padding:0">
+        ${resChanges.length ? `
+        <table class="stats-table">
+          <thead><tr><th>Lead</th><th>Detalle</th><th>Por</th><th>Fecha</th></tr></thead>
+          <tbody>${resChanges.map(e => {
+            const d = new Date(e.ts).toLocaleString('es-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+            return `<tr>
+              <td style="font-weight:500">${esc(e.detail?.split('·')[0]?.trim()||'—')}</td>
+              <td style="color:var(--text2);font-size:11px">${esc(e.detail||'')}</td>
+              <td style="font-size:11px">${esc(e.userName||'—')}</td>
+              <td style="color:var(--text2);font-size:11px;white-space:nowrap">${d}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+        ` : '<div style="text-align:center;padding:32px 20px;color:var(--text2);font-size:12px">No hay cambios registrados.</div>'}
+      </div>
+    </div>
+  `;
 }
 
 function _populateActivityFilters() {
@@ -5728,6 +6151,7 @@ function setAssignTab(el, val) {
     document.getElementById('toolbar').style.display    = 'none';
     document.getElementById('table-wrap').style.display = 'none';
     document.getElementById('bulk-bar').classList.remove('visible');
+    if (currentBoardId && currentBoardId !== '__agent__') _distBoardFilter = currentBoardId;
     renderDistPanel();
     document.getElementById('dist-panel').classList.add('visible');
   } else if (val === 'assigned-deleted') {
@@ -7295,10 +7719,13 @@ function showBoardView() {
   document.getElementById('scripts-page').classList.remove('visible');
   document.getElementById('activity-page').style.display  = 'none';
   document.getElementById('calendar-page').style.display  = 'none';
+  document.getElementById('stats-page').style.display     = 'none';
   const navAct = document.getElementById('nav-activity');
   if (navAct) navAct.classList.remove('active');
   const navCal = document.getElementById('nav-calendar');
   if (navCal) navCal.classList.remove('active');
+  const navSta = document.getElementById('nav-stats');
+  if (navSta) navSta.classList.remove('active');
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
   document.getElementById('btn-new-lead').style.display = '';
