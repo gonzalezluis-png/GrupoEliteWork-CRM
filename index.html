@@ -1869,6 +1869,7 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-scripts" onclick="showScriptsPage()">📋 <span>Scripts de Llamada</span></div>
     </div>
     <div id="sidebar-agent" style="display:none">
+      <div class="sidebar-item" id="nav-mis-leads" onclick="showAgentView()">📋 <span>Mis Leads</span></div>
       <div class="sidebar-item" id="nav-calendar-agent" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
       <div class="sidebar-item" id="nav-settings-agent" onclick="showSettingsPage()">⚙️ <span>Configuración</span></div>
     </div>
@@ -6990,7 +6991,7 @@ function showSettingsPage() {
   document.getElementById('btn-export').style.display    = 'none';
   document.getElementById('settings-page').classList.add('visible');
   document.getElementById('board-title').textContent     = 'Configuración';
-  document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.board-item, .sidebar-item').forEach(el => el.classList.remove('active'));
   ['nav-settings','nav-settings-agent'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('active'); });
   currentBoardId = null;
 
@@ -7963,6 +7964,9 @@ function showAgentView() {
   currentBoardId = '__agent__';
   showBoardView();
   document.getElementById('board-title').textContent = 'Mis Leads';
+  document.querySelectorAll('#sidebar-agent .sidebar-item').forEach(el => el.classList.remove('active'));
+  const navMl = document.getElementById('nav-mis-leads');
+  if (navMl) navMl.classList.add('active');
   const banner = document.getElementById('agent-org-banner');
   if (banner) {
     banner.style.display = 'block';
