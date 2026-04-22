@@ -2154,6 +2154,7 @@ setTimeout(function(){
           <div class="trash-subtitle">Los leads eliminados se guardan aquí. Puedes restaurarlos o eliminarlos permanentemente.</div>
         </div>
         <span class="trash-count-badge" id="trash-count-label">0 leads</span>
+        <button id="empty-trash-btn" onclick="emptyTrash()" style="display:none;background:rgba(226,68,92,.15);color:var(--red);border:1px solid rgba(226,68,92,.3);border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(226,68,92,.28)'" onmouseout="this.style.background='rgba(226,68,92,.15)'">🗑 Vaciar papelera</button>
       </div>
       <div class="trash-toolbar">
         <input type="text" id="trash-search" placeholder="Buscar por nombre, teléfono..." style="width:240px" oninput="renderTrashTable()" />
@@ -4150,6 +4151,8 @@ function showTrashPage() {
   }
 
   document.getElementById('trash-search').value = '';
+  const emptyBtn = document.getElementById('empty-trash-btn');
+  if (emptyBtn) emptyBtn.style.display = getSession()?.role === 'master' ? '' : 'none';
   renderTrashTable();
 }
 
@@ -4254,6 +4257,19 @@ async function permanentDeleteLead(leadId) {
   updateTrashBadge();
   renderTrashTable();
   showToast('Lead eliminado permanentemente', 'error');
+}
+
+async function emptyTrash() {
+  const session = getSession();
+  if (!session || session.role !== 'master') return;
+  const count = loadDeletedLeads().length;
+  if (count === 0) { showToast('La papelera ya está vacía', 'success'); return; }
+  if (!confirm(`¿Vaciar la papelera? Se eliminarán permanentemente ${count} lead${count !== 1 ? 's' : ''}. Esta acción no se puede deshacer.`)) return;
+  await saveDeletedLeads([]);
+  updateTrashBadge();
+  renderTrashTable();
+  logActivity('trash_emptied', 'Papelera vaciada', `${count} leads eliminados permanentemente`);
+  showToast(`Papelera vaciada · ${count} lead${count !== 1 ? 's' : ''} eliminados`, 'error');
 }
 
 // ════════════════════════════════════════════
