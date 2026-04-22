@@ -3821,11 +3821,28 @@ function renderRows(board, leads) {
           'GUIA MÉDICO RESGUARDAR': '#f59e0b',
           'CSKID':                  '#6366f1',
         };
-        const val = (l.lead||'').toUpperCase();
-        const bg  = _leadColors[val] || _leadColors[Object.keys(_leadColors).find(k=>val.includes(k.toUpperCase().slice(0,6)))||''] || '#4da8ff';
-        return l.lead
-          ? `<td style="padding:0;text-align:center"><div style="height:40px;display:flex;align-items:center;justify-content:center;background:${bg};color:#fff;font-weight:600;font-size:11px;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px;border-radius:0">${esc(l.lead)}</div></td>`
-          : `<td style="text-align:center;color:var(--text2);font-size:11px">—</td>`;
+        const val    = (l.lead||'').toUpperCase();
+        const bg     = _leadColors[val] || _leadColors[Object.keys(_leadColors).find(k=>val.includes(k.toUpperCase().slice(0,6)))||''] || '#4da8ff';
+        const sess   = getSession();
+        const canEdit = sess && (sess.role === 'master' || sess.role === 'admin');
+        if (!canEdit) {
+          return l.lead
+            ? `<td style="padding:0;text-align:center"><div style="height:40px;display:flex;align-items:center;justify-content:center;background:${bg};color:#fff;font-weight:600;font-size:11px;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px">${esc(l.lead)}</div></td>`
+            : `<td style="text-align:center;color:var(--text2);font-size:11px">—</td>`;
+        }
+        const leadOpts = ['', ...getLeadTypes()].map(t =>
+          `<option value="${esc(t)}"${l.lead===t?' selected':''}>${t||'— Sin tipo —'}</option>`
+        ).join('');
+        const barStyle = l.lead
+          ? `height:40px;display:flex;align-items:center;justify-content:center;background:${bg};color:#fff;font-weight:600;font-size:11px;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px;cursor:pointer`
+          : `height:40px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text2);cursor:pointer`;
+        const cellStyle = l.lead ? 'padding:0;text-align:center' : 'text-align:center';
+        return `<td style="${cellStyle}" class="td-inline" onclick="event.stopPropagation()">
+          <div style="${barStyle}" onclick="openInlineSel(this.nextElementSibling)">${esc(l.lead||'Tipo de lead')} <span style="opacity:.6;font-size:10px;margin-left:4px">▾</span></div>
+          <select class="inline-select" style="display:none"
+            onchange="saveInlineField(this,'${l.id}','lead')"
+            onblur="closeInlineSel(this)">${leadOpts}</select>
+        </td>`;
       }
       if (c.key === 'estado') {
         const cls = STATE_PILL[l.estado] || 'pill-gray';
