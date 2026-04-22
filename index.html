@@ -3658,17 +3658,13 @@ function renderSidebar() {
   const list = document.getElementById('board-list');
   const defaultIds = new Set(DEFAULT_BOARDS.map(b => b.id));
 
-  const mgrAgentNames   = isManager          ? getManagerAgentNames(session.id)       : [];
-  const mmAgentNames    = isMasterManager    ? getMasterManagerAgentNames(session.id)  : [];
-  const saAgentNames    = isSupervisorAgent  ? getSupervisorAgentNames(session.id)     : [];
+  const sideLineNames = (isManager || isMasterManager || isSupervisorAgent)
+    ? new Set(_getLineUsers(session).map(u => u.name))
+    : null;
   const visibleBoards = isAgent
     ? BOARDS.filter(b => loadLeads(b.id).some(l => l.asignado === session.name))
-    : isManager
-      ? BOARDS.filter(b => loadLeads(b.id).some(l => mgrAgentNames.includes(l.asignado)))
-    : isMasterManager
-      ? BOARDS.filter(b => loadLeads(b.id).some(l => mmAgentNames.includes(l.asignado)))
-    : isSupervisorAgent
-      ? BOARDS.filter(b => loadLeads(b.id).some(l => saAgentNames.includes(l.asignado)))
+    : sideLineNames
+      ? BOARDS.filter(b => loadLeads(b.id).some(l => sideLineNames.has(l.asignado)))
       : BOARDS;
 
   list.innerHTML = visibleBoards.map(b => {
@@ -3817,9 +3813,10 @@ function applyFilters() {
     ? loadAgentLeads(session ? session.name : '')
     : loadLeads(currentBoardId);
 
-  const mgrAgents = (session && session.role === 'manager')          ? getManagerAgentNames(session.id)      :
-                    (session && session.role === 'master_manager')    ? getMasterManagerAgentNames(session.id) :
-                    (session && session.role === 'supervisor_agent')  ? getSupervisorAgentNames(session.id)   : null;
+  const _lineRoles = ['manager','master_manager','supervisor_agent'];
+  const lineNames = (session && _lineRoles.includes(session.role))
+    ? new Set(_getLineUsers(session).map(u => u.name))
+    : null;
   const q       = document.getElementById('search-input').value.toLowerCase();
   const fAsig   = document.getElementById('f-asignado').value;
   const fLead   = document.getElementById('f-lead').value;
@@ -3832,7 +3829,7 @@ function applyFilters() {
   selectedIds.clear();
   updateBulkBar();
   filteredLeads = leads.filter(l => {
-    if (mgrAgents && !mgrAgents.includes(l.asignado)) return false;
+    if (lineNames && !lineNames.has(l.asignado)) return false;
     if (q && ![ l.nombre, l.email, l.telefono ].some(v => (v||'').toLowerCase().includes(q))) return false;
     if (fAsig && l.asignado  !== fAsig) return false;
     if (fLead && l.lead      !== fLead) return false;
@@ -4302,20 +4299,10 @@ function _calVisibleEvents() {
   if (session.role === 'master' || session.role === 'admin') {
     return fUser ? all.filter(e => e.userId === fUser) : all;
   }
-  if (session.role === 'manager') {
-    const agentNames = getManagerAgentNames(session.id);
-    const allowed    = [session.id, ...loadUsers().filter(u => agentNames.includes(u.name)).map(u => u.id)];
-    return all.filter(e => allowed.includes(e.userId));
-  }
-  if (session.role === 'master_manager') {
-    const agentNames = getMasterManagerAgentNames(session.id);
-    const allowed    = [session.id, ...loadUsers().filter(u => agentNames.includes(u.name)).map(u => u.id)];
-    return all.filter(e => allowed.includes(e.userId));
-  }
-  if (session.role === 'supervisor_agent') {
-    const agentNames = getSupervisorAgentNames(session.id);
-    const allowed    = [session.id, ...loadUsers().filter(u => agentNames.includes(u.name)).map(u => u.id)];
-    return all.filter(e => allowed.includes(e.userId));
+  if (['manager','master_manager','supervisor_agent'].includes(session.role)) {
+    const allowed = new Set(_getLineUsers(session).map(u => u.id));
+    const filtered = all.filter(e => allowed.has(e.userId));
+    return fUser ? filtered.filter(e => e.userId === fUser) : filtered;
   }
   return all.filter(e => e.userId === session.id);
 }
@@ -4348,15 +4335,9 @@ function _populateCalUserFilter() {
   let options   = [];
   if (session.role === 'master' || session.role === 'admin') {
     options = users.filter(u => u.role !== 'master');
-  } else if (session.role === 'manager') {
-    const names = getManagerAgentNames(session.id);
-    options = users.filter(u => names.includes(u.name));
-  } else if (session.role === 'master_manager') {
-    const names = getMasterManagerAgentNames(session.id);
-    options = users.filter(u => names.includes(u.name));
-  } else if (session.role === 'supervisor_agent') {
-    const names = getSupervisorAgentNames(session.id);
-    options = users.filter(u => names.includes(u.name));
+  } else {
+    const lineIds = new Set(_getLineUsers(session).map(u => u.id));
+    options = users.filter(u => lineIds.has(u.id));
   }
   const cur = sel.value;
   sel.innerHTML = '<option value="">Todos</option>' +
@@ -4671,11 +4652,11 @@ function _populateStatsFilters() {
   const aSel = document.getElementById('stats-filter-agent');
   const curA = aSel.value;
   const isFullOrg = !session || session.role === 'master' || session.role === 'admin';
-  const lineAgentNames = isFullOrg ? null : new Set(_getLineUsers(session).filter(u => u.role === 'agent').map(u => u.name));
+  const lineNames = isFullOrg ? null : new Set(_getLineUsers(session).map(u => u.name));
   const allLeads = BOARDS.flatMap(b => loadLeads(b.id));
   const agents = [...new Set(
     allLeads.map(l => l.asignado)
-      .filter(a => a && a !== 'Sin asignar' && (isFullOrg || lineAgentNames.has(a)))
+      .filter(a => a && a !== 'Sin asignar' && (isFullOrg || lineNames.has(a)))
   )].sort();
   aSel.innerHTML = '<option value="">Todos los agentes</option>' +
     agents.map(a => `<option value="${esc(a)}"${a===curA?' selected':''}>${esc(a)}</option>`).join('');
@@ -4704,8 +4685,8 @@ function _getStatsLeads() {
   // Scope to line for non-admin/master roles
   const isFullOrg = !session || session.role === 'master' || session.role === 'admin';
   if (!isFullOrg) {
-    const lineAgents = new Set(_getLineUsers(session).filter(u => u.role === 'agent').map(u => u.name));
-    leads = leads.filter(l => lineAgents.has(l.asignado));
+    const lineNames = new Set(_getLineUsers(session).map(u => u.name));
+    leads = leads.filter(l => lineNames.has(l.asignado));
   }
   if (agent) leads = leads.filter(l => l.asignado === agent);
   if (from)  leads = leads.filter(l => l.creacion >= from);
@@ -6789,9 +6770,14 @@ function populateLeadFilter() {
 }
 
 function populateAgentFilter() {
+  const session = getSession();
   const sel = document.getElementById('f-asignado');
   sel.innerHTML = '<option value="">Agente: Todos</option>';
-  getAgents().forEach(a => {
+  const isFullOrg = !session || session.role === 'master' || session.role === 'admin';
+  const names = isFullOrg
+    ? loadUsers().filter(u => !u.inactive).map(u => u.name)
+    : _getLineUsers(session).filter(u => !u.inactive).map(u => u.name);
+  names.forEach(a => {
     const o = document.createElement('option');
     o.value = a; o.textContent = a;
     sel.appendChild(o);
@@ -7043,16 +7029,16 @@ function _populateSettingsStats() {
   const session    = getSession();
   const lineUsers  = _getLineUsers(session);
   const isFullOrg  = !session || session.role === 'master' || session.role === 'admin';
-  const agentNames = lineUsers.filter(u => u.role === 'agent').map(u => u.name);
-  const agents     = agentNames.length;
+  const lineUserNames = new Set(lineUsers.map(u => u.name));
+  const agents     = lineUsers.filter(u => u.role === 'agent').length;
 
   const activeBoards = isFullOrg
     ? BOARDS.length
-    : BOARDS.filter(b => loadLeads(b.id).some(l => agentNames.includes(l.asignado))).length;
+    : BOARDS.filter(b => loadLeads(b.id).some(l => lineUserNames.has(l.asignado))).length;
 
   const lineLeads = isFullOrg
     ? BOARDS.reduce((acc, b) => acc + loadLeads(b.id).length, 0)
-    : BOARDS.reduce((acc, b) => acc + loadLeads(b.id).filter(l => agentNames.includes(l.asignado)).length, 0);
+    : BOARDS.reduce((acc, b) => acc + loadLeads(b.id).filter(l => lineUserNames.has(l.asignado)).length, 0);
 
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   set('stat-users',  lineUsers.length);
