@@ -7906,10 +7906,7 @@ let editingUserId = null;
 
 function showUsersPage() {
   showSettingsPage();
-  setTimeout(() => {
-    const el = document.getElementById('settings-users-section');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  }, 50);
+  switchSettingsTab('team');
 }
 
 function showBoardView() {
