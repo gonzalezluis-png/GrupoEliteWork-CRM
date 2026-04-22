@@ -3569,7 +3569,10 @@ function renderRows(board, leads) {
         const avatarName = sess ? sess.name : '';
         const initials = avatarName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
         const avatar = `<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,.15)">${initials}</div>`;
-        return `<td><div style="display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap">${avatar}<span style="font-size:12px;color:var(--text2)">${esc(formatDate(l.creacion||''))}</span></div></td>`;
+        const dateLabel = l.creacion === '2026-04-21'
+          ? `<span style="font-size:11px;color:#fdab3d;font-weight:600">04/21 · POR EXPORTACIÓN</span>`
+          : `<span style="font-size:12px;color:var(--text2)">${esc(formatDate(l.creacion||''))}</span>`;
+        return `<td><div style="display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap">${avatar}${dateLabel}</div></td>`;
       }
       if (c.key === 'notas') return `<td class="td-notes"><span title="${esc(l.notas||'')}">${esc(l.notas||'')}</span></td>`;
       // custom column
