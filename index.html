@@ -3773,9 +3773,10 @@ function selectBoard(id) {
     document.getElementById(fid).value = '';
   });
   clearDateFilter(false);
-  assignFilter = 'unassigned';
+  assignFilter = 'all';
   document.querySelectorAll('.assign-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector('.assign-tab[data-assign="unassigned"]').classList.add('active');
+  const _allTab = document.querySelector('.assign-tab[data-assign="all"]');
+  if (_allTab) _allTab.classList.add('active');
   document.getElementById('dist-panel').classList.remove('visible');
   selectedIds.clear();
   updateBulkBar();
