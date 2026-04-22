@@ -3138,9 +3138,16 @@ let COL_WIDTHS      = {
 function getBoard(id) { return BOARDS.find(b => b.id === id); }
 
 // ── localStorage ──
+function normalizeAsignado(val) {
+  if (!val) return '';
+  return val.trim().toLowerCase() === 'no asignado' ? '' : val;
+}
 function loadLeads(boardId) {
-  try { return JSON.parse(localStorage.getItem('gew_leads_' + boardId)) || []; }
-  catch { return []; }
+  try {
+    const leads = JSON.parse(localStorage.getItem('gew_leads_' + boardId)) || [];
+    leads.forEach(l => { l.asignado = normalizeAsignado(l.asignado); });
+    return leads;
+  } catch { return []; }
 }
 function setSyncStatus(state) {
   const dot = document.getElementById('sync-dot');
@@ -3691,7 +3698,7 @@ function saveLead() {
     hijos:       get('f_hijos'),
     direccion:   get('f_direccion'),
     ubicacion:   get('f_ubicacion'),
-    asignado:    get('f_asignado'),
+    asignado:    normalizeAsignado(get('f_asignado')),
     estado:      get('f_estado'),
     resultado:   get('f_resultado'),
     notas:       get('f_notas'),
@@ -4984,7 +4991,7 @@ function parseAndImport(text) {
       hijos:       row.hijos || '',
       direccion:   row.direccion || row.address || '',
       ubicacion:   row.ubicacion || row.location || '',
-      asignado:    row.asignado || '',
+      asignado:    normalizeAsignado(row.asignado || ''),
       estado:      row.estado || row.status || '',
       resultado:   row.resultado || '',
 
@@ -5306,7 +5313,7 @@ function cancelReassign() {
 function saveInlineField(sel, leadId, field) {
   const boardId  = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
   if (!boardId) return;
-  const newValue = sel.value;
+  const newValue = field === 'asignado' ? normalizeAsignado(sel.value) : sel.value;
   const isMulti  = selectedIds.size > 1 && selectedIds.has(leadId);
   const snapshotIds = isMulti ? new Set(selectedIds) : null;
 
