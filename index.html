@@ -766,6 +766,10 @@
   .org-node-actions button.del:hover { color:var(--red); }
   .org-tree-add { display:inline-flex; align-items:center; gap:5px; background:transparent; border:1px dashed var(--border); border-radius:8px; padding:5px 12px; color:var(--text2); font-size:10px; font-weight:600; cursor:pointer; transition:border-color .15s,color .15s; white-space:nowrap; }
   .org-tree-add:hover { border-color:var(--accent); color:var(--accent); }
+  .org-node[draggable="true"] { cursor:grab; }
+  .org-node[draggable="true"]:active { cursor:grabbing; }
+  .org-node.dragging { opacity:.4; }
+  .org-node.drop-target { border-color:#00e5ff !important; box-shadow:0 0 0 2px #00e5ff55; background:rgba(0,229,255,.08); }
   /* Legend strip */
   .org-legend { display:flex; flex-wrap:wrap; gap:10px; padding:0 8px 16px; }
   .org-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text2); }
@@ -6865,7 +6869,10 @@ function orgNode(u, session) {
   const canEdit   = session.role === 'master' || (session.role === 'admin' && u.orgAdminId === session.id && u.role !== 'admin');
   const editBtn   = canEdit && u.role !== 'master' ? `<button onclick="openUserModal('${u.id}')" title="Editar">✏️</button>` : '';
   const delBtn    = canEdit && u.role !== 'master' && u.id !== session.id ? `<button class="del" onclick="deleteUser('${u.id}')" title="Eliminar">🗑</button>` : '';
-  return `<div class="${nodeClass}">
+  const canDrag   = canEdit && u.role !== 'master' && u.role !== 'admin';
+  const dragAttrs = canDrag ? `draggable="true" ondragstart="orgDragStart(event,'${u.id}')" ondragend="orgDragEnd(event)"` : '';
+  const dropAttrs = canEdit && u.role !== 'master' && u.role !== 'agent' ? `ondragover="orgDragOver(event,'${u.id}')" ondragleave="orgDragLeave(event)" ondrop="orgDrop(event,'${u.id}')"` : '';
+  return `<div class="${nodeClass}" data-uid="${u.id}" ${dragAttrs} ${dropAttrs}>
     <div style="width:32px;height:32px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
     <div class="org-node-info">
       <div class="org-node-name">${esc(u.name)}</div>
@@ -6975,6 +6982,90 @@ function renderUsersGrid() {
 
   // Append deleted users history
   _renderDeletedUsersHistory(grid, session);
+}
+
+// ── Org chart drag & drop ─────────────────────────────────
+let _orgDragId = null;
+
+function orgDragStart(e, userId) {
+  _orgDragId = userId;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { const el = e.target.closest('.org-node'); if (el) el.classList.add('dragging'); }, 0);
+}
+
+function orgDragEnd(e) {
+  _orgDragId = null;
+  const el = e.target.closest('.org-node'); if (el) el.classList.remove('dragging');
+  document.querySelectorAll('.org-node.drop-target').forEach(n => n.classList.remove('drop-target'));
+}
+
+function _orgIsValidDrop(dragged, target) {
+  if (dragged.role === 'master_manager') return target.role === 'admin';
+  if (dragged.role === 'manager')        return ['master_manager'].includes(target.role);
+  if (dragged.role === 'supervisor_agent') return ['master_manager','manager'].includes(target.role);
+  if (dragged.role === 'agent')          return ['master_manager','manager','supervisor_agent'].includes(target.role);
+  return false;
+}
+
+function orgDragOver(e, targetId) {
+  if (!_orgDragId || _orgDragId === targetId) return;
+  const users = loadUsers();
+  const dragged = users.find(u => u.id === _orgDragId);
+  const target  = users.find(u => u.id === targetId);
+  if (!dragged || !target || !_orgIsValidDrop(dragged, target)) return;
+  e.preventDefault();
+  const el = e.currentTarget; if (el) el.classList.add('drop-target');
+}
+
+function orgDragLeave(e) {
+  const el = e.currentTarget; if (el) el.classList.remove('drop-target');
+}
+
+function _orgParentName(u, users) {
+  if (u.orgSupervisorId)   { const p = users.find(x=>x.id===u.orgSupervisorId);   return p ? p.name : 'Sin asignar'; }
+  if (u.orgManagerId)      { const p = users.find(x=>x.id===u.orgManagerId);      return p ? p.name : 'Sin asignar'; }
+  if (u.orgMasterManagerId){ const p = users.find(x=>x.id===u.orgMasterManagerId); return p ? p.name : 'Sin asignar'; }
+  if (u.orgAdminId)        { const p = users.find(x=>x.id===u.orgAdminId);        return p ? p.name : 'Sin asignar'; }
+  return 'Sin asignar';
+}
+
+async function orgDrop(e, targetId) {
+  e.preventDefault();
+  const el = e.currentTarget; if (el) el.classList.remove('drop-target');
+  if (!_orgDragId || _orgDragId === targetId) return;
+  const users   = loadUsers();
+  const dragged = users.find(u => u.id === _orgDragId);
+  const target  = users.find(u => u.id === targetId);
+  _orgDragId = null;
+  if (!dragged || !target || !_orgIsValidDrop(dragged, target)) return;
+
+  const fromName = _orgParentName(dragged, users);
+  if (!confirm(`¿Mover a ${dragged.name} de "${fromName}" a "${target.name}"?`)) return;
+
+  const idx = users.findIndex(u => u.id === dragged.id);
+  const u = users[idx];
+  // Clear existing org assignments
+  delete u.orgSupervisorId; delete u.orgManagerId; delete u.orgMasterManagerId;
+
+  if (target.role === 'supervisor_agent') {
+    u.orgSupervisorId    = target.id;
+    u.orgManagerId       = target.orgManagerId       || null;
+    u.orgMasterManagerId = target.orgMasterManagerId || null;
+    u.orgAdminId         = target.orgAdminId         || null;
+  } else if (target.role === 'manager') {
+    u.orgManagerId       = target.id;
+    u.orgMasterManagerId = target.orgMasterManagerId || null;
+    u.orgAdminId         = target.orgAdminId         || null;
+  } else if (target.role === 'master_manager') {
+    u.orgMasterManagerId = target.id;
+    u.orgAdminId         = target.orgAdminId         || null;
+  } else if (target.role === 'admin') {
+    u.orgAdminId = target.id;
+  }
+
+  await saveUsers(users);
+  renderUsersGrid();
+  showToast(`${dragged.name} movido a ${target.name} ✓`, 'success');
 }
 
 function _renderDeletedUsersHistory(grid, session) {
