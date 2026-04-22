@@ -770,6 +770,8 @@
   .org-node[draggable="true"]:active { cursor:grabbing; }
   .org-node.dragging { opacity:.4; }
   .org-node.drop-target { border-color:#00e5ff !important; box-shadow:0 0 0 2px #00e5ff55; background:rgba(0,229,255,.08); }
+  .org-node-inactive { opacity:.5; filter:grayscale(.6); }
+  .badge-inactive { background:rgba(255,80,80,.18); color:#ff6b6b; font-size:9px; font-weight:700; border-radius:4px; padding:1px 5px; margin-left:4px; letter-spacing:.3px; }
   /* Legend strip */
   .org-legend { display:flex; flex-wrap:wrap; gap:10px; padding:0 8px 16px; }
   .org-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text2); }
@@ -3017,7 +3019,8 @@ function getAgents() {
     const agentNames = getSupervisorAgentNames(session.id);
     agents = agents.filter(u => agentNames.includes(u.name));
   }
-  return agents.map(u => u.name);
+  // Exclude inactive from assignment selector
+  return agents.filter(u => !u.inactive).map(u => u.name);
 }
 
 function getSupervisorAgentNames(supId) {
@@ -3412,22 +3415,29 @@ function renderRows(board, leads) {
       if (c.key === 'asignado') {
         const sess       = getSession();
         const displayVal = l.asignado || '';
+        const assignedUser = displayVal ? loadUsers().find(u => u.name === displayVal) : null;
+        const isInactive = assignedUser && assignedUser.inactive;
         const isAssigned = displayVal && displayVal !== 'Sin asignar';
-        const pillStyle  = isAssigned
+        const pillStyle  = isInactive
+          ? 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(255,80,80,.10);color:#ff6b6b;border:1px solid rgba(255,80,80,.25)'
+          : isAssigned
           ? 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(0,200,117,.12);color:#00c875;border:1px solid rgba(0,200,117,.3)'
           : 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(0,115,234,.12);color:#3b9eff;border:1px solid rgba(0,115,234,.3)';
-        const dot        = isAssigned
+        const dot        = isInactive
+          ? '<span style="width:6px;height:6px;border-radius:50%;background:#ff6b6b;flex-shrink:0"></span>'
+          : isAssigned
           ? '<span style="width:6px;height:6px;border-radius:50%;background:#00c875;flex-shrink:0"></span>'
           : '<span style="width:6px;height:6px;border-radius:50%;background:#3b9eff;flex-shrink:0"></span>';
+        const inactiveTag = isInactive ? ' <span style="font-size:9px;opacity:.8">(inactivo)</span>' : '';
         const canAssign = sess && (sess.role === 'master' || sess.role === 'admin' || sess.role === 'manager' || sess.role === 'master_manager' || sess.role === 'supervisor_agent');
         if (!canAssign) {
-          return `<td><span style="${pillStyle}">${dot}${esc(displayVal||'Sin Asignar')}</span></td>`;
+          return `<td><span style="${pillStyle}">${dot}${esc(displayVal||'Sin Asignar')}${inactiveTag}</span></td>`;
         }
         const agOpts = ['', ...getAgents()].map(a =>
           `<option value="${esc(a)}"${l.asignado===a?' selected':''}>${a||'— Sin asignar —'}</option>`
         ).join('');
         return `<td class="td-inline" onclick="event.stopPropagation()">
-          <span style="${pillStyle};cursor:pointer" onclick="openInlineSel(this)">${dot}${esc(displayVal||'Sin Asignar')} <span style="opacity:.6;font-size:10px">▾</span></span>
+          <span style="${pillStyle};cursor:pointer" onclick="openInlineSel(this)">${dot}${esc(displayVal||'Sin Asignar')}${inactiveTag} <span style="opacity:.6;font-size:10px">▾</span></span>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','asignado')"
             onblur="closeInlineSel(this)">${agOpts}</select>
@@ -6440,6 +6450,12 @@ async function doLogin() {
       return;
     }
 
+    if (user.inactive) {
+      err.textContent = 'Esta cuenta está inactiva. Contacta al administrador.';
+      if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
+      return;
+    }
+
     document.getElementById('login-debug').style.display = 'none';
     err.textContent = '';
     // Auto-accept terms on first login to avoid blocking users
@@ -6883,20 +6899,27 @@ function orgNode(u, session) {
   const nodeClass = `org-node org-node-${u.role}`;
   const initials  = (u.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatarBg  = u.role==='master'?'var(--yellow)':u.role==='admin'?'var(--accent)':u.role==='master_manager'?'#00b7c3':u.role==='manager'?'var(--green)':u.role==='supervisor_agent'?'#ff8c00':'var(--purple)';
-  const canEdit   = session.role === 'master' || (session.role === 'admin' && u.orgAdminId === session.id && u.role !== 'admin');
-  const editBtn   = canEdit && u.role !== 'master' ? `<button onclick="openUserModal('${u.id}')" title="Editar">✏️</button>` : '';
-  const delBtn    = canEdit && u.role !== 'master' && u.id !== session.id ? `<button class="del" onclick="deleteUser('${u.id}')" title="Eliminar">🗑</button>` : '';
-  const canDrag   = canEdit && u.role !== 'master' && u.role !== 'admin';
-  const dragAttrs = canDrag ? `draggable="true" ondragstart="orgDragStart(event,'${u.id}')" ondragend="orgDragEnd(event)"` : '';
-  const dropAttrs = canEdit && u.role !== 'master' && u.role !== 'agent' ? `ondragover="orgDragOver(event,'${u.id}')" ondragleave="orgDragLeave(event)" ondrop="orgDrop(event,'${u.id}')"` : '';
-  return `<div class="${nodeClass}" data-uid="${u.id}" ${dragAttrs} ${dropAttrs}>
+  const canEdit      = session.role === 'master' || (session.role === 'admin' && u.orgAdminId === session.id && u.role !== 'admin');
+  const editBtn      = canEdit && u.role !== 'master' ? `<button onclick="openUserModal('${u.id}')" title="Editar">✏️</button>` : '';
+  const inactiveBtn  = canEdit && u.role !== 'master' && u.id !== session.id
+    ? (u.inactive
+        ? `<button onclick="toggleUserInactive('${u.id}')" title="Reactivar usuario" style="color:#4caf50">▶</button>`
+        : `<button onclick="toggleUserInactive('${u.id}')" title="Marcar como inactivo" style="color:#ff9800">⏸</button>`)
+    : '';
+  const delBtn       = canEdit && u.role !== 'master' && u.id !== session.id ? `<button class="del" onclick="deleteUser('${u.id}')" title="Eliminar">🗑</button>` : '';
+  const canDrag      = canEdit && u.role !== 'master' && u.role !== 'admin' && !u.inactive;
+  const dragAttrs    = canDrag ? `draggable="true" ondragstart="orgDragStart(event,'${u.id}')" ondragend="orgDragEnd(event)"` : '';
+  const dropAttrs    = canEdit && u.role !== 'master' && u.role !== 'agent' ? `ondragover="orgDragOver(event,'${u.id}')" ondragleave="orgDragLeave(event)" ondrop="orgDrop(event,'${u.id}')"` : '';
+  const inactiveCls  = u.inactive ? ' org-node-inactive' : '';
+  const inactiveBadge = u.inactive ? `<span class="badge-inactive">INACTIVO</span>` : '';
+  return `<div class="${nodeClass}${inactiveCls}" data-uid="${u.id}" ${dragAttrs} ${dropAttrs}>
     <div style="width:32px;height:32px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
     <div class="org-node-info">
-      <div class="org-node-name">${esc(u.name)}</div>
+      <div class="org-node-name">${esc(u.name)}${inactiveBadge}</div>
       <div class="org-node-email">${esc(u.email)}</div>
       <span class="role-badge ${roleCls}" style="margin-top:3px;display:inline-block">${roleLabel}</span>
     </div>
-    <div class="org-node-actions">${editBtn}${delBtn}</div>
+    <div class="org-node-actions">${editBtn}${inactiveBtn}${delBtn}</div>
   </div>`;
 }
 
@@ -7694,6 +7717,24 @@ async function deleteUser(userId) {
       showToast(`Usuario eliminado${leadCount > 0 ? ` · ${leadCount} lead${leadCount !== 1 ? 's' : ''} movidos a Eliminados` : ''}`, 'error');
     }
   );
+}
+
+async function toggleUserInactive(userId) {
+  const session = getSession();
+  if (!session || (session.role !== 'master' && session.role !== 'admin')) return;
+  const users = loadUsers();
+  const idx = users.findIndex(u => u.id === userId);
+  if (idx === -1) return;
+  const u = users[idx];
+  const goingInactive = !u.inactive;
+  const action = goingInactive ? 'marcar como inactivo' : 'reactivar';
+  if (!confirm(`¿Deseas ${action} a ${u.name}?`)) return;
+  users[idx].inactive = goingInactive;
+  await saveUsers(users);
+  logActivity(goingInactive ? 'user_deactivated' : 'user_reactivated',
+    `Usuario ${goingInactive ? 'inactivado' : 'reactivado'}: ${u.name}`, `Email: ${u.email}`);
+  renderUsersGrid();
+  showToast(`${u.name} ${goingInactive ? 'marcado como inactivo ⏸' : 'reactivado ▶'}`, goingInactive ? 'error' : 'success');
 }
 
 
