@@ -4051,7 +4051,7 @@ function renderRows(board, leads) {
 }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // ════════════════════════════════════════════
@@ -7080,10 +7080,10 @@ function _renderSettingsProfileCards() {
   const initials = (session.name || session.email || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   const roleLabel = { master: 'Master', admin: 'Administrador', master_manager: 'MGA', manager: 'GA', supervisor_agent: 'SA', agent: 'Agente' }[session.role] || session.role;
   const avatarHtml = `<div style="width:52px;height:52px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>`;
-  const infoHtml   = `<div><div style="font-size:15px;font-weight:600;color:var(--text)">${session.name || '—'}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${session.email || ''}</div><div style="margin-top:6px;display:inline-block;background:rgba(0,115,234,.15);color:var(--accent);font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px">${roleLabel}</div></div>`;
+  const infoHtml   = `<div><div style="font-size:15px;font-weight:600;color:var(--text)">${esc(session.name || '—')}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(session.email || '')}</div><div style="margin-top:6px;display:inline-block;background:rgba(0,115,234,.15);color:var(--accent);font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px">${esc(roleLabel)}</div></div>`;
 
   const snp = document.getElementById('snp-card');
-  if (snp) snp.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:4px 0">${avatarHtml}<div><div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${session.name || session.email}</div><div style="font-size:10px;color:var(--text2)">${roleLabel}</div></div></div>`;
+  if (snp) snp.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:4px 0">${avatarHtml}<div><div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${esc(session.name || session.email)}</div><div style="font-size:10px;color:var(--text2)">${esc(roleLabel)}</div></div></div>`;
 
   const apc = document.getElementById('account-profile-card');
   if (apc) apc.innerHTML = avatarHtml + infoHtml;
@@ -7400,9 +7400,26 @@ function deleteBoard(id) {
     : `¿Eliminar el board "${board.name}"?`;
   if (!confirm(msg)) return;
 
+  // Soft-delete all leads from this board into trash before removing
+  const boardLeads = loadLeads(id);
+  if (boardLeads.length > 0) {
+    const trash = loadDeletedLeads();
+    const now   = new Date().toISOString();
+    const sess2 = getSession();
+    boardLeads.forEach(lead => trash.unshift({
+      ...lead,
+      _deletedAt:         now,
+      _deletedBy:         (sess2 ? sess2.name : 'Sistema') + ' (board eliminado)',
+      _originalBoardId:   id,
+      _originalBoardName: board.name
+    }));
+    saveDeletedLeads(trash);
+    updateTrashBadge();
+  }
   const customs = loadCustomBoards().filter(b => b.id !== id);
   saveCustomBoards(customs);
   localStorage.removeItem('gew_leads_' + id);
+  supaSync('gew_leads_' + id, JSON.stringify([]));
   refreshBoards();
   renderSidebar();
   if (currentBoardId === id) selectBoard('dallas');
@@ -7651,12 +7668,10 @@ async function doLogin() {
 
     document.getElementById('login-debug').style.display = 'none';
     err.textContent = '';
-    // Auto-accept terms on first login to avoid blocking users
     if (!user.termsAccepted) {
-      user = { ...user, termsAccepted: true };
-      const allU = loadUsers();
-      const idx = allU.findIndex(u => u.id === user.id);
-      if (idx !== -1) { allU[idx].termsAccepted = true; localStorage.setItem('gew_users', JSON.stringify(allU)); supaSync('gew_users', JSON.stringify(allU)); }
+      if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
+      showTermsModal(user);
+      return;
     }
     setSession(user);
     document.getElementById('login-screen').classList.add('hidden');
@@ -8690,6 +8705,9 @@ async function saveUser() {
     if (!pass || pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
     if (email === MASTER_USER.email.toLowerCase()) { showToast('Ese email no está disponible', 'error'); return; }
     if (users.find(u => u.email === email)) { showToast('Ese email ya está registrado', 'error'); return; }
+    if (users.find(u => u.name.toLowerCase() === name.toLowerCase()) || name.toLowerCase() === MASTER_USER.name.toLowerCase()) {
+      showToast('Ya existe un usuario con ese nombre. Los nombres deben ser únicos.', 'error'); return;
+    }
     users.push({ id: uid(), name, email, password: pass, role, orgAdminId, orgMasterManagerId, orgManagerId, orgSupervisorId, createdAt: today() });
     await saveUsers(users);
     logActivity('user_created', `Usuario creado: ${name}`, `Email: ${email} · Rol: ${role}`);
@@ -9301,7 +9319,7 @@ function previewRestore(event) {
       const date = backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('es') : 'desconocida';
       const preview = document.getElementById('backup-preview');
       const info    = document.getElementById('backup-preview-info');
-      info.innerHTML = `📅 <strong>Fecha del respaldo:</strong> ${date}<br>📦 <strong>Registros:</strong> ${keys}<br><br>Al restaurar, todos los datos actuales serán reemplazados por los de este archivo.`;
+      info.innerHTML = `📅 <strong>Fecha del respaldo:</strong> ${esc(date)}<br>📦 <strong>Registros:</strong> ${keys}<br><br>Al restaurar, todos los datos actuales serán reemplazados por los de este archivo.`;
       preview.style.display = 'block';
     } catch(err) {
       showToast('Archivo de respaldo inválido', 'error');
@@ -9315,13 +9333,14 @@ async function confirmRestore() {
   if (!_restoreData) return;
   if (!confirm('¿Estás seguro? Esto reemplazará TODOS los datos actuales con los del respaldo. Esta acción no se puede deshacer.')) return;
   try {
-    // Clear and restore localStorage
+    // Clear and restore localStorage — only trusted gew_ keys
+    const validEntries = Object.entries(_restoreData.data).filter(([k]) => k.startsWith('gew_'));
     localStorage.clear();
-    Object.entries(_restoreData.data).forEach(([k, v]) => localStorage.setItem(k, v));
+    validEntries.forEach(([k, v]) => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
 
     // Sync all keys to Supabase
-    for (const [k, v] of Object.entries(_restoreData.data)) {
-      await supaSync(k, v);
+    for (const [k, v] of validEntries) {
+      await supaSync(k, typeof v === 'string' ? v : JSON.stringify(v));
     }
 
     logActivity('backup_restore', 'Respaldo restaurado', `${Object.keys(_restoreData.data).length} claves`);
