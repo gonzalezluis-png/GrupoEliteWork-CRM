@@ -2063,17 +2063,8 @@ setTimeout(function(){
             </div>
 
             <!-- Restart tour -->
-            <div class="st-card" style="margin-top:20px">
-              <div class="st-card-header">
-                <div class="st-card-header-left">
-                  <div class="st-card-icon" style="background:rgba(0,115,234,.12)">🧭</div>
-                  <div class="st-card-text">
-                    <div class="st-card-title">Guía de inicio</div>
-                    <div class="st-card-desc">Vuelve a ver el tutorial interactivo de cómo usar el CRM.</div>
-                  </div>
-                </div>
-                <button class="btn btn-secondary btn-sm" onclick="restartTour()">Ver guía</button>
-              </div>
+            <div style="margin-top:16px;text-align:right">
+              <button onclick="restartTour()" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;font-family:var(--font);padding:4px 0;text-decoration:underline;text-underline-offset:3px;opacity:.7" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.7'">🧭 Ver guía de inicio</button>
             </div>
           </div>
 
@@ -8681,11 +8672,15 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
   }
 
   window.startTour = function(role, force) {
-    const key = TOUR_KEY + '_' + role;
+    const session = (typeof getSession === 'function') ? getSession() : null;
+    const uid = session ? session.id : role;
+    const key = TOUR_KEY + '_' + uid;
     if (!force && localStorage.getItem(key)) return;
     _steps = getSteps(role);
     _step  = 0;
     document.getElementById('tour-overlay').classList.add('active');
+    const escBtn = document.getElementById('tour-esc-btn');
+    if (escBtn) escBtn.style.display = '';
     renderStep();
   };
 
@@ -8704,7 +8699,7 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
 
   function endTour() {
     const session = (typeof getSession === 'function') ? getSession() : null;
-    if (session) localStorage.setItem(TOUR_KEY + '_' + session.role, '1');
+    if (session) localStorage.setItem(TOUR_KEY + '_' + session.id, '1');
     clearHighlight();
     document.getElementById('tour-card').style.display = 'none';
     document.getElementById('tour-arrow').style.display = 'none';
@@ -8861,6 +8856,7 @@ document.getElementById('sidebar').addEventListener('click', function(e) {
   window.restartTour = function() {
     const session = (typeof getSession === 'function') ? getSession() : null;
     if (!session) return;
+    if (typeof showSettingsPage === 'function') showSettingsPage();
     startTour(session.role, true);
   };
 })();
