@@ -2421,6 +2421,23 @@ setTimeout(function(){
               </div>
             </div>
 
+            <!-- T&C read-only (all users) -->
+            <div class="st-card" style="margin-top:24px">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-icon" style="background:rgba(0,115,234,.12)">📜</div>
+                  <div class="st-card-text">
+                    <div class="st-card-title">Términos y Condiciones</div>
+                    <div class="st-card-desc">Acuerdo de uso de la plataforma GrupoEliteWork CRM.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <button class="btn btn-secondary btn-sm" onclick="openTosViewer()" style="gap:8px">📄 Leer Términos y Condiciones</button>
+              </div>
+            </div>
+
             <!-- Restart tour -->
             <div style="margin-top:16px;text-align:right">
               <button onclick="restartTour()" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;font-family:var(--font);padding:4px 0;text-decoration:underline;text-underline-offset:3px;opacity:.7" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.7'">🧭 Ver guía de inicio</button>
@@ -3777,7 +3794,9 @@ function renderTable() {
   if (!currentBoardId) return;
   const board = getBoard(currentBoardId) || BOARDS[0];
   const cols  = getColumns(board);
-  const leads = currentBoardId === '__agent__' ? [] : loadLeads(currentBoardId);
+  const leads = currentBoardId === '__agent__'
+    ? loadAgentLeads(getSession()?.name || '')
+    : loadLeads(currentBoardId);
 
   // header
   const thead = document.getElementById('thead-row');
@@ -4149,10 +4168,11 @@ function saveLead() {
     notas:       get('f_notas'),
   };
 
+  let oldLead = null;
   if (editingLeadId) {
     const idx = leads.findIndex(l => l.id === editingLeadId);
     if (idx === -1) return;
-    const oldLead  = leads[idx];
+    oldLead = leads[idx];
     const newAgent = data.asignado || '';
     if (oldLead.asignado && oldLead.asignado !== newAgent) {
       checkReassign(oldLead, newAgent, (mode) => {
@@ -4178,14 +4198,15 @@ function saveLead() {
     leads.unshift(data);
   }
 
-  saveLeads(saveBoardId, leads);
   if (data.resultado === 'NO INTERESADO') {
+    saveLeads(saveBoardId, leads);
     closeModal();
     softDeleteLead(editingLeadId || data.id, saveBoardId);
     renderTable();
     showToast('Lead eliminado: No Interesado', 'error');
     return;
   }
+  saveLeads(saveBoardId, leads);
   const isEdit = !!editingLeadId;
   if (isEdit && oldLead && data.resultado && data.resultado !== oldLead.resultado) {
     logActivity('lead_edit', 'Cambio de resultado', `${data.nombre} · resultado: "${oldLead.resultado||'—'}" → "${data.resultado}"`, { boardId: saveBoardId });
@@ -6102,14 +6123,13 @@ function applyReassignMode(lead, newAgent, mode) {
 
 function doReassign(mode) {
   if (!_reassignPending) return;
-  const { lead, newAgent, onConfirm } = _reassignPending;
-  _reassignPending = null;
+  const { onConfirm } = _reassignPending;
   document.getElementById('reassign-modal-overlay').classList.remove('open');
+  _reassignPending = null;
   onConfirm(mode);
 }
 
 function cancelReassign() {
-  if (_reassignPending && _reassignPending.onCancel) _reassignPending.onCancel();
   _reassignPending = null;
   document.getElementById('reassign-modal-overlay').classList.remove('open');
 }
@@ -7846,6 +7866,8 @@ function initToolbarGapHandle() {
   const isMaster = session && session.role === 'master';
   handle.style.display = isMaster ? 'flex' : 'none';
   if (!isMaster) return;
+  if (handle._gapHandleInit) return;
+  handle._gapHandleInit = true;
 
   let dragging = false, startY = 0, startGap = 0;
 
