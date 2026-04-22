@@ -10532,7 +10532,10 @@ window.runDiagnostic = async function() {
   run('showCalendarPage() no throw', () => showCalendarPage());
   run('renderCalendar() no throw', () => renderCalendar());
   run('showStatsPage() no throw', () => { try { showStatsPage(); } catch(e) { /* page may not exist for role */ } });
-  run('showSettingsPage() no throw', () => showSettingsPage());
+  run('showSettingsPage() no throw', () => {
+    try { showSettingsPage(); }
+    catch(e) { throw (e && e.message ? e.message : String(e)) + (e && e.stack ? ' | ' + e.stack.split('\n')[1] : ''); }
+  });
   run('switchSettingsTab account', () => switchSettingsTab('account'));
   run('switchSettingsTab org', () => switchSettingsTab('org'));
   run('showTrashPage() no throw', () => showTrashPage());
