@@ -1996,10 +1996,7 @@ setTimeout(function(){
     <!-- DISTRIBUCIÓN PANEL -->
     <div id="dist-panel">
       <div class="dist-summary-row" id="dist-summary-row"></div>
-      <div>
-        <div class="dist-section-title">🗂 Filtrar por board</div>
-        <div class="dist-board-filter" id="dist-board-filter"></div>
-      </div>
+      <div id="dist-board-label" style="font-size:12px;color:var(--text2);margin:6px 0 2px"></div>
       <div id="dist-donut-wrap" style="margin:18px 0 4px"></div>
       <div id="dist-managers-section"></div>
       <div id="dist-agents-section"></div>
@@ -6660,7 +6657,7 @@ function setAssignTab(el, val) {
     document.getElementById('toolbar').style.display    = 'none';
     document.getElementById('table-wrap').style.display = 'none';
     document.getElementById('bulk-bar').classList.remove('visible');
-    if (currentBoardId && currentBoardId !== '__agent__') _distBoardFilter = currentBoardId;
+    _distBoardFilter = (currentBoardId && currentBoardId !== '__agent__') ? currentBoardId : '__all__';
     renderDistPanel();
     document.getElementById('dist-panel').classList.add('visible');
   } else if (val === 'assigned-deleted') {
@@ -6882,10 +6879,16 @@ function renderDistPanel() {
       <div class="dist-stat-lbl">Agentes activos</div>
     </div>`;
 
-  // Board filter chips
-  const bf = document.getElementById('dist-board-filter');
-  bf.innerHTML = `<button class="dist-board-chip${_distBoardFilter==='__all__'?' active':''}" onclick="setDistBoardFilter('__all__')">Todos los boards</button>` +
-    BOARDS.map(b => `<button class="dist-board-chip${_distBoardFilter===b.id?' active':''}" onclick="setDistBoardFilter('${b.id}')">${b.icon} ${esc(b.name)}</button>`).join('');
+  // Board label
+  const bl = document.getElementById('dist-board-label');
+  if (bl) {
+    if (_distBoardFilter === '__all__') {
+      bl.textContent = 'Mostrando todos los boards';
+    } else {
+      const b = BOARDS.find(b => b.id === _distBoardFilter);
+      bl.textContent = b ? `${b.icon} ${b.name}` : '';
+    }
+  }
 
   // Managers section
   const mgrSec = document.getElementById('dist-managers-section');
