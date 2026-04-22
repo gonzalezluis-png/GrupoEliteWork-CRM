@@ -3386,13 +3386,27 @@ function renderTable() {
 
   // header
   const thead = document.getElementById('thead-row');
-  thead.innerHTML = cols.map(c =>
-    c.key === '_check'
-      ? `<th class="th-check" style="width:36px"><input type="checkbox" class="header-checkbox" id="check-all" onchange="toggleSelectAll(this)" /></th>`
-      : `<th style="width:${COL_WIDTHS[c.key]||130}px">${c.label}${c.key !== 'nombre' && c.key !== '_actions' ? '<div class="col-resizer" data-col="'+c.key+'"></div>' : ''}</th>`
-  ).join('');
+  const SORTABLE_COLS = new Set(['creacion','asignado','lead','ubicacion']);
+  thead.innerHTML = cols.map(c => {
+    if (c.key === '_check') return `<th class="th-check" style="width:36px"><input type="checkbox" class="header-checkbox" id="check-all" onchange="toggleSelectAll(this)" /></th>`;
+    const isSortable = SORTABLE_COLS.has(c.key);
+    const isActive   = _sortCol === c.key;
+    const arrow      = isSortable
+      ? `<span onclick="event.stopPropagation();toggleSort('${c.key}')" style="margin-left:5px;cursor:pointer;user-select:none;font-size:11px;opacity:${isActive?'1':'.35'};color:${isActive?'var(--accent)':'inherit'}" title="Ordenar">${isActive && _sortDir === 'desc' ? '▼' : '▲'}</span>`
+      : '';
+    const resizer = c.key !== 'nombre' && c.key !== '_actions' ? `<div class="col-resizer" data-col="${c.key}"></div>` : '';
+    return `<th style="width:${COL_WIDTHS[c.key]||130}px">${c.label}${arrow}${resizer}</th>`;
+  }).join('');
   initResizers();
   applyFilters();
+}
+
+let _sortCol = null;
+let _sortDir = 'asc';
+function toggleSort(col) {
+  if (_sortCol === col) { _sortDir = _sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { _sortCol = col; _sortDir = 'asc'; }
+  renderTable();
 }
 
 function applyFilters() {
@@ -3430,6 +3444,14 @@ function applyFilters() {
     if (assignFilter === 'unassigned' && !isUnassigned) return false;
     return true;
   });
+
+  if (_sortCol) {
+    filteredLeads.sort((a, b) => {
+      const va = (a[_sortCol] || '').toLowerCase();
+      const vb = (b[_sortCol] || '').toLowerCase();
+      return _sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
 
   renderRows(board, filteredLeads);
   document.getElementById('toolbar-count').textContent =
