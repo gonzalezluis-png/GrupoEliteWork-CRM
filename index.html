@@ -6958,22 +6958,57 @@ function showSettingsPage() {
   }
 }
 
+function _getLineUsers(session) {
+  const all = loadUsers();
+  if (!session || session.role === 'master' || session.role === 'admin') return all;
+  if (session.role === 'master_manager') {
+    const mgrIds = all.filter(u => u.role === 'manager' && u.orgMasterManagerId === session.id).map(u => u.id);
+    const supIds = all.filter(u => u.role === 'supervisor_agent' && (mgrIds.includes(u.orgManagerId) || u.orgMasterManagerId === session.id)).map(u => u.id);
+    const agIds  = all.filter(u => u.role === 'agent' && (mgrIds.includes(u.orgManagerId) || u.orgMasterManagerId === session.id || supIds.includes(u.orgSupervisorId))).map(u => u.id);
+    const lineIds = new Set([session.id, ...mgrIds, ...supIds, ...agIds]);
+    return all.filter(u => lineIds.has(u.id));
+  }
+  if (session.role === 'manager') {
+    const supIds = all.filter(u => u.role === 'supervisor_agent' && u.orgManagerId === session.id).map(u => u.id);
+    const agIds  = all.filter(u => u.role === 'agent' && (u.orgManagerId === session.id || supIds.includes(u.orgSupervisorId))).map(u => u.id);
+    const lineIds = new Set([session.id, ...supIds, ...agIds]);
+    return all.filter(u => lineIds.has(u.id));
+  }
+  if (session.role === 'supervisor_agent') {
+    const agIds = all.filter(u => u.role === 'agent' && u.orgSupervisorId === session.id).map(u => u.id);
+    return all.filter(u => u.id === session.id || agIds.includes(u.id));
+  }
+  return all.filter(u => u.id === session.id);
+}
+
 function _populateSettingsStats() {
-  const users = loadUsers();
-  const allLeads = BOARDS.reduce((acc, b) => acc + loadLeads(b.id).length, 0);
-  const agents   = users.filter(u => u.role === 'agent').length;
+  const session    = getSession();
+  const lineUsers  = _getLineUsers(session);
+  const isFullOrg  = !session || session.role === 'master' || session.role === 'admin';
+  const agentNames = lineUsers.filter(u => u.role === 'agent').map(u => u.name);
+  const agents     = agentNames.length;
+
+  const activeBoards = isFullOrg
+    ? BOARDS.length
+    : BOARDS.filter(b => loadLeads(b.id).some(l => agentNames.includes(l.asignado))).length;
+
+  const lineLeads = isFullOrg
+    ? BOARDS.reduce((acc, b) => acc + loadLeads(b.id).length, 0)
+    : BOARDS.reduce((acc, b) => acc + loadLeads(b.id).filter(l => agentNames.includes(l.asignado)).length, 0);
 
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('stat-users',   users.length);
-  set('stat-boards',  BOARDS.length);
-  set('stat-leads',   allLeads);
-  set('stat-agents',  agents);
+  set('stat-users',  lineUsers.length);
+  set('stat-boards', activeBoards);
+  set('stat-leads',  lineLeads);
+  set('stat-agents', agents);
 
-  set('tstat-admins', users.filter(u => u.role === 'admin').length);
-  set('tstat-mms',    users.filter(u => u.role === 'master_manager').length);
-  set('tstat-mgrs',   users.filter(u => u.role === 'manager').length);
-  set('tstat-sas',    users.filter(u => u.role === 'supervisor_agent').length);
-  set('tstat-agents', agents);
+  // Team tab counters remain org-wide (admin/master only tab)
+  const all = loadUsers();
+  set('tstat-admins', all.filter(u => u.role === 'admin').length);
+  set('tstat-mms',    all.filter(u => u.role === 'master_manager').length);
+  set('tstat-mgrs',   all.filter(u => u.role === 'manager').length);
+  set('tstat-sas',    all.filter(u => u.role === 'supervisor_agent').length);
+  set('tstat-agents', all.filter(u => u.role === 'agent').length);
 }
 
 function _renderSettingsProfileCards() {
