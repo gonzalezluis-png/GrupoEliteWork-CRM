@@ -351,6 +351,17 @@
     border-bottom: 1px solid var(--border);
   }
   #assign-strip.hidden { display: none; }
+
+  /* draggable gap handle (master only) */
+  #topbar-gap-resizer {
+    height: 14px; align-items: center; justify-content: center;
+    cursor: ns-resize; user-select: none;
+  }
+  .tgr-grip {
+    width: 32px; height: 3px; border-radius: 2px;
+    background: var(--border); transition: background .15s, width .15s;
+  }
+  #topbar-gap-resizer:hover .tgr-grip { background: var(--accent); width: 48px; }
   .assign-tabs { display: flex; gap: 0; }
   .assign-tab {
     padding: 10px 18px; border: none; border-bottom: 2px solid transparent;
@@ -1926,6 +1937,10 @@ setTimeout(function(){
       <button class="bulk-apply" onclick="applyBulkEdit()">✓ Aplicar</button>
       <button class="bulk-apply danger" onclick="bulkDelete()">🗑 Eliminar</button>
       <span class="bulk-clear" onclick="clearSelection()">✕ Deseleccionar todo</span>
+    </div>
+
+    <div id="topbar-gap-resizer" style="display:none" title="Arrastrar para ajustar espacio">
+      <div class="tgr-grip"></div>
     </div>
 
     <div id="assign-strip" class="hidden">
@@ -7695,6 +7710,51 @@ function doLogout() {
   initGoogleSignIn();
 }
 
+// ── Toolbar gap (master-adjustable, synced) ──
+const _GAP_KEY = 'gew_toolbar_gap';
+
+function applyToolbarGap() {
+  const gap = parseInt(localStorage.getItem(_GAP_KEY) || '18', 10);
+  const strip = document.getElementById('assign-strip');
+  if (strip) strip.style.marginTop = gap + 'px';
+}
+
+function initToolbarGapHandle() {
+  const session = getSession();
+  const handle  = document.getElementById('topbar-gap-resizer');
+  if (!handle) return;
+  const isMaster = session && session.role === 'master';
+  handle.style.display = isMaster ? 'flex' : 'none';
+  if (!isMaster) return;
+
+  let dragging = false, startY = 0, startGap = 0;
+
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    startY   = e.clientY;
+    startGap = parseInt(document.getElementById('assign-strip').style.marginTop || '18', 10);
+    document.body.style.cursor     = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const newGap = Math.max(4, Math.min(100, startGap + (e.clientY - startY)));
+    document.getElementById('assign-strip').style.marginTop = newGap + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.cursor = document.body.style.userSelect = '';
+    const gap = parseInt(document.getElementById('assign-strip').style.marginTop || '18', 10);
+    localStorage.setItem(_GAP_KEY, String(gap));
+    supaSync(_GAP_KEY, String(gap));
+    showToast('Espacio guardado ✓', 'success');
+  });
+}
+
 function initApp(user) {
   logActivity('login', 'Inicio de sesión', `Accedió como ${({ master:'Maestro', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente' }[user.role] || user.role)}`);
   if (typeof showWelcomeSplash === 'function') showWelcomeSplash(user);
@@ -7730,6 +7790,8 @@ function initApp(user) {
     }
     selectBoard('dallas');
   }
+  applyToolbarGap();
+  initToolbarGapHandle();
 }
 
 function showAgentView() {
@@ -9182,6 +9244,7 @@ async function loadFromSupabase() {
   }
 
   syncEl.classList.add('hidden');
+  applyToolbarGap();
 
   await seedDefaultAdmin();
   await seedAlexanderAgents();
