@@ -7697,25 +7697,8 @@ async function doLogin() {
       if (idx !== -1) { allU[idx].termsAccepted = true; localStorage.setItem('gew_users', JSON.stringify(allU)); supaSync('gew_users', JSON.stringify(allU)); }
       user = { ...user, termsAccepted: true };
     }
-    setSession(user);
-    document.getElementById('login-screen').classList.add('hidden');
     if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
-
-    // Force password change if required
-    if (user.mustChangePassword) {
-      document.getElementById('force-pass-overlay').style.display = 'flex';
-      return;
-    }
-
-    try {
-      initApp(user);
-      updatePendingBadge();
-      updateTrashBadge();
-    } catch(e) {
-      console.error('initApp error:', e);
-      document.getElementById('login-screen').classList.remove('hidden');
-      err.textContent = 'Error al cargar la app: ' + (e && e.message ? e.message : String(e));
-    }
+    _finalizeLogin(user);
   } catch(e) {
     err.textContent = 'Error inesperado: ' + (e && e.message ? e.message : String(e));
     if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
@@ -7755,13 +7738,7 @@ function _handleGoogleLogin(response) {
     err.textContent = '';
     document.getElementById('login-debug').style.display = 'none';
     if (!user.termsAccepted) { showTermsModal(user); return; }
-    setSession(user);
-    document.getElementById('login-screen').classList.add('hidden');
-    try { initApp(user); updatePendingBadge(); updateTrashBadge(); } catch(e) {
-      console.error('initApp error:', e);
-      document.getElementById('login-screen').classList.remove('hidden');
-      err.textContent = 'Error al cargar la app. Contacta al administrador.';
-    }
+    _finalizeLogin(user);
   } catch(e) {
     console.error('Google sign-in error:', e);
     err.textContent = 'Error al iniciar sesión con Google. Intenta de nuevo.';
@@ -8069,6 +8046,28 @@ async function saveTerms() {
   showToast('Términos guardados ✓', 'success');
 }
 
+// ── Single entry point for all post-auth login completion ──
+// Every login path (password, Google, terms acceptance) MUST call this.
+// Add any future post-login logic here and it applies everywhere automatically.
+function _finalizeLogin(user) {
+  setSession(user);
+  document.getElementById('login-screen').classList.add('hidden');
+  if (user.mustChangePassword) {
+    document.getElementById('force-pass-overlay').style.display = 'flex';
+    return;
+  }
+  try {
+    initApp(user);
+    updatePendingBadge();
+    updateTrashBadge();
+  } catch(e) {
+    console.error('initApp error:', e);
+    document.getElementById('login-screen').classList.remove('hidden');
+    const err = document.getElementById('login-error');
+    if (err) err.textContent = 'Error al cargar la app: ' + (e && e.message ? e.message : String(e));
+  }
+}
+
 // ── T&C acceptance on login ──
 let _pendingLoginUser = null;
 
@@ -8099,13 +8098,7 @@ async function confirmTermsAcceptance() {
   const user = { ..._pendingLoginUser, termsAccepted: true };
   _pendingLoginUser = null;
   document.getElementById('terms-modal-overlay').style.display = 'none';
-  setSession(user);
-  document.getElementById('login-screen').classList.add('hidden');
-  if (user.mustChangePassword) {
-    document.getElementById('force-pass-overlay').style.display = 'flex';
-    return;
-  }
-  try { initApp(user); updatePendingBadge(); updateTrashBadge(); } catch(e) { console.error(e); }
+  _finalizeLogin(user);
 }
 
 // T&C preview from register form — opens the full styled viewer
