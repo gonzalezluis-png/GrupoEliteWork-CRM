@@ -3571,6 +3571,8 @@ function renderRows(board, leads) {
         const avatar = `<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,.15)">${initials}</div>`;
         const dateLabel = l.creacion === '2026-04-21'
           ? `<span style="font-size:11px;color:#fdab3d;font-weight:600">04/21 · POR EXPORTACIÓN</span>`
+          : l.creacion === '2026-04-22'
+          ? `<span style="font-size:11px;color:#fdab3d;font-weight:600">04/22 · POR EXPORTACIÓN</span>`
           : `<span style="font-size:12px;color:var(--text2)">${esc(formatDate(l.creacion||''))}</span>`;
         return `<td><div style="display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap">${avatar}${dateLabel}</div></td>`;
       }
