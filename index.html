@@ -9332,6 +9332,19 @@ async function submitNote() {
   await saveLeads(_notesBoardId, leads, { isNote: true });
   document.getElementById('notes-new-input').value = '';
   _renderNotesJournal(lead);
+  if (resSelected) {
+    // update summary chip in the panel
+    const chips = [
+      lead.ubicacion && `📍 ${lead.ubicacion}`,
+      lead.asignado  && `👤 ${lead.asignado}`,
+      lead.resultado && `✅ ${lead.resultado}`,
+      lead.direccion && `🏠 ${lead.direccion}`,
+    ].filter(Boolean);
+    document.getElementById('notes-lead-summary').innerHTML = chips.map(c =>
+      `<span style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--text2)">${esc(c)}</span>`
+    ).join('');
+    renderTableKeepSelection();
+  }
   showToast('Guardado ✓', 'success');
 }
 
