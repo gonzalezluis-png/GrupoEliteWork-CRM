@@ -1868,6 +1868,10 @@ setTimeout(function(){
     <div id="sidebar-scripts" style="display:none">
       <div class="sidebar-item" id="nav-scripts" onclick="showScriptsPage()">📋 <span>Scripts de Llamada</span></div>
     </div>
+    <div id="sidebar-agent" style="display:none">
+      <div class="sidebar-item" id="nav-calendar-agent" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
+      <div class="sidebar-item" id="nav-settings-agent" onclick="showSettingsPage()">⚙️ <span>Configuración</span></div>
+    </div>
     <div class="sidebar-admin" id="sidebar-admin" style="display:none">
       <div class="sidebar-item" id="nav-trash" onclick="showTrashPage()">🗑 <span>Eliminados</span><span id="sidebar-trash-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
       <div class="sidebar-item" id="nav-stats" onclick="showStatsPage()">📈 <span>Estadísticas</span></div>
@@ -4299,8 +4303,7 @@ function showCalendarPage() {
   document.getElementById('calendar-page').style.display = 'flex';
   document.getElementById('board-title').textContent     = 'Calendario';
   document.querySelectorAll('.board-item, .sidebar-item').forEach(el => el.classList.remove('active'));
-  const nav = document.getElementById('nav-calendar');
-  if (nav) nav.classList.add('active');
+  ['nav-calendar','nav-calendar-agent'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('active'); });
   currentBoardId = null;
   _populateCalUserFilter();
   renderCalendar();
@@ -4612,7 +4615,7 @@ let _statsTlMode = 'day'; // day | week | month
 
 function showStatsPage() {
   const session = getSession();
-  if (!session || (session.role !== 'master' && session.role !== 'admin')) return;
+  if (!session || session.role === 'agent') return;
   showBoardView();
   document.getElementById('table-wrap').style.display    = 'none';
   document.getElementById('toolbar').style.display       = 'none';
@@ -4631,6 +4634,7 @@ function showStatsPage() {
 }
 
 function _populateStatsFilters() {
+  const session = getSession();
   const bSel = document.getElementById('stats-filter-board');
   if (!bSel) return;
   const curB = bSel.value;
@@ -4638,8 +4642,13 @@ function _populateStatsFilters() {
     BOARDS.map(b => `<option value="${b.id}"${b.id===curB?' selected':''}>${esc(b.name)}</option>`).join('');
   const aSel = document.getElementById('stats-filter-agent');
   const curA = aSel.value;
+  const isFullOrg = !session || session.role === 'master' || session.role === 'admin';
+  const lineAgentNames = isFullOrg ? null : new Set(_getLineUsers(session).filter(u => u.role === 'agent').map(u => u.name));
   const allLeads = BOARDS.flatMap(b => loadLeads(b.id));
-  const agents = [...new Set(allLeads.map(l => l.asignado).filter(a => a && a !== 'Sin asignar'))].sort();
+  const agents = [...new Set(
+    allLeads.map(l => l.asignado)
+      .filter(a => a && a !== 'Sin asignar' && (isFullOrg || lineAgentNames.has(a)))
+  )].sort();
   aSel.innerHTML = '<option value="">Todos los agentes</option>' +
     agents.map(a => `<option value="${esc(a)}"${a===curA?' selected':''}>${esc(a)}</option>`).join('');
 }
@@ -4657,12 +4666,19 @@ function setStatsTlMode(mode) {
 }
 
 function _getStatsLeads() {
+  const session = getSession();
   const board = document.getElementById('stats-filter-board')?.value || '';
   const agent = document.getElementById('stats-filter-agent')?.value || '';
   const from  = document.getElementById('stats-filter-from')?.value || '';
   const to    = document.getElementById('stats-filter-to')?.value || '';
   const boards = board ? BOARDS.filter(b => b.id === board) : BOARDS;
   let leads = boards.flatMap(b => loadLeads(b.id).map(l => ({...l, _boardId: b.id, _boardName: b.name})));
+  // Scope to line for non-admin/master roles
+  const isFullOrg = !session || session.role === 'master' || session.role === 'admin';
+  if (!isFullOrg) {
+    const lineAgents = new Set(_getLineUsers(session).filter(u => u.role === 'agent').map(u => u.name));
+    leads = leads.filter(l => lineAgents.has(l.asignado));
+  }
   if (agent) leads = leads.filter(l => l.asignado === agent);
   if (from)  leads = leads.filter(l => l.creacion >= from);
   if (to)    leads = leads.filter(l => l.creacion <= to);
@@ -6908,8 +6924,7 @@ function showSettingsPage() {
   document.getElementById('settings-page').classList.add('visible');
   document.getElementById('board-title').textContent     = 'Configuración';
   document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
-  const ns = document.getElementById('nav-settings');
-  if (ns) ns.classList.add('active');
+  ['nav-settings','nav-settings-agent'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('active'); });
   currentBoardId = null;
 
   // Role-based nav visibility
@@ -7721,8 +7736,10 @@ function doLogout() {
   clearSession();
   // reset all UI state so the next user logs in clean
   document.getElementById('sidebar-admin').style.display   = 'none';
+  document.getElementById('sidebar-agent').style.display   = 'none';
   document.getElementById('sidebar-master').style.display  = 'none';
   document.getElementById('sidebar-scripts').style.display = 'none';
+  document.getElementById('board-list').style.display      = '';
   document.getElementById('scripts-page').classList.remove('visible');
   document.getElementById('btn-scripts-panel').style.display = 'none';
   const ssp = document.getElementById('scripts-side-panel');
@@ -7804,8 +7821,11 @@ function initApp(user) {
   refreshBoards();
   document.getElementById('btn-scripts-panel').style.display = 'inline-flex';
   if (user.role === 'agent') {
-    document.getElementById('sidebar').style.display = 'none';
+    document.getElementById('sidebar').style.display = '';
+    document.getElementById('board-list').style.display = 'none';
     document.getElementById('f-asignado').style.display = 'none';
+    document.getElementById('sidebar-agent').style.display = 'block';
+    document.getElementById('sidebar-scripts').style.display = 'block';
     showAgentView();
   } else {
     document.getElementById('sidebar').style.display = '';
@@ -7816,9 +7836,12 @@ function initApp(user) {
       document.getElementById('sidebar-admin').style.display = 'block';
       document.getElementById('assign-strip').classList.remove('hidden');
     }
-    // master_manager, manager, supervisor_agent see boards but cannot assign
+    // MGA/GA/SA: show sidebar-admin but hide admin-only items
     if (user.role === 'master_manager' || user.role === 'manager' || user.role === 'supervisor_agent') {
-      document.getElementById('sidebar-admin').style.display = 'none';
+      document.getElementById('sidebar-admin').style.display = 'block';
+      ['nav-trash','nav-activity'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+      });
       document.getElementById('assign-strip').classList.add('hidden');
     }
     // All non-agent roles see Scripts de Llamada
