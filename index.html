@@ -9671,6 +9671,7 @@ async function saveUser() {
       const freshUsers = loadUsers();
       const i = freshUsers.findIndex(u => u.id === editingUserId);
       if (i === -1) return;
+      const oldName = freshUsers[i].name;
       freshUsers[i].name               = name;
       freshUsers[i].email              = email;
       freshUsers[i].role               = role;
@@ -9685,6 +9686,24 @@ async function saveUser() {
         renderTopbarUser({ ...session, name, email, role });
       }
       await saveUsers(freshUsers);
+
+      // Si el nombre cambió, actualizar todos los leads asignados a ese usuario
+      if (oldName !== name) {
+        let leadsUpdated = 0;
+        for (const board of BOARDS) {
+          const bLeads = loadLeads(board.id);
+          let changed = false;
+          bLeads.forEach(l => { if (l.asignado === oldName) { l.asignado = name; changed = true; leadsUpdated++; } });
+          if (changed) await saveLeads(board.id, bLeads);
+        }
+        // También leads eliminados (papelera)
+        const deleted = loadDeletedLeads();
+        let delChanged = false;
+        deleted.forEach(l => { if (l.asignado === oldName) { l.asignado = name; delChanged = true; } });
+        if (delChanged) await saveDeletedLeads(deleted);
+        if (leadsUpdated > 0) showToast(`Nombre actualizado · ${leadsUpdated} lead${leadsUpdated !== 1 ? 's' : ''} reasignados ✓`, 'success');
+      }
+
       logActivity('user_edited', `Usuario editado: ${name}`, `Rol: ${role}${isEmailChange ? ' · Email cambiado' : ''}${forcePass ? ' · Cambio de clave requerido' : ''}`);
       closeUserModal();
       showToast('Usuario actualizado ✓', 'success');
