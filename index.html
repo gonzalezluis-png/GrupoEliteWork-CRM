@@ -3360,8 +3360,10 @@ setTimeout(function(){
           <div id="np-avatar" style="width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,0.18);border:2.5px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:-1px"></div>
           <div style="min-width:0;flex:1">
             <h2 id="notes-panel-name" style="font-size:16px;font-weight:700;margin:0;color:#fff;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></h2>
+            <div id="np-prev-nombre" style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:1px;display:none;font-style:italic"></div>
             <div id="notes-panel-leadtype" style="margin-top:6px"></div>
           </div>
+          <button id="np-edit-btn" onclick="toggleNpEdit()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:8px;padding:5px 12px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .12s">✏️ Editar</button>
         </div>
         <!-- Nav prev/next -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
@@ -10016,8 +10018,19 @@ function openNotesPanel(leadId, navList) {
   }
   _updateNpNav(leadId);
 
+  // Reset edit mode when opening a new lead
+  _npEditMode = false;
+  const editBtn = document.getElementById('np-edit-btn');
+  if (editBtn) { editBtn.textContent = '✏️ Editar'; editBtn.style.background = 'rgba(255,255,255,0.15)'; editBtn.style.borderColor = 'rgba(255,255,255,0.3)'; }
+  document.getElementById('np-edit-nombre')?.remove();
+  document.getElementById('notes-panel-name').style.display = '';
+
   const npName = lead.nombre || '—';
   document.getElementById('notes-panel-name').textContent = npName;
+  // Show previous name faintly if it exists
+  const prevNombreEl = document.getElementById('np-prev-nombre');
+  if (lead.prev_nombre) { prevNombreEl.textContent = 'Antes: ' + lead.prev_nombre; prevNombreEl.style.display = ''; }
+  else { prevNombreEl.style.display = 'none'; }
   const npInitials = npName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   document.getElementById('np-avatar').textContent = npInitials || '?';
 
@@ -10069,6 +10082,111 @@ function openNotesPanel(leadId, navList) {
   document.getElementById('notes-panel-overlay').classList.add('open');
 }
 
+
+let _npEditMode = false;
+
+function toggleNpEdit() {
+  _npEditMode ? _saveNpEdit() : _enterNpEdit();
+}
+
+function _enterNpEdit() {
+  _npEditMode = true;
+  const boardId = _notesBoardId;
+  const leads   = loadLeads(boardId);
+  const lead    = leads.find(l => l.id === _notesLeadId);
+  if (!lead) return;
+
+  document.getElementById('np-edit-btn').textContent = '💾 Guardar';
+  document.getElementById('np-edit-btn').style.background = 'rgba(0,200,117,0.25)';
+  document.getElementById('np-edit-btn').style.borderColor = 'rgba(0,200,117,0.5)';
+
+  // Replace name with input
+  const nameEl = document.getElementById('notes-panel-name');
+  nameEl.style.display = 'none';
+  if (!document.getElementById('np-edit-nombre')) {
+    const inp = document.createElement('input');
+    inp.id = 'np-edit-nombre';
+    inp.type = 'text';
+    inp.value = lead.nombre || '';
+    inp.style.cssText = 'font-size:15px;font-weight:700;color:#fff;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.35);border-radius:6px;padding:4px 10px;width:100%;font-family:var(--font);outline:none;margin-bottom:2px;';
+    nameEl.parentElement.insertBefore(inp, nameEl);
+  }
+
+  // Replace info grid with inputs
+  document.getElementById('np-info-grid').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <span style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);font-weight:600">✉️ Email</span>
+      <input id="np-edit-email" type="email" value="${esc(lead.email||'')}" placeholder="correo@ejemplo.com"
+        style="background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;width:100%;" />
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <span style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);font-weight:600">📞 Teléfono</span>
+      <input id="np-edit-telefono" type="tel" value="${esc(lead.telefono||'')}" placeholder="+1 000 000 0000"
+        style="background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;width:100%;" />
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px;grid-column:span 2">
+      <span style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);font-weight:600">🏠 Dirección</span>
+      <input id="np-edit-direccion" type="text" value="${esc(lead.direccion||'')}" placeholder="Dirección completa"
+        style="background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;width:100%;" />
+    </div>
+  `;
+}
+
+async function _saveNpEdit() {
+  const boardId = _notesBoardId;
+  const leads   = loadLeads(boardId);
+  const idx     = leads.findIndex(l => l.id === _notesLeadId);
+  if (idx === -1) return;
+
+  const lead     = leads[idx];
+  const newNombre = (document.getElementById('np-edit-nombre')?.value || '').trim();
+  const newEmail  = (document.getElementById('np-edit-email')?.value || '').trim();
+  const newTel    = (document.getElementById('np-edit-telefono')?.value || '').trim();
+  const newDir    = (document.getElementById('np-edit-direccion')?.value || '').trim();
+
+  if (!newNombre) { showToast('El nombre es requerido', 'error'); return; }
+
+  const nombreCambio = newNombre.toLowerCase() !== (lead.nombre || '').toLowerCase();
+  const prevNombre   = lead.nombre;
+
+  leads[idx] = { ...lead, nombre: newNombre, email: newEmail, telefono: newTel, direccion: newDir };
+  if (nombreCambio) leads[idx].prev_nombre = prevNombre;
+
+  await saveLeads(boardId, leads);
+  logActivity('lead_edit', `Lead editado: ${newNombre}`, nombreCambio ? `Nombre anterior: ${prevNombre}` : '');
+
+  _npEditMode = false;
+
+  // Restore edit button
+  const btn = document.getElementById('np-edit-btn');
+  btn.textContent = '✏️ Editar';
+  btn.style.background = 'rgba(255,255,255,0.15)';
+  btn.style.borderColor = 'rgba(255,255,255,0.3)';
+
+  // Restore name display
+  const nameEl = document.getElementById('notes-panel-name');
+  nameEl.textContent = newNombre;
+  nameEl.style.display = '';
+  document.getElementById('np-edit-nombre')?.remove();
+
+  // Show previous name faintly
+  const prevEl = document.getElementById('np-prev-nombre');
+  if (nombreCambio && prevNombre) {
+    prevEl.textContent = 'Antes: ' + prevNombre;
+    prevEl.style.display = '';
+  } else {
+    prevEl.style.display = 'none';
+  }
+
+  // Update avatar initials
+  const npInitials = newNombre.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  document.getElementById('np-avatar').textContent = npInitials || '?';
+
+  // Re-render info grid and tags
+  openNotesPanel(_notesLeadId, boardId);
+  showToast('Lead actualizado ✓', 'success');
+  try { renderTable && renderTable(); } catch(e) {}
+}
 
 function _renderNotesJournal(lead) {
   const notes = parseNotes(lead._notes);
