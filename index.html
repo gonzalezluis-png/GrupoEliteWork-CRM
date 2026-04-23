@@ -9534,6 +9534,8 @@ function openNotesPanel(leadId) {
   const phoneInp = document.getElementById('msg-phone-inp');
   if (phoneInp) phoneInp.value = lead.telefono || '';
   _renderMsgJournal(lead);
+  const _s = getSession();
+  document.getElementById('np-tab-messages').style.display = (_s && _s.role === 'master') ? '' : 'none';
   switchNotesPanelTab('notes');
   document.getElementById('notes-panel-overlay').classList.add('open');
 }
