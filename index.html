@@ -2298,14 +2298,32 @@ setTimeout(function(){
                   <div class="st-card-icon" style="background:rgba(239,68,68,.12)">🔧</div>
                   <div class="st-card-text">
                     <div class="st-card-title">Reparar Asignaciones de Leads</div>
-                    <div class="st-card-desc">Detecta leads con agentes que ya no existen o que cambiaron de nombre y permite reasignarlos.</div>
+                    <div class="st-card-desc">Detecta leads con nombres viejos y sugiere automáticamente el usuario correcto actual.</div>
                   </div>
                 </div>
-                <button onclick="runRepairScan()" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">🔍 Escanear</button>
+                <button onclick="runRepairScan()" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">🔍 Escanear leads</button>
               </div>
               <div class="st-card-divider"></div>
               <div class="st-card-body">
                 <div id="repair-results" style="color:var(--text2);font-size:13px">Presiona Escanear para buscar leads huérfanos.</div>
+              </div>
+            </div>
+
+            <!-- Duplicate scanner (master only) -->
+            <div class="st-card" id="dup-card" style="display:none">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-icon" style="background:rgba(253,171,61,.12)">👥</div>
+                  <div class="st-card-text">
+                    <div class="st-card-title">Detectar Usuarios Duplicados</div>
+                    <div class="st-card-desc">Encuentra usuarios con mismo correo o nombre muy similar que pudieron haberse creado dos veces.</div>
+                  </div>
+                </div>
+                <button onclick="runDuplicateScan()" style="background:rgba(253,171,61,.15);color:#fdab3d;border:1px solid rgba(253,171,61,.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">🔍 Detectar duplicados</button>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <div id="dup-results" style="color:var(--text2);font-size:13px">Presiona Detectar duplicados para analizar los usuarios.</div>
               </div>
             </div>
 
@@ -7890,12 +7908,12 @@ function showSettingsPage() {
     if (isMaster) renderBoardEditor();
   }
 
-  // Repair tool — master only
+  // Repair + duplicate tools — master only
   const repairCard = document.getElementById('repair-card');
-  if (repairCard) {
-    const isMaster = session && session.role === 'master';
-    repairCard.style.display = isMaster ? '' : 'none';
-  }
+  const dupCard    = document.getElementById('dup-card');
+  const isMaster   = session && session.role === 'master';
+  if (repairCard) repairCard.style.display = isMaster ? '' : 'none';
+  if (dupCard)    dupCard.style.display    = isMaster ? '' : 'none';
 }
 
 function _getLineUsers(session) {
@@ -8177,29 +8195,62 @@ function refreshBoards() {
 
 // ── Board Editor UI ──
 // ── Repair Tool ────────────────────────────────────────────────────────────
+
+function _normStr(s) {
+  return (s || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').trim();
+}
+
+function _nameSimilarity(orphan, user) {
+  const a = _normStr(orphan);
+  const b = _normStr(user.name);
+  const emailPfx = _normStr((user.email || '').split('@')[0]);
+  // exact containment
+  if (b.includes(a) || a.includes(b)) return 0.95;
+  // email prefix containment
+  if (emailPfx && (emailPfx.includes(a) || a.includes(emailPfx))) return 0.85;
+  // word overlap
+  const wa = new Set(a.split(/\s+/).filter(Boolean));
+  const wb = new Set(b.split(/\s+/).filter(Boolean));
+  const we = new Set(emailPfx.split(/[\._\-]+/).filter(Boolean));
+  let overlap = 0;
+  wa.forEach(w => { if (wb.has(w) || we.has(w)) overlap++; });
+  const score = overlap / Math.max(wa.size, wb.size, 1);
+  return score;
+}
+
+function _bestMatch(orphanName, allUsers) {
+  let best = null, bestScore = 0;
+  const candidates = allUsers.filter(u =>
+    ['agent','supervisor_agent','manager','master_manager'].includes(u.role)
+  );
+  for (const u of candidates) {
+    const s = _nameSimilarity(orphanName, u);
+    if (s > bestScore) { bestScore = s; best = u; }
+  }
+  return bestScore >= 0.4 ? { user: best, score: bestScore } : null;
+}
+
 function runRepairScan() {
   const el = document.getElementById('repair-results');
   if (!el) return;
   el.innerHTML = '<span style="color:var(--text2)">Escaneando...</span>';
 
-  const allUsers = loadUsers();
+  const allUsers  = loadUsers();
   const validNames = new Set(allUsers.map(u => u.name));
 
-  // Scan all boards
-  const orphanMap = {}; // orphanName -> { count, boards: Set }
+  const orphanMap = {};
   for (const board of BOARDS) {
-    const bLeads = loadLeads(board.id);
-    for (const l of bLeads) {
+    for (const l of loadLeads(board.id)) {
       if (l.asignado && !validNames.has(l.asignado)) {
         if (!orphanMap[l.asignado]) orphanMap[l.asignado] = { count: 0, boardSet: new Set() };
         orphanMap[l.asignado].count++;
-        orphanMap[l.asignado].boardSet.add(board.nombre || board.id);
+        orphanMap[l.asignado].boardSet.add(board.name || board.id);
       }
     }
   }
-  // Also scan trash
-  const trash = loadDeletedLeads();
-  for (const l of trash) {
+  for (const l of loadDeletedLeads()) {
     if (l.asignado && !validNames.has(l.asignado)) {
       if (!orphanMap[l.asignado]) orphanMap[l.asignado] = { count: 0, boardSet: new Set() };
       orphanMap[l.asignado].count++;
@@ -8207,37 +8258,53 @@ function runRepairScan() {
     }
   }
 
-  const orphans = Object.entries(orphanMap);
+  const orphans = Object.entries(orphanMap).sort((a,b) => b[1].count - a[1].count);
   if (!orphans.length) {
     el.innerHTML = '<span style="color:#22c55e;font-weight:600">✅ Todo en orden. No se encontraron leads huérfanos.</span>';
     return;
   }
 
-  const agentOptions = allUsers
-    .filter(u => u.role === 'agent' || u.role === 'supervisor_agent' || u.role === 'manager')
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map(u => `<option value="${esc(u.name)}">${esc(u.name)} (${u.role})</option>`)
+  const candidates = allUsers.filter(u =>
+    ['agent','supervisor_agent','manager','master_manager'].includes(u.role)
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const agentOptions = candidates
+    .map(u => `<option value="${esc(u.name)}">${esc(u.name)}${u.inactive?' (inactivo)':''} · ${u.role}</option>`)
     .join('');
 
-  const rows = orphans.map(([name, info]) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
-      <div style="flex:1;min-width:150px">
-        <div style="font-weight:600;color:var(--text)">${esc(name)}</div>
-        <div style="font-size:11px;color:var(--text2)">${info.count} lead(s) · ${[...info.boardSet].join(', ')}</div>
-      </div>
-      <select id="repair-sel-${encodeURIComponent(name)}" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px">
-        <option value="">— Seleccionar agente —</option>
-        ${agentOptions}
-      </select>
-      <button onclick="applyRepair('${esc(name)}')" style="background:rgba(0,115,234,.15);color:var(--accent);border:1px solid rgba(0,115,234,.3);padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Reasignar</button>
-    </div>
-  `).join('');
+  const rows = orphans.map(([name, info]) => {
+    const match = _bestMatch(name, allUsers);
+    const key   = encodeURIComponent(name);
+    const badge = match
+      ? `<div style="font-size:10px;margin-top:3px;color:#fdab3d">💡 Sugerido: <strong>${esc(match.user.name)}</strong> (${Math.round(match.score*100)}% similar)</div>`
+      : `<div style="font-size:10px;margin-top:3px;color:var(--text2)">Sin sugerencia automática</div>`;
+    const preselect = match ? match.user.name : '';
+    const opts = candidates.map(u =>
+      `<option value="${esc(u.name)}" ${u.name === preselect ? 'selected' : ''}>${esc(u.name)}${u.inactive?' (inactivo)':''} · ${u.role}</option>`
+    ).join('');
+    return `
+      <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:600;color:var(--text);font-size:13px">"${esc(name)}"</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:1px">${info.count} lead(s) · ${[...info.boardSet].slice(0,3).join(', ')}${info.boardSet.size>3?'…':''}</div>
+          ${badge}
+        </div>
+        <select id="repair-sel-${key}" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px;min-width:200px">
+          <option value="">— Sin reasignar —</option>
+          ${opts}
+        </select>
+        <button onclick="applyRepair('${esc(name)}')" style="background:rgba(0,115,234,.15);color:var(--accent);border:1px solid rgba(0,115,234,.3);padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Reasignar</button>
+      </div>`;
+  }).join('');
 
   el.innerHTML = `
-    <div style="margin-bottom:10px;color:#f59e0b;font-weight:600">⚠ Se encontraron ${orphans.length} nombre(s) sin usuario activo:</div>
+    <div style="margin-bottom:12px;color:#f59e0b;font-weight:600">⚠ ${orphans.length} nombre(s) sin usuario activo — ${orphans.reduce((s,[,i])=>s+i.count,0)} lead(s) afectados</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:14px">Los dropdowns con 💡 ya tienen una sugerencia automática. Revisa cada uno y ajusta si es necesario antes de reasignar.</div>
     ${rows}
-    <button onclick="applyRepairAll()" style="margin-top:14px;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🔧 Reasignar todos los seleccionados</button>
-  `;
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="applyRepairAll()" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🔧 Reasignar todos los seleccionados</button>
+      <button onclick="applyRepairAllSuggested()" style="background:rgba(253,171,61,.15);color:#fdab3d;border:1px solid rgba(253,171,61,.3);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">💡 Aplicar solo los sugeridos (≥80%)</button>
+    </div>`;
 }
 
 async function applyRepair(orphanName) {
@@ -8246,7 +8313,6 @@ async function applyRepair(orphanName) {
   if (!sel || !sel.value) { showToast('Selecciona un agente primero'); return; }
   const newName = sel.value;
   let total = 0;
-
   for (const board of BOARDS) {
     const bLeads = loadLeads(board.id);
     let changed = false;
@@ -8254,37 +8320,146 @@ async function applyRepair(orphanName) {
     if (changed) await saveLeads(board.id, bLeads);
   }
   const trash = loadDeletedLeads();
-  let trashChanged = false;
-  trash.forEach(l => { if (l.asignado === orphanName) { l.asignado = newName; trashChanged = true; total++; } });
-  if (trashChanged) await saveDeletedLeads(trash);
-
+  let tc = false;
+  trash.forEach(l => { if (l.asignado === orphanName) { l.asignado = newName; tc = true; total++; } });
+  if (tc) await saveDeletedLeads(trash);
   showToast(`✅ ${total} lead(s) reasignados a ${newName}`);
   runRepairScan();
+}
+
+async function _doRepairBulk(pairs) {
+  let applied = 0;
+  for (const { orphan, newName } of pairs) {
+    if (!newName) continue;
+    for (const board of BOARDS) {
+      const bLeads = loadLeads(board.id);
+      let changed = false;
+      bLeads.forEach(l => { if (l.asignado === orphan) { l.asignado = newName; changed = true; applied++; } });
+      if (changed) await saveLeads(board.id, bLeads);
+    }
+    const trash = loadDeletedLeads();
+    let tc = false;
+    trash.forEach(l => { if (l.asignado === orphan) { l.asignado = newName; tc = true; applied++; } });
+    if (tc) await saveDeletedLeads(trash);
+  }
+  return applied;
 }
 
 async function applyRepairAll() {
   const el = document.getElementById('repair-results');
   if (!el) return;
-  const sels = el.querySelectorAll('select[id^="repair-sel-"]');
-  let applied = 0;
-  for (const sel of sels) {
-    if (!sel.value) continue;
-    const orphanName = decodeURIComponent(sel.id.replace('repair-sel-', ''));
-    let total = 0;
-    for (const board of BOARDS) {
-      const bLeads = loadLeads(board.id);
-      let changed = false;
-      bLeads.forEach(l => { if (l.asignado === orphanName) { l.asignado = sel.value; changed = true; total++; } });
-      if (changed) await saveLeads(board.id, bLeads);
-    }
-    const trash = loadDeletedLeads();
-    let trashChanged = false;
-    trash.forEach(l => { if (l.asignado === orphanName) { l.asignado = sel.value; trashChanged = true; total++; } });
-    if (trashChanged) await saveDeletedLeads(trash);
-    applied += total;
-  }
+  const pairs = [...el.querySelectorAll('select[id^="repair-sel-"]')]
+    .filter(s => s.value)
+    .map(s => ({ orphan: decodeURIComponent(s.id.replace('repair-sel-','')), newName: s.value }));
+  const applied = await _doRepairBulk(pairs);
   showToast(`✅ ${applied} lead(s) reasignados`);
   runRepairScan();
+}
+
+async function applyRepairAllSuggested() {
+  const allUsers = loadUsers();
+  const el = document.getElementById('repair-results');
+  if (!el) return;
+  const pairs = [...el.querySelectorAll('select[id^="repair-sel-"]')]
+    .map(s => {
+      const orphan = decodeURIComponent(s.id.replace('repair-sel-',''));
+      const match  = _bestMatch(orphan, allUsers);
+      return match && match.score >= 0.80 ? { orphan, newName: match.user.name } : null;
+    }).filter(Boolean);
+  if (!pairs.length) { showToast('No hay sugerencias con ≥80% de confianza'); return; }
+  const applied = await _doRepairBulk(pairs);
+  showToast(`✅ ${applied} lead(s) reasignados automáticamente`);
+  runRepairScan();
+}
+
+// ── Duplicate Scanner ───────────────────────────────────────────────────────
+function runDuplicateScan() {
+  const el = document.getElementById('dup-results');
+  if (!el) return;
+  el.innerHTML = '<span style="color:var(--text2)">Analizando usuarios...</span>';
+
+  const allUsers = loadUsers();
+
+  // Count leads per user name for context
+  const leadCount = {};
+  for (const board of BOARDS) {
+    for (const l of loadLeads(board.id)) {
+      if (l.asignado) leadCount[l.asignado] = (leadCount[l.asignado] || 0) + 1;
+    }
+  }
+
+  const pairs = [];
+  const seen  = new Set();
+
+  for (let i = 0; i < allUsers.length; i++) {
+    for (let j = i + 1; j < allUsers.length; j++) {
+      const a = allUsers[i], b = allUsers[j];
+      const pairKey = [a.id, b.id].sort().join('|');
+      if (seen.has(pairKey)) continue;
+
+      let reason = null;
+      // Same email (normalized)
+      const ea = (a.email || '').toLowerCase().trim();
+      const eb = (b.email || '').toLowerCase().trim();
+      if (ea && ea === eb) {
+        reason = `📧 Mismo correo: ${esc(ea)}`;
+      } else {
+        // Name similarity
+        const score = _nameSimilarity(a.name, b);
+        if (score >= 0.65) {
+          reason = `👤 Nombres similares (${Math.round(score*100)}% coincidencia)`;
+        }
+      }
+      if (reason) {
+        seen.add(pairKey);
+        pairs.push({ a, b, reason, leadsA: leadCount[a.name]||0, leadsB: leadCount[b.name]||0 });
+      }
+    }
+  }
+
+  if (!pairs.length) {
+    el.innerHTML = '<span style="color:#22c55e;font-weight:600">✅ No se detectaron usuarios duplicados.</span>';
+    return;
+  }
+
+  const roleLabel = r => ({ master:'Master', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
+
+  const rows = pairs.map((p, idx) => {
+    const cardStyle = (u, leads) => `
+      background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:1;min-width:180px;
+    `;
+    return `
+      <div style="padding:14px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:#fdab3d;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">${p.reason}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:stretch">
+          <div style="${cardStyle(p.a, p.leadsA)}">
+            <div style="font-weight:600;font-size:13px;color:var(--text)">${esc(p.a.name)}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">${esc(p.a.email||'—')}</div>
+            <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+              <span style="background:rgba(0,115,234,.12);color:var(--accent);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">${roleLabel(p.a.role)}</span>
+              ${p.a.inactive ? '<span style="background:rgba(255,80,80,.15);color:#ff6b6b;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">INACTIVO</span>' : '<span style="background:rgba(0,200,117,.12);color:var(--green);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">ACTIVO</span>'}
+              <span style="background:rgba(120,75,209,.12);color:#a78bfa;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">${p.leadsA} leads</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;font-size:18px;color:var(--text2);padding:0 4px">⟷</div>
+          <div style="${cardStyle(p.b, p.leadsB)}">
+            <div style="font-weight:600;font-size:13px;color:var(--text)">${esc(p.b.name)}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">${esc(p.b.email||'—')}</div>
+            <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+              <span style="background:rgba(0,115,234,.12);color:var(--accent);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">${roleLabel(p.b.role)}</span>
+              ${p.b.inactive ? '<span style="background:rgba(255,80,80,.15);color:#ff6b6b;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">INACTIVO</span>' : '<span style="background:rgba(0,200,117,.12);color:var(--green);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">ACTIVO</span>'}
+              <span style="background:rgba(120,75,209,.12);color:#a78bfa;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">${p.leadsB} leads</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:8px">💡 Revisa cuál es el correcto. El duplicado se debe eliminar desde la pantalla de Organización (botón Eliminar usuario).</div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="margin-bottom:12px;color:#fdab3d;font-weight:600">⚠ Se encontraron ${pairs.length} par(es) de posibles duplicados:</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:14px">Antes de eliminar un duplicado, usa "Reparar Asignaciones" para mover sus leads al usuario correcto.</div>
+    ${rows}`;
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
