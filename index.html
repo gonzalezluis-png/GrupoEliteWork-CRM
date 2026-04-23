@@ -9526,14 +9526,25 @@ async function saveUser() {
   } else if (session.role === 'admin') {
     role       = document.getElementById('u-rol') ? document.getElementById('u-rol').value : 'agent';
     orgAdminId = session.id;
+    // Solo leer los dropdowns que están visibles — si están ocultos, preservar el valor original del usuario
+    const prevUser = editingUserId ? loadUsers().find(u => u.id === editingUserId) : null;
+    const mmWrapVisible  = document.getElementById('u-masterManager-wrap')?.style.display !== 'none';
+    const mgrWrapVisible = document.getElementById('u-manager-wrap')?.style.display !== 'none';
+    const supWrapVisible = document.getElementById('u-supervisor-wrap')?.style.display !== 'none';
     if (role === 'manager' || role === 'agent' || role === 'supervisor_agent') {
-      orgMasterManagerId = document.getElementById('u-masterManager') ? (document.getElementById('u-masterManager').value || null) : null;
+      orgMasterManagerId = mmWrapVisible
+        ? (document.getElementById('u-masterManager')?.value || null)
+        : (prevUser?.orgMasterManagerId ?? null);
     }
     if (role === 'agent' || role === 'supervisor_agent') {
-      orgManagerId = document.getElementById('u-manager') ? (document.getElementById('u-manager').value || null) : null;
+      orgManagerId = mgrWrapVisible
+        ? (document.getElementById('u-manager')?.value || null)
+        : (prevUser?.orgManagerId ?? null);
     }
     if (role === 'agent') {
-      orgSupervisorId = document.getElementById('u-supervisor') ? (document.getElementById('u-supervisor').value || null) : null;
+      orgSupervisorId = supWrapVisible
+        ? (document.getElementById('u-supervisor')?.value || null)
+        : (prevUser?.orgSupervisorId ?? null);
     }
   }
 
