@@ -17,8 +17,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Check credits
-    const credKey = `gew_credits_${boardId}`
+    // Check credits (global pool)
+    const credKey = 'gew_credits_global'
     const { data: credRow } = await supa.from('kv_store').select('value').eq('key', credKey).maybeSingle()
     const currentCredits = parseInt(credRow?.value || '0')
     if (currentCredits < 1) {
@@ -51,7 +51,7 @@ serve(async (req) => {
     const data = await res.json()
     if (!res.ok) throw new Error(data.message || 'Twilio error')
 
-    // Deduct 1 credit
+    // Deduct 1 credit from global pool
     await supa.from('kv_store').upsert({ key: credKey, value: String(currentCredits - 1) })
 
     return new Response(JSON.stringify({ sid: data.sid, status: data.status, creditsLeft: currentCredits - 1 }), {

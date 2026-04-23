@@ -20,16 +20,15 @@ serve(async (req) => {
     const boardId  = session.metadata?.boardId
     const credits  = parseInt(session.metadata?.credits || '0')
 
-    if (!boardId || !credits) return new Response('Missing metadata', { status: 400 })
+    if (!credits) return new Response('Missing credits metadata', { status: 400 })
 
     const supa = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const credKey = `gew_credits_${boardId}`
-
-    // Get current credits
+    // Add to global pool
+    const credKey = 'gew_credits_global'
     const { data: existing } = await supa
       .from('kv_store')
       .select('value')
