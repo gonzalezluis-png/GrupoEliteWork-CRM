@@ -1880,6 +1880,22 @@
 </head>
 <body>
 
+<!-- DEV MODE BANNER — only shown on non-production hostnames -->
+<div id="dev-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#f59e0b,#d97706);color:#000;font-size:11px;font-weight:700;text-align:center;padding:5px 16px;letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:10px">
+  <span>🔧 MODO DESARROLLO — Los cambios aquí NO afectan producción.</span>
+  <span style="opacity:.7;font-weight:400">Rama: dev</span>
+</div>
+<script>
+  (function() {
+    const host = window.location.hostname;
+    const isProd = host === 'lead.grupoelitework.com';
+    if (!isProd) {
+      const b = document.getElementById('dev-banner');
+      if (b) { b.style.display = 'flex'; document.body.style.paddingTop = '30px'; }
+    }
+  })();
+</script>
+
 <div id="sync-overlay">
   <div class="sync-spinner"></div>
   <div class="sync-msg" id="sync-msg">Conectando con la base de datos…</div>
