@@ -5335,7 +5335,11 @@ function renderStatsPage() {
   const total     = leads.length;
   const unassigned = leads.filter(l => !l.asignado || l.asignado === 'Sin asignar').length;
   const assigned   = total - unassigned;
+  const _statsSession = getSession();
+  const _statsIsFullOrg = !_statsSession || _statsSession.role === 'master' || _statsSession.role === 'admin';
+  const _statsLineNames = _statsIsFullOrg ? null : new Set(_getLineUsers(_statsSession).map(u => u.name));
   const delFiltered = deleted.filter(l =>
+    (_statsIsFullOrg || _statsLineNames.has(l.asignado)) &&
     (!board || l._originalBoardId === board) &&
     (!agent || l.asignado === agent) &&
     (!from  || (l.creacion||'') >= from) &&
@@ -5416,6 +5420,7 @@ function renderStatsPage() {
 
   // ── RESULT CHANGES from activity log ──
   let resChanges = actLog.filter(e => e.type === 'lead_edit' && e.detail && e.detail.includes('resultado'));
+  if (!_statsIsFullOrg) resChanges = resChanges.filter(e => !e.user || _statsLineNames.has(e.user));
   if (board) resChanges = resChanges.filter(e => e.boardId === board || (e.detail&&e.detail.includes(board)));
   if (agent) resChanges = resChanges.filter(e => e.detail&&e.detail.toLowerCase().includes(agent.toLowerCase()));
   if (from)  resChanges = resChanges.filter(e => e.ts >= from);
