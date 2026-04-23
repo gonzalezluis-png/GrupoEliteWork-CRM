@@ -1975,6 +1975,7 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
     </div>
     <div id="sidebar-master" style="display:none">
+      <div class="sidebar-item" id="nav-reconcile" onclick="showReconcilePage()">🔗 <span>Reconciliar Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span><span class="emblem-dev">🙈 Solo yo</span></div>
     </div>
   </nav>
@@ -3138,6 +3139,43 @@ setTimeout(function(){
       </div>
       <div style="flex:1;overflow-y:auto;padding:0 28px 24px">
         <div id="activity-list"></div>
+      </div>
+    </div>
+
+    <!-- RECONCILIATION PAGE -->
+    <div id="reconcile-page" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+      <div style="padding:20px 28px 0 28px;flex-shrink:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px">
+          <div>
+            <div style="font-size:18px;font-weight:800;color:var(--text)">🔗 Reconciliar Usuarios y Leads</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">Asocia nombres viejos de leads con los usuarios actuales correctos.</div>
+          </div>
+          <button onclick="applyReconcileAll()" style="background:#0073ea;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✅ Aplicar todos los cambios</button>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:16px 28px 40px">
+
+        <!-- USERS GRID -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+            👤 Usuarios registrados
+            <span id="rec-user-count" style="background:rgba(0,115,234,.12);color:var(--accent);font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px"></span>
+          </div>
+          <div id="rec-users-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px"></div>
+        </div>
+
+        <div style="border-top:2px solid var(--border);margin-bottom:20px"></div>
+
+        <!-- ASIGNADOS TABLE -->
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          📋 Nombres encontrados en leads
+          <span id="rec-asig-count" style="background:rgba(0,115,234,.12);color:var(--accent);font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px"></span>
+          <span style="font-size:11px;font-weight:400;color:var(--text2)">— Selecciona a qué usuario pertenece cada nombre</span>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <div id="rec-table-body"></div>
+        </div>
+
       </div>
     </div>
 
@@ -5259,6 +5297,166 @@ function showActivityPage() {
   currentBoardId = null;
   _populateActivityFilters();
   renderActivityPage();
+}
+
+// ════════════════════════════════════════════
+// ════════════════════════════════════════════
+//  RECONCILE PAGE
+// ════════════════════════════════════════════
+function showReconcilePage() {
+  showBoardView();
+  document.getElementById('table-wrap').style.display    = 'none';
+  document.getElementById('toolbar').style.display       = 'none';
+  document.getElementById('bulk-bar').classList.remove('visible');
+  document.getElementById('btn-new-lead').style.display  = 'none';
+  document.getElementById('btn-export').style.display    = 'none';
+  document.getElementById('assign-strip').classList.add('hidden');
+  document.getElementById('reconcile-page').style.display = 'flex';
+  document.getElementById('board-title').textContent      = 'Reconciliar Usuarios';
+  document.querySelectorAll('.board-item, .sidebar-item').forEach(el => el.classList.remove('active'));
+  const nav = document.getElementById('nav-reconcile');
+  if (nav) nav.classList.add('active');
+  currentBoardId = null;
+  renderReconcilePage();
+}
+
+function renderReconcilePage() {
+  const allUsers = loadUsers(); // includes inactive, excludes deleted
+
+  // All unique asignado values across all boards
+  const asigMap = {}; // name -> { count, boards[] }
+  for (const board of BOARDS) {
+    for (const l of loadLeads(board.id)) {
+      if (!l.asignado || l.asignado === 'Sin asignar') continue;
+      if (!asigMap[l.asignado]) asigMap[l.asignado] = { count: 0, boards: new Set() };
+      asigMap[l.asignado].count++;
+      asigMap[l.asignado].boards.add(board.name || board.id);
+    }
+  }
+
+  const validNames  = new Set(allUsers.map(u => u.name));
+  const roleLabel   = r => ({ master:'Master', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
+
+  // --- USERS GRID ---
+  const usersGrid = document.getElementById('rec-users-grid');
+  const userCount = document.getElementById('rec-user-count');
+  if (userCount) userCount.textContent = allUsers.length + ' usuarios';
+  if (usersGrid) {
+    usersGrid.innerHTML = allUsers
+      .sort((a,b) => (a.inactive?1:0)-(b.inactive?1:0) || a.name.localeCompare(b.name))
+      .map(u => {
+        const leads = asigMap[u.name]?.count || 0;
+        const statusColor = u.inactive ? '#ff6b6b' : '#00c875';
+        const statusLabel = u.inactive ? 'INACTIVO' : 'ACTIVO';
+        return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;${u.inactive?'opacity:.65':''}">
+          <div style="font-weight:600;font-size:12px;color:var(--text);margin-bottom:3px">${esc(u.name)}</div>
+          <div style="font-size:10px;color:var(--text2);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.email||'—')}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span style="background:rgba(0,115,234,.12);color:var(--accent);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px">${roleLabel(u.role)}</span>
+            <span style="background:${u.inactive?'rgba(255,80,80,.12)':'rgba(0,200,117,.12)'};color:${statusColor};font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px">${statusLabel}</span>
+            <span style="background:rgba(120,75,209,.1);color:#a78bfa;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px">${leads} leads</span>
+          </div>
+        </div>`;
+      }).join('');
+  }
+
+  // --- ASIGNADOS TABLE ---
+  const tableBody = document.getElementById('rec-table-body');
+  const asigCount = document.getElementById('rec-asig-count');
+  const entries   = Object.entries(asigMap).sort((a,b) => {
+    // orphaned first, then by count desc
+    const aOrphan = !validNames.has(a[0]) ? 0 : 1;
+    const bOrphan = !validNames.has(b[0]) ? 0 : 1;
+    return aOrphan - bOrphan || b[1].count - a[1].count;
+  });
+
+  if (asigCount) asigCount.textContent = entries.length + ' nombres';
+
+  const candidates = allUsers
+    .filter(u => ['agent','supervisor_agent','manager','master_manager','admin'].includes(u.role))
+    .sort((a,b) => a.name.localeCompare(b.name));
+
+  if (tableBody) {
+    // header
+    tableBody.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 80px 120px 1fr 100px;gap:0;background:var(--card2);padding:8px 16px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">
+        <div>Nombre en leads</div>
+        <div>Leads</div>
+        <div>Estado</div>
+        <div>Asignar a usuario</div>
+        <div></div>
+      </div>
+      ${entries.map(([name, info]) => {
+        const isValid   = validNames.has(name);
+        const match     = _bestMatch(name, allUsers);
+        const preselect = isValid ? name : (match && match.score >= 0.5 ? match.user.name : '');
+        const statusDot = isValid
+          ? `<span style="color:#00c875;font-size:11px;font-weight:600">✓ Usuario activo</span>`
+          : `<span style="color:#f59e0b;font-size:11px;font-weight:600">⚠ Sin usuario</span>`;
+        const suggestNote = (!isValid && match && match.score >= 0.5)
+          ? `<div style="font-size:10px;color:#fdab3d;margin-top:2px">💡 ${Math.round(match.score*100)}% similar a "${esc(match.user.name)}"</div>` : '';
+        const opts = candidates.map(u =>
+          `<option value="${esc(u.name)}" ${u.name===preselect?'selected':''}>${esc(u.name)}${u.inactive?' (inactivo)':''}</option>`
+        ).join('');
+        const rowBg = isValid ? '' : 'background:rgba(245,158,11,.04);';
+        const key   = encodeURIComponent(name);
+        return `<div style="display:grid;grid-template-columns:1fr 80px 120px 1fr 100px;align-items:center;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);${rowBg}">
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--text)">${esc(name)}</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:1px">${[...info.boards].slice(0,2).join(', ')}${info.boards.size>2?'…':''}</div>
+            ${suggestNote}
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${info.count}</div>
+          <div>${statusDot}</div>
+          <div>
+            <select id="rec-sel-${key}" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px;width:100%">
+              <option value="">— Sin cambiar —</option>
+              ${opts}
+            </select>
+          </div>
+          <div style="text-align:right">
+            <button onclick="applyReconcileRow('${esc(name)}')" style="background:rgba(0,115,234,.15);color:var(--accent);border:1px solid rgba(0,115,234,.3);padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Aplicar</button>
+          </div>
+        </div>`;
+      }).join('')}`;
+  }
+}
+
+async function applyReconcileRow(oldName) {
+  const key = encodeURIComponent(oldName);
+  const sel = document.getElementById('rec-sel-' + key);
+  if (!sel || !sel.value || sel.value === oldName) { showToast('Sin cambios para aplicar'); return; }
+  const newName = sel.value;
+  let total = 0;
+  for (const board of BOARDS) {
+    const bLeads = loadLeads(board.id);
+    let changed = false;
+    bLeads.forEach(l => { if (l.asignado === oldName) { l.asignado = newName; changed = true; total++; } });
+    if (changed) await saveLeads(board.id, bLeads);
+  }
+  showToast(`✅ ${total} lead(s) de "${oldName}" → "${newName}"`);
+  renderReconcilePage();
+}
+
+async function applyReconcileAll() {
+  const el = document.getElementById('rec-table-body');
+  if (!el) return;
+  let applied = 0;
+  const sels = el.querySelectorAll('select[id^="rec-sel-"]');
+  for (const sel of sels) {
+    if (!sel.value) continue;
+    const oldName = decodeURIComponent(sel.id.replace('rec-sel-', ''));
+    if (sel.value === oldName) continue;
+    const newName = sel.value;
+    for (const board of BOARDS) {
+      const bLeads = loadLeads(board.id);
+      let changed = false;
+      bLeads.forEach(l => { if (l.asignado === oldName) { l.asignado = newName; changed = true; applied++; } });
+      if (changed) await saveLeads(board.id, bLeads);
+    }
+  }
+  showToast(`✅ ${applied} lead(s) reasignados`);
+  renderReconcilePage();
 }
 
 // ════════════════════════════════════════════
@@ -9424,6 +9622,7 @@ function showBoardView() {
   document.getElementById('activity-page').style.display  = 'none';
   document.getElementById('calendar-page').style.display  = 'none';
   document.getElementById('stats-page').style.display     = 'none';
+  document.getElementById('reconcile-page').style.display = 'none';
   const navAct = document.getElementById('nav-activity');
   if (navAct) navAct.classList.remove('active');
   const navCal = document.getElementById('nav-calendar');
