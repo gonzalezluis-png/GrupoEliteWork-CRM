@@ -10961,7 +10961,7 @@ async function sendWhatsAppTemplate() {
     // Log message in lead history
     const previewText = WA_TEMPLATE_BODY.replace('{{1}}', v1).replace('{{2}}', v2);
     const msgs = JSON.parse(lead._messages || '[]');
-    msgs.push({ to, body: previewText, channel: 'whatsapp', template: true, date: new Date().toISOString(), author: session?.name || '?', sid: data.sid || '' });
+    msgs.push({ to, from: data.from || '', body: previewText, channel: 'whatsapp', template: true, date: new Date().toISOString(), author: session?.name || '?', sid: data.sid || '' });
     lead._messages = JSON.stringify(msgs);
     saveLeads(_notesBoardId, leads);
     _renderMsgJournal(lead);
@@ -10987,8 +10987,9 @@ function _renderMsgJournal(lead) {
   }
   el.innerHTML = msgs.map(m => `
     <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
-      <div style="font-size:10px;color:var(--text2);margin-bottom:4px;display:flex;gap:8px;align-items:center">
-        <span style="background:${m.channel==='whatsapp'?'rgba(37,211,102,.15)':'rgba(0,115,234,.12)'};color:${m.channel==='whatsapp'?'#25d366':'var(--accent)'};padding:1px 7px;border-radius:10px;font-weight:600">${m.channel==='whatsapp'?'WhatsApp':'SMS'}</span>
+      <div style="font-size:10px;color:var(--text2);margin-bottom:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="background:${m.channel==='whatsapp'?'rgba(37,211,102,.15)':'rgba(0,115,234,.12)'};color:${m.channel==='whatsapp'?'#25d366':'var(--accent)'};padding:1px 7px;border-radius:10px;font-weight:600">${m.channel==='whatsapp'?'WhatsApp':'SMS'}${m.template?' · Template':''}</span>
+        ${m.from ? `<span style="color:var(--text2)">De: <strong style="color:var(--text)">${esc(m.from)}</strong></span>` : ''}
         <span>→ ${esc(m.to)}</span>
         <span style="margin-left:auto">${esc(m.author)} · ${formatNoteDate(m.date)}</span>
       </div>
@@ -11022,7 +11023,7 @@ async function sendLeadMessage() {
     if (lead) {
       const session = getSession();
       const msgs = JSON.parse(lead._messages || '[]');
-      msgs.push({ to, body, channel: _msgChannel, date: new Date().toISOString(), author: session?.name || '?', sid: data.sid || '', error: data.error || '' });
+      msgs.push({ to, from: data.from || '', body, channel: _msgChannel, date: new Date().toISOString(), author: session?.name || '?', sid: data.sid || '', error: data.error || '' });
       lead._messages = JSON.stringify(msgs);
       saveLeads(_notesBoardId, leads);
       _renderMsgJournal(lead);

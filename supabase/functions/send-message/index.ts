@@ -61,7 +61,7 @@ serve(async (req) => {
     // Deduct 1 credit from global pool
     await supa.from('kv_store').upsert({ key: credKey, value: String(currentCredits - 1) })
 
-    return new Response(JSON.stringify({ sid: data.sid, status: data.status, creditsLeft: currentCredits - 1 }), {
+    return new Response(JSON.stringify({ sid: data.sid, status: data.status, from: fromNum, creditsLeft: currentCredits - 1 }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   } catch (e) {
