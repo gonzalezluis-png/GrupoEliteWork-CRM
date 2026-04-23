@@ -4257,8 +4257,8 @@ function renderRows(board, leads) {
       if (c.key === 'nombre') {
         const sess2 = getSession();
         const masterBtns = (sess2 && sess2.role === 'master')
-          ? `<button onclick="event.stopPropagation()" title="Favorito" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:2px;flex-shrink:0;line-height:1">✦</button><button onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">≡</button><button onclick="event.stopPropagation();openChatPopup('${l.id}')" title="Chat" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">💬</button>`
-          : `<button onclick="event.stopPropagation();openChatPopup('${l.id}')" title="Chat" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">💬</button>`;
+          ? `<button onclick="event.stopPropagation()" title="Favorito" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:2px;flex-shrink:0;line-height:1">✦</button><button onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">≡</button><button onclick="event.stopPropagation();openChatPopup('${l.id}')" title="Chat" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1;opacity:1 !important">💬</button>`
+          : '';
         return `<td class="td-name"><div style="display:flex;align-items:center;gap:8px"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(l.nombre||'')}">${esc(l.nombre||'—')}</span>${masterBtns}</div></td>`;
       }
       if (c.key === 'lead') {
