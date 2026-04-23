@@ -25,18 +25,12 @@ serve(async (req) => {
 
     const { data: rows } = await supa.from('kv_store').select('key,value')
       .in('key', [
-        'gew_autocharge_enabled', 'gew_autocharge_threshold', 'gew_autocharge_package',
+        'gew_autocharge_threshold', 'gew_autocharge_package',
         'gew_stripe_customer_id', 'gew_stripe_payment_method',
         'gew_credits_global', 'gew_autocharge_lock',
       ])
 
     const get = (k: string) => rows?.find((r: { key: string; value: string }) => r.key === k)?.value
-
-    if (get('gew_autocharge_enabled') !== 'true') {
-      return new Response(JSON.stringify({ skipped: 'disabled' }), {
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      })
-    }
 
     const threshold = parseInt(get('gew_autocharge_threshold') || '50')
     const currentCredits = parseInt(get('gew_credits_global') || '0')
