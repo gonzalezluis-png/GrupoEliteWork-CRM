@@ -17,7 +17,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const { packageId, boardId, successUrl, cancelUrl } = await req.json()
+    const { packageId, boardId, boardName, successUrl, cancelUrl } = await req.json()
     const pkg = PACKAGES.find(p => p.id === packageId)
     if (!pkg) throw new Error('Paquete no válido')
 
@@ -34,6 +34,7 @@ serve(async (req) => {
       'success_url': successUrl || 'https://lead.grupoelitework.com?payment=success',
       'cancel_url': cancelUrl  || 'https://lead.grupoelitework.com?payment=cancel',
       'metadata[boardId]': boardId,
+      'metadata[boardName]': boardName || boardId,
       'metadata[credits]': String(pkg.credits),
       'metadata[packageId]': packageId,
     })

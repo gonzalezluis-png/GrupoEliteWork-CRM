@@ -40,6 +40,15 @@ serve(async (req) => {
     const updated = current + credits
 
     await supa.from('kv_store').upsert({ key: credKey, value: String(updated) })
+
+    // Log transaction
+    const txKey = `gew_msg_tx_${Date.now()}`
+    const boardName = session.metadata?.boardName || boardId
+    const amountTotal = session.amount_total || 0
+    await supa.from('kv_store').upsert({
+      key: txKey,
+      value: JSON.stringify({ boardId, boardName, credits, amount: amountTotal, date: new Date().toISOString(), stripeSession: session.id })
+    })
   }
 
   return new Response('ok', { status: 200 })

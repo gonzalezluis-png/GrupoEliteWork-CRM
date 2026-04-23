@@ -2089,6 +2089,13 @@ setTimeout(function(){
             <div class="snp-card" id="snp-card"></div>
           </div>
 
+          <div class="settings-nav-group" id="snav-sec-messaging" style="display:none">
+            <span class="settings-nav-group-label">Mensajería</span>
+            <button class="settings-nav-item" data-tab="messaging" id="snav-messaging" onclick="switchSettingsTab('messaging')">
+              <span class="sni-icon-wrap">💬</span>Panel de mensajes
+            </button>
+          </div>
+
           <!-- Vault trigger — developer only, very discreet -->
           <div id="vault-trigger" style="display:none;padding:0 8px 10px;text-align:right">
             <span onclick="openVault()" title="" style="font-size:9px;color:var(--border);cursor:pointer;letter-spacing:1px;user-select:none;transition:color .2s" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--border)'">···</span>
@@ -2560,6 +2567,41 @@ setTimeout(function(){
               </div>
             </div>
 
+          </div>
+
+          <!-- TAB: Mensajería (developer only) -->
+          <div class="settings-tab" id="stab-messaging">
+            <div class="st-header">
+              <div>
+                <div class="st-title">💬 Panel de Mensajería</div>
+                <div class="st-subtitle">Resumen de créditos, recargas y mensajes enviados por board.</div>
+              </div>
+              <button class="btn btn-primary" onclick="loadMessagingDashboard()" style="flex-shrink:0">↺ Actualizar</button>
+            </div>
+
+            <!-- Summary cards -->
+            <div id="msg-dash-summary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px"></div>
+
+            <!-- Credits per board -->
+            <div class="settings-section" style="margin-bottom:20px">
+              <h3>💳 Créditos por board</h3>
+              <p>Saldo actual de mensajes disponibles en cada board.</p>
+              <div id="msg-dash-credits" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+
+            <!-- Transaction log -->
+            <div class="settings-section" style="margin-bottom:20px">
+              <h3>🧾 Historial de recargas</h3>
+              <p>Pagos completados a través de Stripe.</p>
+              <div id="msg-dash-transactions" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto"></div>
+            </div>
+
+            <!-- Messages sent -->
+            <div class="settings-section">
+              <h3>📤 Mensajes enviados por board</h3>
+              <p>Total de mensajes SMS y WhatsApp enviados.</p>
+              <div id="msg-dash-sent" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
           </div>
 
         </div><!-- /.settings-content -->
@@ -7363,6 +7405,7 @@ function switchSettingsTab(tab) {
   if (tabEl) tabEl.classList.add('active');
   const navEl = document.querySelector(`.settings-nav-item[data-tab="${tab}"]`);
   if (navEl) navEl.classList.add('active');
+  if (tab === 'messaging') loadMessagingDashboard();
 }
 
 function showSettingsPage() {
@@ -7400,6 +7443,8 @@ function showSettingsPage() {
   if (diagWrap) diagWrap.style.display = (session && session.role === 'master') ? '' : 'none';
   const vaultTrigger = document.getElementById('vault-trigger');
   if (vaultTrigger) vaultTrigger.style.display = (session && session.role === 'master') ? '' : 'none';
+  const msgNav = document.getElementById('snav-sec-messaging');
+  if (msgNav) msgNav.style.display = (session && session.role === 'master') ? 'block' : 'none';
 
   // Default tab by role
   const defaultTab = isAdminOrMaster ? 'org' : 'account';
@@ -9696,6 +9741,111 @@ async function sendLeadMessage() {
   btn.disabled = false;
 }
 
+async function loadMessagingDashboard() {
+  const summaryEl = document.getElementById('msg-dash-summary');
+  const creditsEl = document.getElementById('msg-dash-credits');
+  const txEl      = document.getElementById('msg-dash-transactions');
+  const sentEl    = document.getElementById('msg-dash-sent');
+  if (!summaryEl) return;
+
+  summaryEl.innerHTML = creditsEl.innerHTML = txEl.innerHTML = sentEl.innerHTML =
+    '<div style="color:var(--text2);font-size:12px">Cargando…</div>';
+
+  // Load credits per board from Supabase
+  const { data: kvRows } = await supa.from('kv_store').select('key,value').like('key', 'gew_credits_%');
+  const credMap = {};
+  (kvRows || []).forEach(r => { credMap[r.key.replace('gew_credits_', '')] = parseInt(r.value || '0'); });
+
+  // Load transactions
+  const { data: txRows } = await supa.from('kv_store').select('key,value').like('key', 'gew_msg_tx_%').order('key', { ascending: false });
+
+  // Count messages sent per board from leads
+  const sentMap = {};
+  let totalSent = 0, totalSMS = 0, totalWA = 0;
+  BOARDS.forEach(b => {
+    const leads = loadLeads(b.id);
+    let sms = 0, wa = 0;
+    leads.forEach(l => {
+      const msgs = JSON.parse(l._messages || '[]');
+      msgs.forEach(m => { if (!m.error) { m.channel === 'whatsapp' ? wa++ : sms++; } });
+    });
+    sentMap[b.id] = { sms, wa, name: b.name, icon: b.icon };
+    totalSent += sms + wa; totalSMS += sms; totalWA += wa;
+  });
+
+  const totalCredits = Object.values(credMap).reduce((s, n) => s + n, 0);
+
+  // Summary cards
+  summaryEl.innerHTML = [
+    { label: 'Créditos totales', val: totalCredits, color: 'var(--accent)', icon: '💳' },
+    { label: 'Mensajes enviados', val: totalSent, color: '#00c875', icon: '📤' },
+    { label: 'SMS', val: totalSMS, color: '#fbbf24', icon: '📱' },
+    { label: 'WhatsApp', val: totalWA, color: '#25d366', icon: '💬' },
+    { label: 'Recargas', val: (txRows || []).length, color: '#a78bfa', icon: '🧾' },
+  ].map(c => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+      <div style="font-size:20px;margin-bottom:6px">${c.icon}</div>
+      <div style="font-size:24px;font-weight:700;color:${c.color}">${c.val}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:3px;text-transform:uppercase;letter-spacing:.4px">${c.label}</div>
+    </div>`).join('');
+
+  // Credits per board
+  creditsEl.innerHTML = BOARDS.map(b => {
+    const n = credMap[b.id] || 0;
+    const color = n === 0 ? '#e2445c' : n < 20 ? '#fbbf24' : '#00c875';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px">
+      <span style="font-size:16px">${b.icon}</span>
+      <span style="font-size:13px;color:var(--text);flex:1">${esc(b.name)}</span>
+      <span style="font-size:15px;font-weight:700;color:${color}">${n}</span>
+      <span style="font-size:11px;color:var(--text2)">créditos</span>
+      <button onclick="openAddCreditsModal('${b.id}','${esc(b.name)}')" style="padding:4px 12px;border-radius:7px;border:1px solid rgba(0,115,234,.4);background:rgba(0,115,234,.1);color:var(--accent);font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">+ Agregar</button>
+    </div>`;
+  }).join('') || '<div style="color:var(--text2);font-size:12px">Sin boards.</div>';
+
+  // Transactions
+  txEl.innerHTML = (txRows && txRows.length) ? txRows.map(r => {
+    try {
+      const tx = JSON.parse(r.value);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:12px">
+        <span style="color:#a78bfa;font-weight:700">+${tx.credits}</span>
+        <span style="color:var(--text2)">créditos</span>
+        <span style="color:var(--text);flex:1">${esc(tx.boardName || tx.boardId)}</span>
+        <span style="color:#00c875;font-weight:600">$${(tx.amount/100).toFixed(2)}</span>
+        <span style="color:var(--text2)">${tx.date ? new Date(tx.date).toLocaleDateString('es-US',{month:'short',day:'numeric',year:'numeric'}) : ''}</span>
+      </div>`;
+    } catch { return ''; }
+  }).join('') : '<div style="color:var(--text2);font-size:12px;padding:8px 0">Sin recargas registradas aún.</div>';
+
+  // Messages sent per board
+  sentEl.innerHTML = Object.values(sentMap).filter(b => b.sms + b.wa > 0).sort((a,b) => (b.sms+b.wa)-(a.sms+a.wa)).map(b => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px">
+      <span style="font-size:15px">${b.icon}</span>
+      <span style="font-size:13px;color:var(--text);flex:1">${esc(b.name)}</span>
+      <span style="font-size:11px;color:var(--text2)">📱 SMS: <strong style="color:var(--text)">${b.sms}</strong></span>
+      <span style="font-size:11px;color:var(--text2)">💬 WA: <strong style="color:#25d366">${b.wa}</strong></span>
+    </div>`).join('') || '<div style="color:var(--text2);font-size:12px;padding:8px 0">Sin mensajes enviados aún.</div>';
+}
+
+function openAddCreditsModal(boardId, boardName) {
+  const n = prompt(`¿Cuántos créditos agregar a "${boardName}"?`);
+  if (!n || isNaN(parseInt(n)) || parseInt(n) <= 0) return;
+  addCreditsToBoard(boardId, boardName, parseInt(n));
+}
+
+async function addCreditsToBoard(boardId, boardName, amount) {
+  const credKey = `gew_credits_${boardId}`;
+  const { data: existing } = await supa.from('kv_store').select('value').eq('key', credKey).maybeSingle();
+  const current = parseInt(existing?.value || '0');
+  const updated = current + amount;
+  await supa.from('kv_store').upsert({ key: credKey, value: String(updated) });
+
+  // Log transaction
+  const txKey = `gew_msg_tx_${Date.now()}`;
+  await supa.from('kv_store').upsert({ key: txKey, value: JSON.stringify({ boardId, boardName, credits: amount, amount: 0, date: new Date().toISOString(), manual: true }) });
+
+  loadMessagingDashboard();
+}
+
 async function loadMsgCredits(boardId) {
   const cv = document.getElementById('msg-credits-val');
   if (!cv) return;
@@ -9722,7 +9872,7 @@ async function startCheckout(packageId) {
     const res = await fetch(`${SUPA_URL}/functions/v1/create-checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPA_KEY}` },
-      body: JSON.stringify({ packageId, boardId: _notesBoardId }),
+      body: JSON.stringify({ packageId, boardId: _notesBoardId, boardName: (BOARDS.find(b=>b.id===_notesBoardId)||{}).name || _notesBoardId }),
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
