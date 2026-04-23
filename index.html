@@ -1929,6 +1929,7 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-stats" onclick="showStatsPage()">📈 <span>Estadísticas</span></div>
       <div class="sidebar-item" id="nav-calendar" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
       <div class="sidebar-item" id="nav-activity" onclick="showActivityPage()">📊 <span>Actividad</span></div>
+      <div class="sidebar-item" id="nav-credits" onclick="showCreditsPage()">💳 <span>Créditos</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
     </div>
     <div id="sidebar-master" style="display:none">
@@ -2645,6 +2646,73 @@ setTimeout(function(){
         </div><!-- /.settings-content -->
       </div><!-- /.settings-layout -->
     </div><!-- /#settings-page -->
+
+    <!-- CREDITS PAGE -->
+    <div id="credits-page" style="display:none;flex:1;overflow-y:auto">
+      <div style="max-width:920px;margin:0 auto;padding:28px 28px 60px">
+        <!-- Header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:16px;flex-wrap:wrap">
+          <div>
+            <h1 style="font-size:20px;font-weight:700;color:var(--text);margin:0">💳 Créditos de Mensajería</h1>
+            <p style="font-size:12px;color:var(--text2);margin:4px 0 0">Administra el saldo para envío de SMS y WhatsApp de todo el equipo</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div style="background:rgba(0,200,117,.1);border:1px solid rgba(0,200,117,.3);border-radius:12px;padding:10px 20px;text-align:center;min-width:120px">
+              <div style="font-size:28px;font-weight:700;color:#00c875;line-height:1" id="cp-total-credits">—</div>
+              <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:3px">créditos disponibles</div>
+            </div>
+            <button onclick="openBuyCreditsModal()" style="padding:11px 22px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💳 Recargar</button>
+            <button onclick="loadCreditsPage()" title="Actualizar" style="padding:10px 12px;background:var(--card2);color:var(--text2);border:1px solid var(--border);border-radius:10px;font-size:16px;cursor:pointer;line-height:1">↺</button>
+          </div>
+        </div>
+        <!-- Date filter -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;padding:12px 18px;background:var(--card2);border:1px solid var(--border);border-radius:12px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--text2);font-weight:600">Filtrar período:</span>
+          <input type="date" id="cp-desde" onchange="loadCreditsPage()" style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 10px;font-family:var(--font);font-size:12px" />
+          <span style="color:var(--text2);font-size:12px">—</span>
+          <input type="date" id="cp-hasta" onchange="loadCreditsPage()" style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 10px;font-family:var(--font);font-size:12px" />
+          <button onclick="document.getElementById('cp-desde').value='';document.getElementById('cp-hasta').value='';loadCreditsPage()" style="padding:5px 12px;background:none;color:var(--text2);border:1px solid var(--border);border-radius:7px;font-family:var(--font);font-size:11px;cursor:pointer">✕ Limpiar</button>
+        </div>
+        <!-- Stats cards -->
+        <div id="cp-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:26px"></div>
+        <!-- Top consumers -->
+        <div style="margin-bottom:26px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:10px">👥 Mayor consumo por agente<span style="flex:1;height:1px;background:var(--border)"></span></div>
+          <div id="cp-agents" style="display:flex;flex-direction:column;gap:7px"></div>
+        </div>
+        <!-- Saldo por board -->
+        <div style="margin-bottom:26px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:10px">🗂 Saldo y uso por board<span style="flex:1;height:1px;background:var(--border)"></span></div>
+          <div id="cp-boards" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <!-- Transaction history -->
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:10px">🧾 Historial de recargas<span style="flex:1;height:1px;background:var(--border)"></span></div>
+          <div id="cp-transactions" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUY CREDITS MODAL -->
+    <div class="overlay" id="buy-credits-overlay" onclick="if(event.target===this)closeBuyCreditsModal()">
+      <div class="modal" style="max-width:480px">
+        <div class="modal-header">
+          <h2>💳 Recargar Créditos</h2>
+          <button class="modal-close" onclick="closeBuyCreditsModal()">✕</button>
+        </div>
+        <div class="modal-body" style="padding:20px 24px 24px">
+          <div style="margin-bottom:16px">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">Board destino</label>
+            <select id="buy-board-sel" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-family:var(--font);font-size:13px"></select>
+          </div>
+          <div style="margin-bottom:22px">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:10px;font-weight:600">Selecciona un paquete</label>
+            <div id="buy-pkg-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+          </div>
+          <button id="buy-confirm-btn" onclick="confirmBuyCredits()" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">Ir a pagar →</button>
+        </div>
+      </div>
+    </div>
 
     <!-- CONVERSATIONS PAGE -->
     <div id="conversations-page" style="display:none;flex:1;overflow:hidden;height:100%">
@@ -8800,6 +8868,7 @@ function showBoardView() {
   document.getElementById('trash-page').classList.remove('visible');
   document.getElementById('scripts-page').classList.remove('visible');
   document.getElementById('conversations-page').style.display = 'none';
+  document.getElementById('credits-page').style.display   = 'none';
   document.getElementById('activity-page').style.display  = 'none';
   document.getElementById('calendar-page').style.display  = 'none';
   document.getElementById('stats-page').style.display     = 'none';
@@ -8809,6 +8878,8 @@ function showBoardView() {
   if (navCal) navCal.classList.remove('active');
   const navSta = document.getElementById('nav-stats');
   if (navSta) navSta.classList.remove('active');
+  const navCrd = document.getElementById('nav-credits');
+  if (navCrd) navCrd.classList.remove('active');
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
   document.getElementById('btn-new-lead').style.display = '';
@@ -10257,6 +10328,212 @@ async function sendConvMessage() {
   }
   input.disabled = false;
   input.focus();
+}
+
+// ════════════════════════════════════════════
+//  CREDITS PAGE  (admin + master)
+// ════════════════════════════════════════════
+function showCreditsPage() {
+  const session = getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'master')) return;
+  showBoardView();
+  document.getElementById('assign-strip').classList.add('hidden');
+  document.getElementById('table-wrap').style.display   = 'none';
+  document.getElementById('toolbar').style.display      = 'none';
+  document.getElementById('bulk-bar').classList.remove('visible');
+  document.getElementById('btn-new-lead').style.display = 'none';
+  document.getElementById('btn-export').style.display   = 'none';
+  document.getElementById('credits-page').style.display = 'flex';
+  document.getElementById('board-title').textContent    = 'Créditos';
+  document.querySelectorAll('.board-item, .sidebar-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-credits');
+  if (navEl) navEl.classList.add('active');
+  currentBoardId = null;
+  loadCreditsPage();
+}
+
+async function loadCreditsPage() {
+  const statsEl  = document.getElementById('cp-stats');
+  const agentsEl = document.getElementById('cp-agents');
+  const boardsEl = document.getElementById('cp-boards');
+  const txEl     = document.getElementById('cp-transactions');
+  const totalEl  = document.getElementById('cp-total-credits');
+  if (!statsEl) return;
+  const session = getSession();
+  const isMaster = session && session.role === 'master';
+  const loading = '<div style="color:var(--text2);font-size:12px;padding:8px 0">Cargando…</div>';
+  statsEl.innerHTML = agentsEl.innerHTML = boardsEl.innerHTML = txEl.innerHTML = loading;
+
+  const desde = document.getElementById('cp-desde')?.value || '';
+  const hasta  = document.getElementById('cp-hasta')?.value  || '';
+
+  // Credits per board from Supabase
+  const { data: kvRows } = await supa.from('kv_store').select('key,value').like('key', 'gew_credits_%');
+  const credMap = {};
+  (kvRows || []).forEach(r => { credMap[r.key.replace('gew_credits_', '')] = parseInt(r.value || '0'); });
+  const totalCredits = Object.values(credMap).reduce((s, n) => s + n, 0);
+  if (totalEl) totalEl.textContent = totalCredits;
+
+  // Transactions
+  const { data: txRows } = await supa.from('kv_store').select('key,value').like('key', 'gew_msg_tx_%').order('key', { ascending: false });
+
+  // Per-agent and per-board usage from leads (filtered by date)
+  const agentMap = {};
+  const boardSentMap = {};
+  let totalSent = 0, totalSMS = 0, totalWA = 0;
+  BOARDS.forEach(b => {
+    let bsms = 0, bwa = 0;
+    loadLeads(b.id).forEach(l => {
+      JSON.parse(l._messages || '[]').forEach(m => {
+        if (m.error || m.direction === 'inbound') return;
+        const mDate = m.date ? m.date.slice(0, 10) : '';
+        if (desde && mDate < desde) return;
+        if (hasta  && mDate > hasta)  return;
+        const author = m.author || 'Desconocido';
+        if (!agentMap[author]) agentMap[author] = { sms: 0, wa: 0 };
+        if (m.channel === 'whatsapp') { agentMap[author].wa++; bwa++; totalWA++; }
+        else                          { agentMap[author].sms++; bsms++; totalSMS++; }
+        totalSent++;
+      });
+    });
+    boardSentMap[b.id] = { name: b.name, icon: b.icon, sms: bsms, wa: bwa };
+  });
+
+  // Stats cards
+  statsEl.innerHTML = [
+    { label: 'Créditos totales', val: totalCredits, color: '#00c875',       icon: '💳' },
+    { label: 'Mensajes enviados', val: totalSent,   color: 'var(--accent)', icon: '📤' },
+    { label: 'SMS',               val: totalSMS,    color: '#fbbf24',       icon: '📱' },
+    { label: 'WhatsApp',          val: totalWA,     color: '#25d366',       icon: '💬' },
+  ].map(c => `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+    <div style="font-size:20px;margin-bottom:6px">${c.icon}</div>
+    <div style="font-size:26px;font-weight:700;color:${c.color}">${c.val}</div>
+    <div style="font-size:10px;color:var(--text2);margin-top:4px;text-transform:uppercase;letter-spacing:.4px">${c.label}</div>
+  </div>`).join('');
+
+  // Top consumers
+  const agentList = Object.entries(agentMap).sort((a, b) => (b[1].sms + b[1].wa) - (a[1].sms + a[1].wa));
+  if (agentList.length) {
+    const maxTotal = agentList[0][1].sms + agentList[0][1].wa;
+    agentsEl.innerHTML = agentList.map(([name, d]) => {
+      const total = d.sms + d.wa;
+      const pct = maxTotal > 0 ? Math.round(total / maxTotal * 100) : 0;
+      return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,115,234,.12);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0">${(name[0]||'?').toUpperCase()}</div>
+          <span style="font-size:13px;color:var(--text);font-weight:600;flex:1">${esc(name)}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">${total}</span>
+          <span style="font-size:11px;color:var(--text2)">msgs</span>
+          <span style="font-size:11px;color:var(--text2)">📱 ${d.sms}</span>
+          <span style="font-size:11px;color:#25d366">💬 ${d.wa}</span>
+        </div>
+        <div style="background:var(--card2);border-radius:4px;height:5px;overflow:hidden">
+          <div style="background:var(--accent);width:${pct}%;height:100%;border-radius:4px"></div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    agentsEl.innerHTML = `<div style="color:var(--text2);font-size:12px;padding:8px 0">${desde||hasta ? 'Sin mensajes en el período seleccionado.' : 'Sin mensajes enviados aún.'}</div>`;
+  }
+
+  // Boards balance + usage
+  const addBtn = isMaster
+    ? (id, name) => `<button onclick="openAddCreditsModal('${id}','${esc(name)}')" style="padding:4px 10px;border-radius:7px;border:1px solid rgba(0,115,234,.35);background:rgba(0,115,234,.08);color:var(--accent);font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">+ Manual</button>`
+    : () => '';
+  boardsEl.innerHTML = BOARDS.map(b => {
+    const n     = credMap[b.id] || 0;
+    const sent  = boardSentMap[b.id] || { sms: 0, wa: 0 };
+    const color = n === 0 ? '#e2445c' : n < 20 ? '#fbbf24' : '#00c875';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:16px">${b.icon}</span>
+      <span style="font-size:13px;color:var(--text);font-weight:600;flex:1;min-width:100px">${esc(b.name)}</span>
+      <span style="font-size:11px;color:var(--text2)">📱 <strong style="color:var(--text)">${sent.sms}</strong> SMS</span>
+      <span style="font-size:11px;color:var(--text2)">💬 <strong style="color:#25d366">${sent.wa}</strong> WA</span>
+      <span style="font-size:16px;font-weight:700;color:${color}">${n}</span>
+      <span style="font-size:11px;color:var(--text2)">créditos</span>
+      ${addBtn(b.id, b.name)}
+    </div>`;
+  }).join('') || `<div style="color:var(--text2);font-size:12px">Sin boards.</div>`;
+
+  // Transaction history with date filter
+  const filteredTx = (txRows || []).filter(r => {
+    try {
+      const tx = JSON.parse(r.value);
+      const d = tx.date ? tx.date.slice(0, 10) : '';
+      if (desde && d < desde) return false;
+      if (hasta  && d > hasta)  return false;
+      return true;
+    } catch { return false; }
+  });
+  txEl.innerHTML = filteredTx.length ? filteredTx.map(r => {
+    try {
+      const tx = JSON.parse(r.value);
+      const tag = tx.manual
+        ? `<span style="background:rgba(251,191,36,.15);color:#fbbf24;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700">Manual</span>`
+        : `<span style="background:rgba(0,200,117,.12);color:#00c875;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700">Stripe</span>`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:12px;flex-wrap:wrap">
+        ${tag}
+        <span style="color:var(--text);font-weight:600">+${tx.credits} créditos</span>
+        <span style="color:var(--text2);flex:1;min-width:80px">${esc(tx.boardName || tx.boardId)}</span>
+        ${!tx.manual ? `<span style="color:#00c875;font-weight:600">$${(tx.amount/100).toFixed(2)}</span>` : ''}
+        <span style="color:var(--text2)">${tx.date ? new Date(tx.date).toLocaleDateString('es-US',{month:'short',day:'numeric',year:'numeric'}) : ''}</span>
+      </div>`;
+    } catch { return ''; }
+  }).join('') : `<div style="color:var(--text2);font-size:12px;padding:8px 0">Sin recargas ${desde||hasta ? 'en el período seleccionado' : 'registradas'}.</div>`;
+}
+
+// ── Buy credits modal ──
+const _BUY_PKGS = [
+  { id:'pkg_100',  credits:100,   price:'$1.60',  label:'100 mensajes' },
+  { id:'pkg_500',  credits:500,   price:'$8.00',  label:'500 mensajes' },
+  { id:'pkg_1000', credits:1000,  price:'$16.00', label:'1,000 mensajes' },
+  { id:'pkg_5000', credits:5000,  price:'$80.00', label:'5,000 mensajes' },
+];
+let _buyPkgSelected = null;
+
+function openBuyCreditsModal() {
+  const sel = document.getElementById('buy-board-sel');
+  if (sel) sel.innerHTML = BOARDS.map(b => `<option value="${b.id}">${b.icon} ${esc(b.name)}</option>`).join('');
+  _buyPkgSelected = null;
+  document.getElementById('buy-pkg-grid').innerHTML = _BUY_PKGS.map(p => `
+    <div onclick="selectBuyPkg('${p.id}',this)" data-pkg="${p.id}"
+      style="border:2px solid var(--border);border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;transition:border-color .12s,background .12s">
+      <div style="font-size:18px;font-weight:700;color:var(--accent)">${p.credits.toLocaleString()}</div>
+      <div style="font-size:10px;color:var(--text2);margin:2px 0 6px">mensajes</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text)">${p.price}</div>
+    </div>`).join('');
+  document.getElementById('buy-credits-overlay').classList.add('open');
+}
+function closeBuyCreditsModal() { document.getElementById('buy-credits-overlay').classList.remove('open'); }
+function selectBuyPkg(id, el) {
+  _buyPkgSelected = id;
+  document.querySelectorAll('#buy-pkg-grid > div').forEach(c => {
+    const sel = c.dataset.pkg === id;
+    c.style.borderColor = sel ? 'var(--accent)' : 'var(--border)';
+    c.style.background  = sel ? 'rgba(0,115,234,.08)' : '';
+  });
+}
+async function confirmBuyCredits() {
+  if (!_buyPkgSelected) { showToast('Selecciona un paquete', 'error'); return; }
+  const boardId = document.getElementById('buy-board-sel').value;
+  const board   = BOARDS.find(b => b.id === boardId);
+  const btn = document.getElementById('buy-confirm-btn');
+  btn.textContent = 'Procesando…'; btn.disabled = true;
+  try {
+    const res = await fetch(`${SUPA_URL}/functions/v1/create-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPA_KEY}` },
+      body: JSON.stringify({ packageId: _buyPkgSelected, boardId, boardName: board?.name || boardId,
+        successUrl: window.location.origin + window.location.pathname + '?payment=success',
+        cancelUrl:  window.location.origin + window.location.pathname + '?payment=cancel' }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    window.location.href = data.url;
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+    btn.textContent = 'Ir a pagar →'; btn.disabled = false;
+  }
 }
 
 async function loadMessagingDashboard() {
