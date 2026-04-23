@@ -4286,7 +4286,7 @@ function renderSidebar() {
       <div class="board-item" data-id="${b.id}" onclick="selectBoard('${b.id}')">
         <span class="board-icon">${b.icon}</span>
         <span class="board-name">${b.name}</span>
-        <span class="board-count">0</span>
+        <span class="board-count" style="display:none">0</span>
         ${delBtn}
       </div>`;
   }).join('');
