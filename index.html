@@ -9332,15 +9332,24 @@ function _renderDeletedUsersHistory(grid, session) {
     </div>`;
   }).join('');
 
+  const canClear = session.role === 'master' || session.role === 'admin';
   const section = document.createElement('div');
   section.className = 'del-users-section';
   section.innerHTML = `
     <div class="del-users-section-hdr">
       <span>Historial de usuarios eliminados</span>
       <em>${visible.length} registro${visible.length !== 1 ? 's' : ''}</em>
+      ${canClear ? `<button onclick="clearDeletedUsersHistory()" style="margin-left:10px;padding:3px 10px;background:rgba(226,68,92,.1);border:1px solid rgba(226,68,92,.25);color:var(--red);border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--font);">🗑 Limpiar historial</button>` : ''}
     </div>
     ${cards}`;
   grid.appendChild(section);
+}
+
+async function clearDeletedUsersHistory() {
+  if (!confirm('¿Limpiar todo el historial de usuarios eliminados? Esta acción no se puede deshacer.')) return;
+  await saveDeletedUsers([]);
+  renderUsersGrid();
+  showToast('Historial limpiado ✓', 'success');
 }
 
 function onRolChange() {
