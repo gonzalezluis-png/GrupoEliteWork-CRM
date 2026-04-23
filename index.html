@@ -10744,6 +10744,10 @@ function openNotesPanel(leadId, navList) {
   // pre-fill phone for messages tab
   const phoneInp = document.getElementById('msg-phone-inp');
   if (phoneInp) phoneInp.value = lead.telefono || '';
+  // Auto-select WhatsApp if lead has replied via WhatsApp
+  const _msgs = JSON.parse(lead._messages || '[]');
+  const _hasWaReply = _msgs.some(m => m.direction === 'inbound' && m.channel === 'whatsapp');
+  setMsgChannel(_hasWaReply ? 'whatsapp' : 'sms');
   _renderMsgJournal(lead);
   const _s = getSession();
   document.getElementById('np-tab-messages').style.display = (_s && _s.role === 'master') ? '' : 'none';
