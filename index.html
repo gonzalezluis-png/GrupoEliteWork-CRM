@@ -4315,10 +4315,12 @@ function selectBoard(id) {
     document.getElementById(fid).value = '';
   });
   clearDateFilter(false);
-  assignFilter = 'unassigned';
+  const _sb = getSession();
+  const _isLimitedRole = _sb && ['agent','supervisor_agent','manager','master_manager'].includes(_sb.role);
+  assignFilter = _isLimitedRole ? 'all' : 'unassigned';
   document.querySelectorAll('.assign-tab').forEach(t => t.classList.remove('active'));
-  const _unassignedTab = document.querySelector('.assign-tab[data-assign="unassigned"]');
-  if (_unassignedTab) _unassignedTab.classList.add('active');
+  const _defaultTab = document.querySelector(`.assign-tab[data-assign="${assignFilter}"]`);
+  if (_defaultTab) _defaultTab.classList.add('active');
   document.getElementById('dist-panel').classList.remove('visible');
   selectedIds.clear();
   updateBulkBar();
