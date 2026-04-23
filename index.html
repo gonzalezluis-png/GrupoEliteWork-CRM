@@ -10943,16 +10943,20 @@ function setMsgChannel(ch, skipWarning = false) {
   if (btnS) btnS.style.cssText = ch === 'sms' ? smsOn : offStyle;
   if (btnW) btnW.style.cssText = ch === 'whatsapp' ? waOn : offStyle;
 
-  // Show/hide template bar
+  // Show/hide template bar — only if template hasn't been sent yet
   const tbar = document.getElementById('msg-template-bar');
   const tprev = document.getElementById('msg-template-preview');
-  if (tbar) tbar.style.display = ch === 'whatsapp' ? '' : 'none';
-  if (tprev && ch === 'whatsapp') {
+  if (tbar) {
     const lead = _notesBoardId ? loadLeads(_notesBoardId).find(l => l.id === _notesLeadId) : null;
-    const session = getSession();
-    const v1 = lead?.nombre || 'Cliente';
-    const v2 = session?.name || 'Agente';
-    tprev.textContent = WA_TEMPLATE_BODY.replace('{{1}}', v1).replace('{{2}}', v2);
+    const msgs = JSON.parse(lead?._messages || '[]');
+    const alreadySent = msgs.some(m => m.template === true);
+    tbar.style.display = (ch === 'whatsapp' && !alreadySent) ? '' : 'none';
+    if (tprev && ch === 'whatsapp' && !alreadySent) {
+      const session = getSession();
+      const v1 = lead?.nombre || 'Cliente';
+      const v2 = session?.name || 'Agente';
+      tprev.textContent = WA_TEMPLATE_BODY.replace('{{1}}', v1).replace('{{2}}', v2);
+    }
   }
 }
 
