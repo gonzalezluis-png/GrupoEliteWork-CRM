@@ -1881,6 +1881,13 @@
 <body>
 
 <!-- DEV MODE BANNER — only shown on non-production hostnames -->
+<!-- PREVIEW BANNER (Ver como) -->
+<div id="preview-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#7c3aed,#4f46e5);color:#fff;font-size:12px;font-weight:600;text-align:center;padding:6px 16px;align-items:center;justify-content:center;gap:12px">
+  <span>👁 Vista de: <strong id="preview-banner-name"></strong></span>
+  <span style="opacity:.6;font-weight:400;font-size:11px" id="preview-banner-role"></span>
+  <button onclick="window.close()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✕ Cerrar ventana</button>
+</div>
+
 <div id="dev-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#f59e0b,#d97706);color:#000;font-size:11px;font-weight:700;text-align:center;padding:5px 16px;letter-spacing:.3px;align-items:center;justify-content:center;gap:10px">
   <span>🔧 MODO DESARROLLO — Los cambios aquí NO afectan producción.</span>
   <span style="opacity:.7;font-weight:400">Rama: dev</span>
@@ -8348,6 +8355,9 @@ function toggleDevMode() {
 
 function getSession() {
   try {
+    // Preview mode: opened via "Ver como" — usa sessionStorage, no afecta la sesión real
+    const preview = sessionStorage.getItem('gew_preview_session');
+    if (preview) return JSON.parse(preview);
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
     if (!s) return null;
     // Master sin modo desarrollador → se comporta como admin
@@ -8357,6 +8367,29 @@ function getSession() {
 }
 function setSession(user) { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+function openPreviewAs(userId) {
+  const url = new URL(location.href);
+  url.searchParams.set('preview', userId);
+  window.open(url.toString(), '_blank');
+}
+
+async function _initPreviewMode() {
+  const previewId = new URLSearchParams(location.search).get('preview');
+  if (!previewId) return false;
+  await loadFromSupabase().catch(() => {});
+  const users = loadUsers();
+  const user = users.find(u => u.id === previewId);
+  if (!user) return false;
+  sessionStorage.setItem('gew_preview_session', JSON.stringify(user));
+  const roleLabel = user.role === 'admin' ? 'Administrador' : user.role === 'master_manager' ? 'MGA' : user.role === 'manager' ? 'GA' : user.role === 'supervisor_agent' ? 'SA' : 'Agente';
+  const banner = document.getElementById('preview-banner');
+  document.getElementById('preview-banner-name').textContent = user.name;
+  document.getElementById('preview-banner-role').textContent = '· ' + roleLabel;
+  banner.style.display = 'flex';
+  document.body.style.paddingTop = '34px';
+  return true;
+}
 
 /* ── THEME ── */
 function applyTheme(mode) {
@@ -9131,6 +9164,9 @@ function orgNode(u, session) {
   const initials  = (u.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatarBg  = u.role==='master'?'var(--yellow)':u.role==='admin'?'var(--accent)':u.role==='master_manager'?'#00b7c3':u.role==='manager'?'var(--green)':u.role==='supervisor_agent'?'#ff8c00':'var(--purple)';
   const canEdit      = session.role === 'master' || (session.role === 'admin' && u.orgAdminId === session.id && u.role !== 'admin');
+  const isMasterViewing = session.role === 'master' || session._isMaster;
+  const viewAsBtn    = isMasterViewing && u.role !== 'master' && !sessionStorage.getItem('gew_preview_session')
+    ? `<button onclick="openPreviewAs('${u.id}')" title="Ver como este usuario" style="color:#a78bfa">👁</button>` : '';
   const editBtn      = canEdit && u.role !== 'master' ? `<button onclick="openUserModal('${u.id}')" title="Editar">✏️</button>` : '';
   const inactiveBtn  = canEdit && u.role !== 'master' && u.id !== session.id
     ? (u.inactive
@@ -9150,7 +9186,7 @@ function orgNode(u, session) {
       <div class="org-node-email">${esc(u.email)}</div>
       <span class="role-badge ${roleCls}" style="margin-top:3px;display:inline-block">${roleLabel}</span>
     </div>
-    <div class="org-node-actions">${editBtn}${inactiveBtn}${delBtn}</div>
+    <div class="org-node-actions">${viewAsBtn}${editBtn}${inactiveBtn}${delBtn}</div>
   </div>`;
 }
 
@@ -11590,6 +11626,9 @@ async function loadFromSupabase() {
   syncEl.classList.add('hidden');
   applyToolbarGap();
 
+  // Modo preview: "Ver como" abierto desde org chart del master
+  const _isPreview = await _initPreviewMode();
+
   await seedDefaultAdmin();
   await seedAlexanderAgents();
   await seedAlexanderAgentsV2();
@@ -11598,7 +11637,7 @@ async function loadFromSupabase() {
   // show org name on login screen
   const _loginOrgEl = document.getElementById('login-org-name');
   if (_loginOrgEl) _loginOrgEl.textContent = loadAppName();
-  initGoogleSignIn();
+  if (!_isPreview) initGoogleSignIn();
   const _session = getSession();
   if (_session) {
     document.getElementById('login-screen').classList.add('hidden');
