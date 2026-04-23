@@ -9790,11 +9790,31 @@ function buildOrgBranch(admId, allUsers, session) {
   // Usuarios de este admin que no aparecieron en el árbol (referencias rotas)
   const orphans = [...supervisors, ...managers, ...agents].filter(u => !renderedIds.has(u.id));
   if (orphans.length) {
-    let orphanHtml = orphans.map(u => hChild(hOrgWrap(orgNode(u, session), ''))).join('');
+    // Valid drop targets for orphans: managers and supervisors of this admin
+    const validTargets = allUsers.filter(u =>
+      u.orgAdminId === admId && (u.role === 'manager' || u.role === 'supervisor_agent' || u.role === 'master_manager')
+    );
+    const orphanHtml = orphans.map(u => {
+      const targetOpts = validTargets
+        .filter(t => t.id !== u.id)
+        .map(t => `<option value="${t.id}">${esc(t.name)} (${t.role==='manager'?'GA':t.role==='master_manager'?'MGA':'SA'})</option>`)
+        .join('');
+      const assignBtn = targetOpts
+        ? `<div style="margin-top:6px;display:flex;gap:4px;align-items:center">
+            <select id="orphan-sel-${u.id}" style="flex:1;background:var(--bg2);border:1px solid rgba(253,171,61,.4);color:var(--text);padding:3px 6px;border-radius:6px;font-size:11px">
+              <option value="">— Asignar a... —</option>
+              ${targetOpts}
+            </select>
+            <button onclick="assignOrphanUser('${u.id}')" style="background:rgba(253,171,61,.2);color:#fdab3d;border:1px solid rgba(253,171,61,.4);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✓</button>
+          </div>`
+        : '';
+      return `<div style="margin-bottom:8px">${hOrgWrap(orgNode(u, session), '')}${assignBtn}</div>`;
+    }).join('');
+
     children += `<div class="org-h-child"><div class="org-h-child-hline"></div>
-      <div style="background:rgba(253,171,61,.08);border:1px dashed rgba(253,171,61,.3);border-radius:8px;padding:8px 12px;min-width:160px">
-        <div style="font-size:10px;color:var(--yellow);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">⚠ Sin asignar</div>
-        <div class="org-h-children">${orphanHtml}</div>
+      <div style="background:rgba(253,171,61,.08);border:1px dashed rgba(253,171,61,.3);border-radius:8px;padding:8px 12px;min-width:200px">
+        <div style="font-size:10px;color:var(--yellow);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">⚠ Sin asignar</div>
+        ${orphanHtml}
       </div>
     </div>`;
   }
@@ -9925,6 +9945,34 @@ async function orgDrop(e, targetId) {
   await saveUsers(users);
   renderUsersGrid();
   showToast(`${dragged.name} movido a ${target.name} ✓`, 'success');
+}
+
+async function assignOrphanUser(userId) {
+  const sel = document.getElementById('orphan-sel-' + userId);
+  if (!sel || !sel.value) { showToast('Selecciona un manager primero'); return; }
+  const users    = loadUsers();
+  const idx      = users.findIndex(u => u.id === userId);
+  const targetIdx = users.findIndex(u => u.id === sel.value);
+  if (idx === -1 || targetIdx === -1) return;
+  const u      = users[idx];
+  const target = users[targetIdx];
+  delete u.orgSupervisorId; delete u.orgManagerId; delete u.orgMasterManagerId;
+  if (target.role === 'supervisor_agent') {
+    u.orgSupervisorId    = target.id;
+    u.orgManagerId       = target.orgManagerId       || null;
+    u.orgMasterManagerId = target.orgMasterManagerId || null;
+    u.orgAdminId         = target.orgAdminId         || null;
+  } else if (target.role === 'manager') {
+    u.orgManagerId       = target.id;
+    u.orgMasterManagerId = target.orgMasterManagerId || null;
+    u.orgAdminId         = target.orgAdminId         || null;
+  } else if (target.role === 'master_manager') {
+    u.orgMasterManagerId = target.id;
+    u.orgAdminId         = target.orgAdminId         || null;
+  }
+  await saveUsers(users);
+  renderUsersGrid();
+  showToast(`${u.name} asignado a ${target.name} ✓`, 'success');
 }
 
 function _renderDeletedUsersHistory(grid, session) {
