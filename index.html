@@ -3286,7 +3286,7 @@ setTimeout(function(){
   <div class="modal" style="max-width:580px;max-height:88vh;display:flex;flex-direction:column;padding:0">
     <div style="flex-shrink:0">
       <!-- Banner gradient -->
-      <div style="background:linear-gradient(135deg,#4338ca 0%,#7c3aed 100%);padding:20px 20px 18px;position:relative">
+      <div style="background:linear-gradient(135deg,#4338ca 0%,#7c3aed 100%);padding:20px 20px 14px;position:relative">
         <button class="modal-close" onclick="closeNotesPanel()" style="position:absolute;top:10px;right:14px;color:rgba(255,255,255,0.65);font-size:17px">✕</button>
         <div style="display:flex;align-items:center;gap:14px">
           <div id="np-avatar" style="width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,0.18);border:2.5px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:-1px"></div>
@@ -3294,6 +3294,12 @@ setTimeout(function(){
             <h2 id="notes-panel-name" style="font-size:16px;font-weight:700;margin:0;color:#fff;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></h2>
             <div id="notes-panel-leadtype" style="margin-top:6px"></div>
           </div>
+        </div>
+        <!-- Nav prev/next -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+          <button id="np-prev-btn" onclick="notesPanelNav(-1)" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:8px;padding:5px 12px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;transition:background .12s">‹ Anterior</button>
+          <span id="np-nav-counter" style="font-size:10px;color:rgba(255,255,255,0.6)"></span>
+          <button id="np-next-btn" onclick="notesPanelNav(1)" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:8px;padding:5px 12px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;transition:background .12s">Siguiente ›</button>
         </div>
       </div>
       <!-- Info grid: email · dirección · creación · resultado -->
@@ -9865,8 +9871,33 @@ async function toggleUserInactive(userId) {
 // ════════════════════════════════════════════
 //  NOTES PANEL
 // ════════════════════════════════════════════
-let _notesBoardId = null;
-let _notesLeadId  = null;
+let _notesBoardId  = null;
+let _notesLeadId   = null;
+let _notesNavList  = [];   // ordered list of {id, boardId} for prev/next
+
+function _updateNpNav(leadId) {
+  const idx     = _notesNavList.findIndex(e => e.id === leadId);
+  const total   = _notesNavList.length;
+  const prevBtn = document.getElementById('np-prev-btn');
+  const nextBtn = document.getElementById('np-next-btn');
+  const counter = document.getElementById('np-nav-counter');
+  if (counter) counter.textContent = total > 1 ? `${idx + 1} / ${total}` : '';
+  if (prevBtn) prevBtn.style.opacity = idx <= 0 ? '0.35' : '1';
+  if (nextBtn) nextBtn.style.opacity = idx >= total - 1 ? '0.35' : '1';
+}
+
+function notesPanelNav(dir) {
+  const idx = _notesNavList.findIndex(e => e.id === _notesLeadId);
+  if (idx === -1) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= _notesNavList.length) return;
+  const { id, boardId } = _notesNavList[newIdx];
+  // Temporarily set currentBoardId so openNotesPanel finds the right board
+  const prev = currentBoardId;
+  currentBoardId = boardId;
+  openNotesPanel(id, _notesNavList);
+  currentBoardId = prev;
+}
 
 function parseNotes(raw) {
   if (!raw) return [];
@@ -9885,13 +9916,22 @@ function formatNoteDate(iso) {
     + ' ' + d.toLocaleTimeString('es-US', { hour: '2-digit', minute: '2-digit' });
 }
 
-function openNotesPanel(leadId) {
+function openNotesPanel(leadId, navList) {
   const boardId = (currentBoardId === '__agent__') ? findLeadBoard(leadId) : currentBoardId;
   if (!boardId) return;
   const lead = loadLeads(boardId).find(l => l.id === leadId);
   if (!lead) return;
   _notesBoardId = boardId;
   _notesLeadId  = leadId;
+
+  // Build or reuse navigation list
+  if (navList) {
+    _notesNavList = navList;
+  } else if (!_notesNavList.length || !_notesNavList.find(e => e.id === leadId)) {
+    // Build from current filteredLeads
+    _notesNavList = filteredLeads.map(l => ({ id: l.id, boardId: boardId }));
+  }
+  _updateNpNav(leadId);
 
   const npName = lead.nombre || '—';
   document.getElementById('notes-panel-name').textContent = npName;
@@ -10845,6 +10885,7 @@ function closeNotesPanel() {
   document.getElementById('notes-panel-overlay').classList.remove('open');
   _notesBoardId = null;
   _notesLeadId  = null;
+  _notesNavList = [];
 }
 
 async function submitNote() {
