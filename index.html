@@ -3499,6 +3499,7 @@ setTimeout(function(){
           <button id="msg-ch-sms" onclick="setMsgChannel('sms')" style="flex:1;padding:7px;border-radius:8px;border:1px solid rgba(0,115,234,.5);background:rgba(0,115,234,.15);color:var(--accent);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer">📱 SMS</button>
           <button id="msg-ch-whatsapp" onclick="setMsgChannel('whatsapp')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer">💬 WhatsApp</button>
         </div>
+        <div id="msg-channel-warn" style="display:none;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);border-radius:8px;padding:8px 12px;font-size:11px;color:#fbbf24;line-height:1.6;margin-bottom:10px"></div>
         <!-- WhatsApp template shortcut (only shown when channel = whatsapp) -->
         <div id="msg-template-bar" style="display:none;margin-bottom:10px;background:rgba(37,211,102,.07);border:1px solid rgba(37,211,102,.25);border-radius:8px;padding:8px 12px">
           <div style="font-size:11px;color:#25d366;font-weight:600;margin-bottom:4px">📋 Template aprobado: <em>crm_seguimiento_lead_v2</em></div>
@@ -10744,10 +10745,10 @@ function openNotesPanel(leadId, navList) {
   // pre-fill phone for messages tab
   const phoneInp = document.getElementById('msg-phone-inp');
   if (phoneInp) phoneInp.value = lead.telefono || '';
-  // Auto-select WhatsApp if lead has replied via WhatsApp
+  // Auto-select channel based on last message
   const _msgs = JSON.parse(lead._messages || '[]');
-  const _hasWaReply = _msgs.some(m => m.direction === 'inbound' && m.channel === 'whatsapp');
-  setMsgChannel(_hasWaReply ? 'whatsapp' : 'sms');
+  const _lastMsg = _msgs.length ? _msgs[_msgs.length - 1] : null;
+  setMsgChannel(_lastMsg ? (_lastMsg.channel || 'sms') : 'sms');
   _renderMsgJournal(lead);
   const _s = getSession();
   document.getElementById('np-tab-messages').style.display = (_s && _s.role === 'master') ? '' : 'none';
@@ -10908,24 +10909,46 @@ function switchNotesPanelTab(tab) {
 const WA_TEMPLATE_SID  = 'HX872c8dfe2ba6f8d9833284769872f0bb';
 const WA_TEMPLATE_BODY = 'Hola {{1}}, te contacta {{2}} de Grupo Elite Work. Estamos haciendo seguimiento a tu interés en nuestras propiedades. ¿Tienes unos minutos para conversar? Responde STOP para no recibir más mensajes.';
 
-function setMsgChannel(ch) {
+function setMsgChannel(ch, skipWarning = false) {
+  // Channel mismatch warning (only when user manually switches)
+  if (!skipWarning && _notesBoardId && _notesLeadId) {
+    const lead = loadLeads(_notesBoardId).find(l => l.id === _notesLeadId);
+    if (lead) {
+      const msgs = JSON.parse(lead._messages || '[]');
+      const lastMsg = msgs.length ? msgs[msgs.length - 1] : null;
+      if (lastMsg && lastMsg.channel && lastMsg.channel !== ch) {
+        const lastCh = lastMsg.channel === 'whatsapp' ? 'WhatsApp' : 'Mensaje de texto';
+        const warn = document.getElementById('msg-channel-warn');
+        if (warn) {
+          warn.style.display = '';
+          warn.innerHTML = `⚠️ Tu última conversación con <strong>${esc(lead.nombre||'este lead')}</strong> fue via <strong>${lastCh}</strong>. Te recomendamos mantener esa misma comunicación.
+            <button onclick="setMsgChannel('${ch}', true)" style="margin-left:10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Enviar de todas formas</button>
+            <button onclick="setMsgChannel('${lastMsg.channel}', true)" style="margin-left:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer">Cancelar</button>`;
+          return; // don't actually switch yet
+        }
+      }
+    }
+  }
+  // Hide warning
+  const warn = document.getElementById('msg-channel-warn');
+  if (warn) warn.style.display = 'none';
+
   _msgChannel = ch;
   const btnS = document.getElementById('msg-ch-sms');
   const btnW = document.getElementById('msg-ch-whatsapp');
-  const onStyle  = 'flex:1;padding:7px;border-radius:8px;border:1px solid rgba(0,115,234,.5);background:rgba(0,115,234,.15);color:var(--accent);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer';
+  // SMS active: blue; WhatsApp active: green; inactive: muted
+  const smsOn   = 'flex:1;padding:7px;border-radius:8px;border:1px solid rgba(0,115,234,.5);background:rgba(0,115,234,.15);color:var(--accent);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer';
+  const waOn    = 'flex:1;padding:7px;border-radius:8px;border:1px solid rgba(37,211,102,.6);background:rgba(37,211,102,.18);color:#25d366;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 0 0 2px rgba(37,211,102,.2)';
   const offStyle = 'flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer';
-  btnS.style.cssText = ch === 'sms' ? onStyle : offStyle;
-  btnW.style.cssText = ch === 'whatsapp' ? onStyle : offStyle;
+  if (btnS) btnS.style.cssText = ch === 'sms' ? smsOn : offStyle;
+  if (btnW) btnW.style.cssText = ch === 'whatsapp' ? waOn : offStyle;
 
   // Show/hide template bar
   const tbar = document.getElementById('msg-template-bar');
   const tprev = document.getElementById('msg-template-preview');
   if (tbar) tbar.style.display = ch === 'whatsapp' ? '' : 'none';
   if (tprev && ch === 'whatsapp') {
-    // Get lead name and agent name for preview
-    const boardId = _notesBoardId;
-    const leadId  = _notesLeadId;
-    const lead = boardId ? loadLeads(boardId).find(l => l.id === leadId) : null;
+    const lead = _notesBoardId ? loadLeads(_notesBoardId).find(l => l.id === _notesLeadId) : null;
     const session = getSession();
     const v1 = lead?.nombre || 'Cliente';
     const v2 = session?.name || 'Agente';
