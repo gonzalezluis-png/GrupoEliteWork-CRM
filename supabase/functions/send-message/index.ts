@@ -17,16 +17,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Check credits (global pool)
+    // Credits check temporarily disabled — unlimited mode
     const credKey = 'gew_credits_global'
     const { data: credRow } = await supa.from('kv_store').select('value').eq('key', credKey).maybeSingle()
-    const currentCredits = parseInt(credRow?.value || '0')
-    if (currentCredits < 1) {
-      return new Response(JSON.stringify({ error: 'Sin créditos. Recarga para enviar mensajes.' }), {
-        status: 402,
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      })
-    }
+    const currentCredits = parseInt(credRow?.value || '9999')
 
     // Send via Twilio
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')!
