@@ -31,9 +31,10 @@ serve(async (req) => {
     // Send via Twilio
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')!
     const authToken  = Deno.env.get('TWILIO_AUTH_TOKEN')!
-    const from       = Deno.env.get('TWILIO_PHONE_NUMBER')!
-    const fromNum    = channel === 'whatsapp' ? `whatsapp:${from}` : from
-    const toNum      = channel === 'whatsapp' ? `whatsapp:${to}`   : to
+    const smsNumber  = Deno.env.get('TWILIO_PHONE_NUMBER')!
+    const waNumber   = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || smsNumber
+    const fromNum    = channel === 'whatsapp' ? `whatsapp:${waNumber}` : smsNumber
+    const toNum      = channel === 'whatsapp' ? `whatsapp:${to}`       : to
 
     const res = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
