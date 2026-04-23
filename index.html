@@ -10514,14 +10514,18 @@ async function loadCreditsPage() {
   const revenue = totalSMS * _msgPriceSMS + totalWA * _msgPriceWA;
   const myCost  = totalSMS * _msgCostSMS  + totalWA * _msgCostWA;
   const profit  = revenue - myCost;
-  if (walletStatsEl) walletStatsEl.innerHTML = [
-    { label: 'Mensajes enviados', val: totalSent,              color: 'var(--text)', icon: '📤' },
-    { label: 'SMS',               val: totalSMS,               color: '#fbbf24',     icon: '📱' },
-    { label: 'WhatsApp',          val: totalWA,                color: '#25d366',     icon: '💬' },
+  const baseStats = [
+    { label: 'Mensajes enviados', val: totalSent, color: 'var(--text)', icon: '📤' },
+    { label: 'SMS',               val: totalSMS,  color: '#fbbf24',     icon: '📱' },
+    { label: 'WhatsApp',          val: totalWA,   color: '#25d366',     icon: '💬' },
+  ];
+  const masterStats = [
     { label: 'Ingresos',          val: '$'+revenue.toFixed(2), color: 'var(--accent)', icon: '💰' },
-    { label: 'Mi costo (Twilio)', val: '$'+myCost.toFixed(2),  color: '#e2445c',     icon: '💸' },
+    { label: 'Mi costo (Twilio)', val: '$'+myCost.toFixed(2),  color: '#e2445c',       icon: '💸' },
     { label: 'Ganancia neta',     val: '$'+profit.toFixed(2),  color: profit>=0 ? '#00c875' : '#e2445c', icon: '📈' },
-  ].map(c => `<div style="display:flex;flex-direction:column;gap:2px">
+  ];
+  const statsToShow = isMaster ? [...baseStats, ...masterStats] : baseStats;
+  if (walletStatsEl) walletStatsEl.innerHTML = statsToShow.map(c => `<div style="display:flex;flex-direction:column;gap:2px">
     <span style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">${c.icon} ${c.label}</span>
     <span style="font-size:18px;font-weight:700;color:${c.color}">${c.val}</span>
   </div>`).join('');
