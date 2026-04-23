@@ -9684,7 +9684,7 @@ function orgNode(u, session) {
   const initials  = (u.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatarBg  = u.role==='master'?'var(--yellow)':u.role==='admin'?'var(--accent)':u.role==='master_manager'?'#00b7c3':u.role==='manager'?'var(--green)':u.role==='supervisor_agent'?'#ff8c00':'var(--purple)';
   const canEdit      = session.role === 'master' || (session.role === 'admin' && u.orgAdminId === session.id && u.role !== 'admin');
-  const isMasterViewing = session.role === 'master' || session._isMaster;
+  const isMasterViewing = session.role === 'master' || session._isMaster || session.role === 'admin';
   const viewAsBtn    = isMasterViewing && u.role !== 'master' && !sessionStorage.getItem('gew_preview_session')
     ? `<button onclick="openPreviewAs('${u.id}')" title="Ver como este usuario" style="color:#a78bfa">👁</button>` : '';
   const editBtn      = canEdit && u.role !== 'master' ? `<button onclick="openUserModal('${u.id}')" title="Editar">✏️</button>` : '';
