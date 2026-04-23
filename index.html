@@ -5388,7 +5388,10 @@ function renderStatsPage() {
 }
 
 function _populateActivityFilters() {
-  const log  = loadActivityLog();
+  const viewer = getSession();
+  const viewerIsMaster = viewer && viewer.role === 'master';
+  let log = loadActivityLog();
+  if (!viewerIsMaster) log = log.filter(e => e.userRole !== 'master');
   const sel  = document.getElementById('act-filter-user');
   if (!sel) return;
   const names = [...new Set(log.map(e => e.userName))].sort();
@@ -5422,7 +5425,10 @@ function renderActivityPage() {
   const fType = document.getElementById('act-filter-type')?.value   || '';
   const fDate = document.getElementById('act-filter-date')?.value   || '';
 
+  const viewer = getSession();
+  const viewerIsMaster = viewer && viewer.role === 'master';
   let log = loadActivityLog();
+  if (!viewerIsMaster) log = log.filter(e => e.userRole !== 'master');
   if (fUser) log = log.filter(e => e.userName.toLowerCase() === fUser);
   if (fType) log = log.filter(e => e.type === fType);
   if (fDate) log = log.filter(e => e.ts.startsWith(fDate));
