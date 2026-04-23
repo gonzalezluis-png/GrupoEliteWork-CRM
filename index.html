@@ -6923,7 +6923,7 @@ function renderDistPanel() {
 
   // Agents section
   const agSec = document.getElementById('dist-agents-section');
-  const agentList = Object.values(agentMap).sort((a, b) => b.leads.length - a.leads.length);
+  const agentList = Object.values(agentMap).filter(a => a.leads.length > 0).sort((a, b) => b.leads.length - a.leads.length);
   if (!agentList.length) {
     agSec.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:20px 0">No hay agentes con leads asignados.</div>';
     return;
