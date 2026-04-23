@@ -3484,15 +3484,8 @@ setTimeout(function(){
 
     <!-- Mensajes tab -->
     <div id="np-pane-messages" style="display:none;flex-direction:column;flex:1;overflow:hidden">
-      <!-- Credits bar -->
-      <div id="msg-credits-bar" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(0,115,234,.06);border-bottom:1px solid var(--border);flex-shrink:0">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:13px">💳</span>
-          <span style="font-size:12px;color:var(--text2)">Créditos disponibles:</span>
-          <span id="msg-credits-val" style="font-size:14px;font-weight:700;color:var(--accent)">—</span>
-        </div>
-        <button onclick="openRechargeModal()" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(0,115,234,.4);background:rgba(0,115,234,.12);color:var(--accent);font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">+ Recargar</button>
-      </div>
+      <!-- Credits bar hidden — internal use only -->
+      <span id="msg-credits-val" style="display:none">—</span>
       <div id="msg-journal" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;min-height:120px"></div>
       <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
         <div style="display:flex;gap:8px;margin-bottom:10px">
@@ -9387,7 +9380,7 @@ function initApp(user) {
     // MGA/GA/SA: show sidebar-admin but hide admin-only items
     if (user.role === 'master_manager' || user.role === 'manager' || user.role === 'supervisor_agent') {
       document.getElementById('sidebar-admin').style.display = 'block';
-      ['nav-trash','nav-activity'].forEach(id => {
+      ['nav-trash','nav-activity','nav-credits'].forEach(id => {
         const el = document.getElementById(id); if (el) el.style.display = 'none';
       });
       document.getElementById('assign-strip').classList.add('hidden');
@@ -9398,6 +9391,9 @@ function initApp(user) {
       document.getElementById('sidebar-master').style.display = 'block';
       document.getElementById('sidebar-conversations').style.display = 'block';
       document.body.classList.add('show-emblems');
+      // Facturación is admin-only — hide from master
+      const navCrd = document.getElementById('nav-credits');
+      if (navCrd) navCrd.style.display = 'none';
     }
     selectBoard('dallas');
   }
@@ -11447,7 +11443,7 @@ async function sendConvMessage() {
 // ════════════════════════════════════════════
 function showCreditsPage() {
   const session = getSession();
-  if (!session || (session.role !== 'admin' && session.role !== 'master')) return;
+  if (!session || session.role !== 'admin') return;
   showBoardView();
   document.getElementById('assign-strip').classList.add('hidden');
   document.getElementById('table-wrap').style.display   = 'none';
