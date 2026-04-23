@@ -502,6 +502,13 @@
   .billing-subtab { padding:9px 16px 8px;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer; }
   .billing-subtab.active { color:#0073ea;border-bottom-color:#0073ea; }
   .billing-subtab:hover:not(.active) { color:var(--text); }
+  /* ── Toggle switch ── */
+  .toggle-switch { position:relative;display:inline-flex;width:44px;height:24px;flex-shrink:0 }
+  .toggle-switch input { opacity:0;width:0;height:0 }
+  .toggle-slider { position:absolute;inset:0;background:var(--border);border-radius:34px;cursor:pointer;transition:background .2s }
+  .toggle-slider:before { content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform .2s }
+  .toggle-switch input:checked + .toggle-slider { background:#0073ea }
+  .toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px) }
   .billing-tx-row { display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:12px; }
   .conv-ch-btn {
     padding:5px 14px;border-radius:8px;border:1px solid var(--border);
@@ -2712,9 +2719,10 @@ setTimeout(function(){
 
         <!-- Main tabs -->
         <div style="border-bottom:1px solid var(--border);margin-bottom:28px;display:flex">
-          <button class="billing-tab active" id="btab-wallet"  onclick="switchBillingTab('wallet',this)">Monedero y transacciones</button>
-          <button class="billing-tab"        id="btab-usage"   onclick="switchBillingTab('usage',this)">Desglose de uso</button>
-          <button class="billing-tab"        id="btab-history" onclick="switchBillingTab('history',this)">Historial de recargas</button>
+          <button class="billing-tab active" id="btab-wallet"     onclick="switchBillingTab('wallet',this)">Monedero y transacciones</button>
+          <button class="billing-tab"        id="btab-usage"      onclick="switchBillingTab('usage',this)">Desglose de uso</button>
+          <button class="billing-tab"        id="btab-history"    onclick="switchBillingTab('history',this)">Historial de recargas</button>
+          <button class="billing-tab"        id="btab-autocharge" onclick="switchBillingTab('autocharge',this)">⚡ Auto-recarga</button>
         </div>
 
         <!-- ── PANE: Monedero ── -->
@@ -2777,6 +2785,62 @@ setTimeout(function(){
         <div id="billing-pane-history" style="display:none">
           <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:16px">Todas las recargas realizadas al monedero del equipo.</div>
           <div id="cp-recharge-history" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+
+        <!-- ── PANE: Auto-recarga ── -->
+        <div id="billing-pane-autocharge" style="display:none">
+
+          <!-- Enable toggle -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 26px;margin-bottom:18px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+              <div>
+                <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:5px">⚡ Auto-recarga automática</div>
+                <div style="font-size:12px;color:var(--text2);line-height:1.6;max-width:540px">Cuando el saldo caiga por debajo del umbral configurado, se realizará una recarga automática con el paquete seleccionado usando la tarjeta guardada.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="ar-toggle" onchange="saveAutoRechargeSettings()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Config -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 26px;margin-bottom:18px">
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:18px">Configuración de recarga</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+              <div>
+                <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">Umbral mínimo (créditos)</label>
+                <input type="number" id="ar-threshold" min="1" placeholder="50"
+                  style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px;box-sizing:border-box"/>
+                <div style="font-size:10px;color:var(--text2);margin-top:4px">Recargar cuando queden menos de X créditos</div>
+              </div>
+              <div>
+                <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">Paquete de recarga automática</label>
+                <select id="ar-package"
+                  style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px;box-sizing:border-box">
+                  <option value="pkg_100">100 créditos</option>
+                  <option value="pkg_500" selected>500 créditos</option>
+                  <option value="pkg_1000">1,000 créditos</option>
+                  <option value="pkg_5000">5,000 créditos</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <button onclick="saveAutoRechargeSettings()" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer">Guardar configuración</button>
+              <span id="ar-save-status" style="font-size:11px;color:var(--text2)"></span>
+            </div>
+          </div>
+
+          <!-- Payment method -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 26px">
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px">Método de pago guardado</div>
+            <div id="ar-card-info" style="margin-bottom:16px">
+              <div style="font-size:12px;color:var(--text2)">Cargando…</div>
+            </div>
+            <button onclick="setupPaymentMethod()" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer">🔒 Agregar / cambiar tarjeta</button>
+            <div style="font-size:10px;color:var(--text2);margin-top:8px">Serás redirigido a Stripe. Los datos de la tarjeta nunca tocan nuestros servidores.</div>
+          </div>
+
         </div>
 
       </div>
@@ -8760,6 +8824,8 @@ function initApp(user) {
   applyToolbarGap();
   initToolbarGapHandle();
   initRealtimeSync();
+  // Pre-load auto-recharge settings so trigger works in send
+  loadAutoRechargeSettings().catch(() => {});
 }
 
 function showAgentView() {
@@ -10103,6 +10169,9 @@ async function sendLeadMessage() {
     if (data.creditsLeft !== undefined) {
       const cv = document.getElementById('msg-credits-val');
       if (cv) { cv.textContent = data.creditsLeft; cv.style.color = data.creditsLeft < 10 ? '#e2445c' : 'var(--accent)'; }
+      if (_autochargeEnabled && data.creditsLeft <= _autochargeThreshold) {
+        triggerAutoRecharge();
+      }
     }
   } catch(e) {
     status.textContent = '⚠️ ' + e.message;
@@ -10487,12 +10556,13 @@ function showCreditsPage() {
 }
 
 function switchBillingTab(tab, el) {
-  ['wallet','usage','history'].forEach(t => {
+  ['wallet','usage','history','autocharge'].forEach(t => {
     const p = document.getElementById(`billing-pane-${t}`);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.billing-tab').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
+  if (tab === 'autocharge') loadAutoRechargeSettings();
 }
 function switchBillingSubtab(tab, el) {
   const s = document.getElementById('cp-wallet-summary');
@@ -10751,6 +10821,104 @@ async function confirmBuyCredits() {
     showToast('Error: ' + e.message, 'error');
     btn.textContent = 'Ir a pagar →'; btn.disabled = false;
   }
+}
+
+// ── Auto-recharge ──
+let _autochargeEnabled = false;
+let _autochargeThreshold = 50;
+let _autochargePackage = 'pkg_500';
+
+async function loadAutoRechargeSettings() {
+  const { data: rows } = await supa.from('kv_store').select('key,value')
+    .in('key', ['gew_autocharge_enabled','gew_autocharge_threshold','gew_autocharge_package',
+                'gew_stripe_customer_id','gew_stripe_payment_method',
+                'gew_stripe_card_last4','gew_stripe_card_brand']);
+  const get = k => rows?.find(r => r.key === k)?.value;
+
+  _autochargeEnabled   = get('gew_autocharge_enabled') === 'true';
+  _autochargeThreshold = parseInt(get('gew_autocharge_threshold') || '50');
+  _autochargePackage   = get('gew_autocharge_package') || 'pkg_500';
+
+  const tog = document.getElementById('ar-toggle');
+  const thr = document.getElementById('ar-threshold');
+  const pkg = document.getElementById('ar-package');
+  if (tog) tog.checked  = _autochargeEnabled;
+  if (thr) thr.value    = _autochargeThreshold;
+  if (pkg) pkg.value    = _autochargePackage;
+
+  const cardEl = document.getElementById('ar-card-info');
+  if (cardEl) {
+    const last4 = get('gew_stripe_card_last4');
+    const brand = get('gew_stripe_card_brand');
+    const pmId  = get('gew_stripe_payment_method');
+    if (pmId && last4) {
+      const brandLabel = brand ? brand.charAt(0).toUpperCase() + brand.slice(1) : 'Tarjeta';
+      cardEl.innerHTML = `
+        <div style="display:inline-flex;align-items:center;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+          <span style="font-size:22px">💳</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${brandLabel} •••• ${last4}</div>
+            <div style="font-size:11px;color:#00c875;margin-top:2px">✓ Tarjeta guardada</div>
+          </div>
+        </div>`;
+    } else {
+      cardEl.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:10px 0">⚠️ No hay tarjeta guardada. Agrega una para habilitar la auto-recarga.</div>`;
+    }
+  }
+}
+
+async function saveAutoRechargeSettings() {
+  const tog = document.getElementById('ar-toggle');
+  const thr = document.getElementById('ar-threshold');
+  const pkg = document.getElementById('ar-package');
+  const st  = document.getElementById('ar-save-status');
+  _autochargeEnabled   = tog?.checked || false;
+  _autochargeThreshold = parseInt(thr?.value || '50');
+  _autochargePackage   = pkg?.value || 'pkg_500';
+  try {
+    await Promise.all([
+      supa.from('kv_store').upsert({ key: 'gew_autocharge_enabled',   value: String(_autochargeEnabled) }),
+      supa.from('kv_store').upsert({ key: 'gew_autocharge_threshold', value: String(_autochargeThreshold) }),
+      supa.from('kv_store').upsert({ key: 'gew_autocharge_package',   value: _autochargePackage }),
+    ]);
+    if (st) { st.textContent = '✓ Guardado'; setTimeout(() => { if(st) st.textContent = ''; }, 2500); }
+  } catch(e) {
+    if (st) st.textContent = 'Error al guardar';
+  }
+}
+
+async function setupPaymentMethod() {
+  try {
+    const res = await fetch(`${SUPA_URL}/functions/v1/create-setup-intent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPA_KEY}` },
+      body: JSON.stringify({
+        successUrl: window.location.origin + window.location.pathname + '?setup=success',
+        cancelUrl:  window.location.origin + window.location.pathname + '?setup=cancel',
+      }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    window.location.href = data.url;
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function triggerAutoRecharge() {
+  try {
+    const res = await fetch(`${SUPA_URL}/functions/v1/auto-recharge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPA_KEY}` },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`⚡ Auto-recarga: +${data.creditsAdded} créditos agregados`, 'success');
+      const cv = document.getElementById('msg-credits-val');
+      if (cv) { cv.textContent = data.newBalance; cv.style.color = 'var(--accent)'; }
+    }
+  } catch(_) { /* silent – don't interrupt user flow */ }
 }
 
 async function loadMessagingDashboard() {
@@ -12322,7 +12490,26 @@ async function vaultRestore(leadId) {
 }
 
 // Show vault trigger in settings for master
-document.addEventListener('DOMContentLoaded', () => {});
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('payment') === 'success') {
+    setTimeout(() => showToast('✅ Recarga exitosa. Los créditos se agregarán en breve.', 'success'), 800);
+    history.replaceState({}, '', window.location.pathname);
+  } else if (params.get('payment') === 'cancel') {
+    setTimeout(() => showToast('Recarga cancelada.', 'error'), 800);
+    history.replaceState({}, '', window.location.pathname);
+  } else if (params.get('setup') === 'success') {
+    setTimeout(() => {
+      showToast('✅ Tarjeta guardada. Ya puedes activar la auto-recarga.', 'success');
+      showCreditsPage();
+      switchBillingTab('autocharge', document.getElementById('btab-autocharge'));
+    }, 800);
+    history.replaceState({}, '', window.location.pathname);
+  } else if (params.get('setup') === 'cancel') {
+    setTimeout(() => showToast('Configuración de tarjeta cancelada.', 'error'), 800);
+    history.replaceState({}, '', window.location.pathname);
+  }
+});
 </script>
 
 <script>

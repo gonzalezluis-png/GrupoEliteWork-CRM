@@ -15,17 +15,42 @@ serve(async (req) => {
 
   const event = JSON.parse(body)
 
+  const supa = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  )
+
   if (event.type === 'checkout.session.completed') {
-    const session  = event.data.object
+    const session = event.data.object
+
+    // Setup mode: save customer + payment method for auto-recharge
+    if (session.mode === 'setup') {
+      const customerId   = session.customer
+      const setupIntentId = session.setup_intent
+      if (setupIntentId) {
+        const siRes = await fetch(`https://api.stripe.com/v1/setup_intents/${setupIntentId}`, {
+          headers: { 'Authorization': `Bearer ${stripeKey}` },
+        })
+        const si = await siRes.json()
+        const paymentMethodId = si.payment_method
+        if (customerId && paymentMethodId) {
+          const pmRes = await fetch(`https://api.stripe.com/v1/payment_methods/${paymentMethodId}`, {
+            headers: { 'Authorization': `Bearer ${stripeKey}` },
+          })
+          const pm = await pmRes.json()
+          await supa.from('kv_store').upsert({ key: 'gew_stripe_customer_id',     value: customerId })
+          await supa.from('kv_store').upsert({ key: 'gew_stripe_payment_method',  value: paymentMethodId })
+          await supa.from('kv_store').upsert({ key: 'gew_stripe_card_last4',      value: pm.card?.last4 || '' })
+          await supa.from('kv_store').upsert({ key: 'gew_stripe_card_brand',      value: pm.card?.brand || '' })
+        }
+      }
+      return new Response('ok', { status: 200 })
+    }
+
     const boardId  = session.metadata?.boardId
     const credits  = parseInt(session.metadata?.credits || '0')
 
     if (!credits) return new Response('Missing credits metadata', { status: 400 })
-
-    const supa = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
 
     // Add to global pool
     const credKey = 'gew_credits_global'
