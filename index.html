@@ -2692,52 +2692,24 @@ setTimeout(function(){
         </div>
 
         <!-- Right: lead details -->
-        <div id="conv-detail-panel" style="width:300px;flex-shrink:0;border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;background:var(--bg)">
-          <!-- Header -->
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
-            <div style="font-size:12px;font-weight:700;color:var(--text);letter-spacing:.2px">Detalles del contacto</div>
-          </div>
-          <!-- Contact header -->
-          <div style="padding:16px;border-bottom:1px solid var(--border);flex-shrink:0">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-              <div id="conv-detail-avatar" style="width:42px;height:42px;border-radius:50%;background:rgba(0,115,234,.18);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--accent);flex-shrink:0"></div>
-              <div style="flex:1;min-width:0">
-                <div id="conv-detail-name" style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-                <div id="conv-detail-sub" style="font-size:11px;color:var(--text2);margin-top:1px"></div>
+        <div id="conv-detail-panel" style="width:280px;flex-shrink:0;border-left:1px solid var(--border);overflow-y:auto;background:var(--bg)">
+          <div id="conv-detail-inner" style="padding:20px 16px;display:flex;flex-direction:column;gap:0">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px">Detalles del contacto</div>
+            <!-- Avatar + name -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+              <div id="conv-detail-avatar" style="width:44px;height:44px;border-radius:50%;background:rgba(0,115,234,.18);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--accent);flex-shrink:0"></div>
+              <div>
+                <div id="conv-detail-name" style="font-size:14px;font-weight:700;color:var(--text);line-height:1.3"></div>
+                <div id="conv-detail-sub" style="font-size:11px;color:var(--text2);margin-top:2px"></div>
               </div>
             </div>
-            <!-- Propietario -->
-            <div style="display:flex;justify-content:space-between;gap:8px">
-              <div style="flex:1">
-                <div style="font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px">Propietario</div>
-                <div id="conv-detail-owner" style="font-size:12px;color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px"></div>
-              </div>
-              <div style="flex:1">
-                <div style="font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px">Board</div>
-                <div id="conv-detail-board" style="font-size:12px;color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px"></div>
-              </div>
+            <!-- Fields -->
+            <div id="conv-detail-fields" style="display:flex;flex-direction:column;gap:0;border-top:1px solid var(--border)"></div>
+            <!-- Notes -->
+            <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+              <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Notas recientes</div>
+              <div id="conv-detail-notes" style="display:flex;flex-direction:column;gap:8px"></div>
             </div>
-          </div>
-          <!-- Resultado badge -->
-          <div style="padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
-            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Resultado</div>
-            <div id="conv-detail-resultado" style="font-size:12px;color:var(--text2);font-style:italic">Sin resultado</div>
-          </div>
-          <!-- Fields -->
-          <div style="padding:4px 0;flex-shrink:0">
-            <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden-sec')">
-              <span style="font-size:12px;font-weight:700;color:var(--text)">Contacto</span>
-              <span style="font-size:10px;color:var(--text2)">▲</span>
-            </div>
-            <div id="conv-detail-fields" style="padding:0 16px 12px;display:flex;flex-direction:column;gap:14px"></div>
-          </div>
-          <!-- Notes preview -->
-          <div style="padding:4px 0;border-top:1px solid var(--border)">
-            <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden-sec')">
-              <span style="font-size:12px;font-weight:700;color:var(--text)">Notas recientes</span>
-              <span style="font-size:10px;color:var(--text2)">▲</span>
-            </div>
-            <div id="conv-detail-notes" style="padding:0 16px 12px;display:flex;flex-direction:column;gap:8px"></div>
           </div>
         </div>
 
@@ -10004,59 +9976,45 @@ function renderConvDetail() {
   if (!_convLeadId) return;
   const lead = loadLeads(_convBoardId).find(l => l.id === _convLeadId);
   if (!lead) return;
+
   const initials = (lead.nombre||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const bg = strToTableColor(lead.nombre) || '#0073ea';
   const board = BOARDS.find(b => b.id === _convBoardId);
 
-  // Avatar + name
   const av = document.getElementById('conv-detail-avatar');
   av.textContent = initials;
-  av.style.background = bg + '22';
-  av.style.color = bg;
+  av.style.cssText = `width:44px;height:44px;border-radius:50%;background:${bg}25;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${bg};flex-shrink:0`;
+
   document.getElementById('conv-detail-name').textContent = lead.nombre || '—';
-  document.getElementById('conv-detail-sub').textContent = lead.telefono || lead.email || '';
+  document.getElementById('conv-detail-sub').textContent = lead.telefono || '';
 
-  // Owner & board
-  const owner = lead.asignado || 'Sin asignar';
-  const ownerInitial = owner.charAt(0).toUpperCase();
-  document.getElementById('conv-detail-owner').innerHTML =
-    `<span style="width:18px;height:18px;border-radius:50%;background:${bg}22;color:${bg};display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">${ownerInitial}</span>${esc(owner)}`;
-  document.getElementById('conv-detail-board').textContent = board ? `${board.icon} ${board.name}` : '—';
+  const rows = [
+    { label: 'Teléfono',    value: lead.telefono },
+    { label: 'Email',       value: lead.email },
+    { label: 'Tipo lead',   value: lead.lead },
+    { label: 'Asignado',    value: lead.asignado },
+    { label: 'Board',       value: board ? `${board.icon} ${board.name}` : '' },
+    { label: 'Resultado',   value: lead.resultado },
+    { label: 'Ubicación',   value: lead.ubicacion },
+    { label: 'Dirección',   value: lead.direccion },
+    { label: 'Hijos',       value: lead.hijos },
+    { label: 'Registro',    value: lead.creacion ? formatDate(lead.creacion) : '' },
+  ].filter(r => r.value);
 
-  // Resultado
-  const resEl = document.getElementById('conv-detail-resultado');
-  if (lead.resultado) {
-    const rColor = RESULTADO_COLORS?.[lead.resultado] || 'var(--accent)';
-    resEl.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;background:${rColor}18;color:${rColor};border:1px solid ${rColor}40;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;font-style:normal">${esc(lead.resultado)}</span>`;
-  } else {
-    resEl.innerHTML = '<span style="font-style:italic;color:var(--text2);font-size:12px">Sin resultado</span>';
-  }
+  document.getElementById('conv-detail-fields').innerHTML = rows.map(r => `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);gap:8px">
+      <span style="font-size:11px;color:var(--text2);flex-shrink:0;padding-top:1px">${r.label}</span>
+      <span style="font-size:12px;color:var(--text);font-weight:500;text-align:right;word-break:break-word">${esc(r.value)}</span>
+    </div>`).join('');
 
-  // Fields
-  const fields = [
-    { label: 'Nombre completo', value: lead.nombre },
-    { label: 'Teléfono', value: lead.telefono, icon: '📱' },
-    { label: 'Correo electrónico', value: lead.email, icon: '✉️' },
-    { label: 'Tipo de lead', value: lead.lead },
-    { label: 'Ubicación', value: lead.ubicacion, icon: '📍' },
-    { label: 'Dirección', value: lead.direccion, icon: '🏠' },
-    { label: 'Hijos', value: lead.hijos },
-    { label: 'Fecha registro', value: lead.creacion ? formatDate(lead.creacion) : '' },
-  ].filter(f => f.value);
-
-  document.getElementById('conv-detail-fields').innerHTML = fields.map(f => `
-    <div class="conv-detail-field">
-      <span class="conv-detail-label">${f.label}</span>
-      <span class="conv-detail-value">${f.icon ? f.icon + ' ' : ''}${esc(f.value)}</span>
-    </div>`).join('') || '<div style="font-size:12px;color:var(--text2)">Sin información adicional.</div>';
-
-  // Notes preview (last 3)
   const notes = parseNotes(lead._notes).slice(-3).reverse();
-  document.getElementById('conv-detail-notes').innerHTML = notes.length ? notes.map(n => `
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
-      <div style="font-size:10px;color:var(--text2);margin-bottom:3px">${esc(n.author||'')} · ${n.date ? formatNoteDate(n.date) : ''}</div>
-      <div style="font-size:11px;color:var(--text);line-height:1.5;white-space:pre-wrap">${esc((n.text||'').slice(0,80))}${(n.text||'').length>80?'…':''}</div>
-    </div>`).join('') : '<div style="font-size:12px;color:var(--text2)">Sin notas.</div>';
+  document.getElementById('conv-detail-notes').innerHTML = notes.length
+    ? notes.map(n => `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 11px">
+        <div style="font-size:10px;color:var(--text2);margin-bottom:4px">${esc(n.author||'')} · ${n.date ? formatNoteDate(n.date) : ''}</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.5">${esc((n.text||'').slice(0,100))}${(n.text||'').length>100?'…':''}</div>
+      </div>`).join('')
+    : `<div style="font-size:12px;color:var(--text2)">Sin notas.</div>`;
 }
 
 function setConvTab(tab, btn) {
