@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const { to, body, channel, boardId } = await req.json()
+    const { to, body, channel, boardId, contentSid, contentVariables } = await req.json()
 
     const supa = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -36,6 +36,19 @@ serve(async (req) => {
     const fromNum    = channel === 'whatsapp' ? `whatsapp:${waNumber}` : smsNumber
     const toNum      = channel === 'whatsapp' ? `whatsapp:${to}`       : to
 
+    // Build Twilio params — template or plain text
+    const twilioParams: Record<string, string> = { From: fromNum, To: toNum }
+    if (contentSid) {
+      twilioParams['ContentSid'] = contentSid
+      if (contentVariables) {
+        twilioParams['ContentVariables'] = typeof contentVariables === 'string'
+          ? contentVariables
+          : JSON.stringify(contentVariables)
+      }
+    } else {
+      twilioParams['Body'] = body
+    }
+
     const res = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
       {
@@ -44,7 +57,7 @@ serve(async (req) => {
           'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({ From: fromNum, To: toNum, Body: body }),
+        body: new URLSearchParams(twilioParams),
       }
     )
 

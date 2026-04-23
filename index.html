@@ -3499,6 +3499,12 @@ setTimeout(function(){
           <button id="msg-ch-sms" onclick="setMsgChannel('sms')" style="flex:1;padding:7px;border-radius:8px;border:1px solid rgba(0,115,234,.5);background:rgba(0,115,234,.15);color:var(--accent);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer">📱 SMS</button>
           <button id="msg-ch-whatsapp" onclick="setMsgChannel('whatsapp')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer">💬 WhatsApp</button>
         </div>
+        <!-- WhatsApp template shortcut (only shown when channel = whatsapp) -->
+        <div id="msg-template-bar" style="display:none;margin-bottom:10px;background:rgba(37,211,102,.07);border:1px solid rgba(37,211,102,.25);border-radius:8px;padding:8px 12px">
+          <div style="font-size:11px;color:#25d366;font-weight:600;margin-bottom:4px">📋 Template aprobado: <em>crm_seguimiento_lead_v2</em></div>
+          <div id="msg-template-preview" style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px"></div>
+          <button onclick="sendWhatsAppTemplate()" style="background:#25d366;color:#fff;border:none;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">⚡ Enviar template</button>
+        </div>
         <div id="msg-phone-wrap" style="margin-bottom:8px">
           <input id="msg-phone-inp" type="tel" placeholder="Número destino (ej: +15551234567)" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
         </div>
@@ -10894,6 +10900,9 @@ function switchNotesPanelTab(tab) {
   tM.style.fontWeight = !isNotes ? '600' : '500';
 }
 
+const WA_TEMPLATE_SID  = 'HX872c8dfe2ba6f8d9833284769872f0bb';
+const WA_TEMPLATE_BODY = 'Hola {{1}}, te contacta {{2}} de Grupo Elite Work. Estamos haciendo seguimiento a tu interés en nuestras propiedades. ¿Tienes unos minutos para conversar? Responde STOP para no recibir más mensajes.';
+
 function setMsgChannel(ch) {
   _msgChannel = ch;
   const btnS = document.getElementById('msg-ch-sms');
@@ -10902,6 +10911,70 @@ function setMsgChannel(ch) {
   const offStyle = 'flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer';
   btnS.style.cssText = ch === 'sms' ? onStyle : offStyle;
   btnW.style.cssText = ch === 'whatsapp' ? onStyle : offStyle;
+
+  // Show/hide template bar
+  const tbar = document.getElementById('msg-template-bar');
+  const tprev = document.getElementById('msg-template-preview');
+  if (tbar) tbar.style.display = ch === 'whatsapp' ? '' : 'none';
+  if (tprev && ch === 'whatsapp') {
+    // Get lead name and agent name for preview
+    const boardId = _notesBoardId;
+    const leadId  = _notesLeadId;
+    const lead = boardId ? loadLeads(boardId).find(l => l.id === leadId) : null;
+    const session = getSession();
+    const v1 = lead?.nombre || 'Cliente';
+    const v2 = session?.name || 'Agente';
+    tprev.textContent = WA_TEMPLATE_BODY.replace('{{1}}', v1).replace('{{2}}', v2);
+  }
+}
+
+async function sendWhatsAppTemplate() {
+  const status = document.getElementById('msg-status');
+  const btn    = document.getElementById('msg-send-btn');
+  const leads  = loadLeads(_notesBoardId);
+  const lead   = leads.find(l => l.id === _notesLeadId);
+  if (!lead?.telefono) { if (status) { status.textContent = '⚠️ El lead no tiene número de teléfono'; status.style.color = '#e2445c'; } return; }
+
+  const session = getSession();
+  const v1 = lead.nombre || 'Cliente';
+  const v2 = session?.name || 'Agente';
+  const to = lead.telefono;
+
+  if (btn) btn.disabled = true;
+  if (status) { status.textContent = 'Enviando template…'; status.style.color = 'var(--text2)'; }
+
+  try {
+    const res = await fetch(`${SUPA_URL}/functions/v1/send-message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPA_KEY}` },
+      body: JSON.stringify({
+        to,
+        channel: 'whatsapp',
+        boardId: _notesBoardId,
+        contentSid: WA_TEMPLATE_SID,
+        contentVariables: { '1': v1, '2': v2 },
+      }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Log message in lead history
+    const previewText = WA_TEMPLATE_BODY.replace('{{1}}', v1).replace('{{2}}', v2);
+    const msgs = JSON.parse(lead._messages || '[]');
+    msgs.push({ to, body: previewText, channel: 'whatsapp', template: true, date: new Date().toISOString(), author: session?.name || '?', sid: data.sid || '' });
+    lead._messages = JSON.stringify(msgs);
+    saveLeads(_notesBoardId, leads);
+    _renderMsgJournal(lead);
+
+    if (status) { status.textContent = '✓ Template enviado por WhatsApp'; status.style.color = '#25d366'; }
+    if (data.creditsLeft !== undefined) {
+      const cv = document.getElementById('msg-credits-val');
+      if (cv) { cv.textContent = data.creditsLeft; cv.style.color = data.creditsLeft < 10 ? '#e2445c' : 'var(--accent)'; }
+    }
+  } catch(e) {
+    if (status) { status.textContent = '⚠️ ' + e.message; status.style.color = '#e2445c'; }
+  }
+  if (btn) btn.disabled = false;
 }
 
 function _renderMsgJournal(lead) {
