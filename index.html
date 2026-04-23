@@ -9965,9 +9965,12 @@ function renderChatPopupMsgs(lead) {
   el.innerHTML = msgs.map(m => {
     const isOut = m.direction !== 'inbound';
     const time = m.date ? new Date(m.date).toLocaleTimeString('es-US',{hour:'2-digit',minute:'2-digit'}) : '';
+    const chBadge = m.channel === 'whatsapp'
+      ? `<span style="background:#25D366;color:#fff;border-radius:4px;font-size:9px;padding:1px 5px;font-weight:700;letter-spacing:.3px">WA</span>`
+      : `<span style="background:#0073ea;color:#fff;border-radius:4px;font-size:9px;padding:1px 5px;font-weight:700;letter-spacing:.3px">SMS</span>`;
     return `<div style="display:flex;flex-direction:column;${isOut?'align-items:flex-end':'align-items:flex-start'}">
       <div class="${isOut?'conv-msg-out':'conv-msg-in'}" style="font-size:12px;padding:8px 12px">${esc(m.body||'')}</div>
-      <div style="font-size:10px;color:var(--text2);margin-top:2px">${time}${m.error?` ⚠️`:` ✓`}</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:3px;display:flex;align-items:center;gap:4px;${isOut?'flex-direction:row-reverse':''}">${chBadge}<span>${time}${m.error?' ⚠️':' ✓'}</span></div>
     </div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
@@ -10122,12 +10125,14 @@ function renderConvThread() {
       const dateStr = d ? d.toLocaleDateString('es-US',{weekday:'short',month:'short',day:'numeric'}) : '';
       const timeStr = d ? d.toLocaleTimeString('es-US',{hour:'2-digit',minute:'2-digit'}) : '';
       const isOut = m.direction !== 'inbound';
-      const chIcon = m.channel === 'whatsapp' ? '💬' : '📱';
+      const chBadge = m.channel === 'whatsapp'
+        ? `<span style="background:#25D366;color:#fff;border-radius:4px;font-size:9px;padding:1px 5px;font-weight:700;letter-spacing:.3px">WA</span>`
+        : `<span style="background:#0073ea;color:#fff;border-radius:4px;font-size:9px;padding:1px 5px;font-weight:700;letter-spacing:.3px">SMS</span>`;
       let dateSep = '';
       if (dateStr !== lastDate) { dateSep = `<div style="text-align:center;margin:8px 0"><span style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:3px 12px;font-size:10px;color:var(--text2)">${dateStr}</span></div>`; lastDate = dateStr; }
       return `${dateSep}<div style="display:flex;flex-direction:column;${isOut?'align-items:flex-end':'align-items:flex-start'}">
         <div class="${isOut?'conv-msg-out':'conv-msg-in'}">${esc(m.body||'')}</div>
-        <div class="conv-msg-time" style="${isOut?'text-align:right':'text-align:left'}">${chIcon} ${timeStr}${isOut?' · '+esc(m.author||''):''}${m.error?` <span style="color:#e2445c">⚠️</span>`:` <span style="color:#00c875">✓</span>`}</div>
+        <div class="conv-msg-time" style="display:flex;align-items:center;gap:4px;${isOut?'flex-direction:row-reverse':''}">${chBadge}<span>${timeStr}${isOut?' · '+esc(m.author||''):''}${m.error?` <span style="color:#e2445c">⚠️</span>`:` <span style="color:#00c875">✓</span>`}</span></div>
       </div>`;
     }).join('');
   }
