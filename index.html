@@ -10750,6 +10750,7 @@ function openNotesPanel(leadId, navList) {
   loadMsgCredits(boardId);
   switchNotesPanelTab('notes');
   document.getElementById('notes-panel-overlay').classList.add('open');
+  _startMsgPolling();
 }
 
 
@@ -10985,17 +10986,27 @@ function _renderMsgJournal(lead) {
     el.innerHTML = `<div style="color:var(--text2);font-size:12px;text-align:center;padding:20px 0">Sin mensajes enviados aún.</div>`;
     return;
   }
-  el.innerHTML = msgs.map(m => `
-    <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+  el.innerHTML = msgs.map(m => {
+    const isInbound = m.direction === 'inbound';
+    const borderColor = isInbound ? 'rgba(37,211,102,.3)' : 'var(--border)';
+    const bg = isInbound ? 'rgba(37,211,102,.06)' : 'var(--card2)';
+    const dirLabel = isInbound
+      ? `<span style="background:rgba(37,211,102,.2);color:#25d366;padding:1px 7px;border-radius:10px;font-weight:700;font-size:10px">↩ Respuesta</span>`
+      : `<span style="background:${m.channel==='whatsapp'?'rgba(37,211,102,.15)':'rgba(0,115,234,.12)'};color:${m.channel==='whatsapp'?'#25d366':'var(--accent)'};padding:1px 7px;border-radius:10px;font-weight:600;font-size:10px">${m.channel==='whatsapp'?'WhatsApp':'SMS'}${m.template?' · Template':''}</span>`;
+    const fromTo = isInbound
+      ? `<span style="color:var(--text2)">De: <strong style="color:var(--text)">${esc(m.from||m.author)}</strong></span>`
+      : (m.from ? `<span style="color:var(--text2)">De: <strong style="color:var(--text)">${esc(m.from)}</strong></span><span>→ ${esc(m.to)}</span>` : `<span>→ ${esc(m.to)}</span>`);
+    return `
+    <div style="background:${bg};border:1px solid ${borderColor};border-radius:8px;padding:10px 14px">
       <div style="font-size:10px;color:var(--text2);margin-bottom:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span style="background:${m.channel==='whatsapp'?'rgba(37,211,102,.15)':'rgba(0,115,234,.12)'};color:${m.channel==='whatsapp'?'#25d366':'var(--accent)'};padding:1px 7px;border-radius:10px;font-weight:600">${m.channel==='whatsapp'?'WhatsApp':'SMS'}${m.template?' · Template':''}</span>
-        ${m.from ? `<span style="color:var(--text2)">De: <strong style="color:var(--text)">${esc(m.from)}</strong></span>` : ''}
-        <span>→ ${esc(m.to)}</span>
-        <span style="margin-left:auto">${esc(m.author)} · ${formatNoteDate(m.date)}</span>
+        ${dirLabel}
+        ${fromTo}
+        <span style="margin-left:auto">${isInbound ? '' : esc(m.author)+' · '}${formatNoteDate(m.date)}</span>
       </div>
       <div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5">${esc(m.body)}</div>
-      ${m.error ? `<div style="font-size:11px;color:#e2445c;margin-top:4px">⚠️ ${esc(m.error)}</div>` : `<div style="font-size:10px;color:#00c875;margin-top:4px">✓ ${esc(m.sid||'enviado')}</div>`}
-    </div>`).join('');
+      ${!isInbound ? (m.error ? `<div style="font-size:11px;color:#e2445c;margin-top:4px">⚠️ ${esc(m.error)}</div>` : `<div style="font-size:10px;color:#00c875;margin-top:4px">✓ ${esc(m.sid||'enviado')}</div>`) : ''}
+    </div>`;
+  }).join('');
   el.scrollTop = el.scrollHeight;
 }
 
@@ -11922,11 +11933,30 @@ async function startCheckout(packageId) {
   }
 }
 
+let _msgPollInterval = null;
+
+function _startMsgPolling() {
+  _stopMsgPolling();
+  _msgPollInterval = setInterval(async () => {
+    if (!_notesLeadId || !_notesBoardId) return;
+    try {
+      await loadFromSupabase();
+      const lead = loadLeads(_notesBoardId).find(l => l.id === _notesLeadId);
+      if (lead) _renderMsgJournal(lead);
+    } catch(_) {}
+  }, 6000); // every 6 seconds
+}
+
+function _stopMsgPolling() {
+  if (_msgPollInterval) { clearInterval(_msgPollInterval); _msgPollInterval = null; }
+}
+
 function closeNotesPanel() {
   document.getElementById('notes-panel-overlay').classList.remove('open');
   _notesBoardId = null;
   _notesLeadId  = null;
   _notesNavList = [];
+  _stopMsgPolling();
 }
 
 async function submitNote() {
