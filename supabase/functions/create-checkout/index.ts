@@ -17,9 +17,12 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const { packageId, boardId, boardName, successUrl, cancelUrl } = await req.json()
+    const { packageId, boardId, boardName, successUrl, cancelUrl, unitPriceCents } = await req.json()
     const pkg = PACKAGES.find(p => p.id === packageId)
     if (!pkg) throw new Error('Paquete no válido')
+
+    // Use dynamic price if provided by developer, otherwise default package price
+    const finalPriceCents = (unitPriceCents && unitPriceCents > 0) ? unitPriceCents : pkg.price_cents
 
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!
 
@@ -28,7 +31,7 @@ serve(async (req) => {
       'line_items[0][price_data][currency]': 'usd',
       'line_items[0][price_data][product_data][name]': `Grupo Elite Work — ${pkg.label}`,
       'line_items[0][price_data][product_data][description]': `${pkg.credits} créditos de mensajería SMS/WhatsApp`,
-      'line_items[0][price_data][unit_amount]': String(pkg.price_cents),
+      'line_items[0][price_data][unit_amount]': String(finalPriceCents),
       'line_items[0][quantity]': '1',
       'mode': 'payment',
       'success_url': successUrl || 'https://lead.grupoelitework.com?payment=success',

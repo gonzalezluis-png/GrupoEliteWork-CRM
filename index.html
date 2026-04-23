@@ -2626,6 +2626,35 @@ setTimeout(function(){
               <button class="btn btn-primary" onclick="loadMessagingDashboard()" style="flex-shrink:0">↺ Actualizar</button>
             </div>
 
+            <!-- Pricing config (developer only) -->
+            <div class="settings-section" style="margin-bottom:24px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.05);border-radius:12px;padding:18px 20px">
+              <h3 style="margin-top:0">💰 Precios de venta por mensaje</h3>
+              <p>Define cuánto cobras al administrador por cada mensaje enviado. Afecta los paquetes de recarga y el saldo mostrado en Facturación.</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
+                <div>
+                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">📱 Precio por SMS (USD)</label>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="color:var(--text2);font-size:13px">$</span>
+                    <input type="number" id="msg-price-sms" step="0.001" min="0.001" placeholder="0.016"
+                      style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">💬 Precio por WhatsApp (USD)</label>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="color:var(--text2);font-size:13px">$</span>
+                    <input type="number" id="msg-price-wa" step="0.001" min="0.001" placeholder="0.016"
+                      style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap">
+                <button onclick="saveMsgPrices()" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer">Guardar precios</button>
+                <span id="msg-price-status" style="font-size:11px;color:var(--text2)"></span>
+                <span id="msg-price-current" style="font-size:11px;color:var(--text2);margin-left:auto"></span>
+              </div>
+            </div>
+
             <!-- Summary cards -->
             <div id="msg-dash-summary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px"></div>
 
@@ -7660,7 +7689,7 @@ function switchSettingsTab(tab) {
   if (tabEl) tabEl.classList.add('active');
   const navEl = document.querySelector(`.settings-nav-item[data-tab="${tab}"]`);
   if (navEl) navEl.classList.add('active');
-  if (tab === 'messaging') loadMessagingDashboard();
+  if (tab === 'messaging') { loadMessagingDashboard(); loadMsgPrices(); }
 }
 
 function showSettingsPage() {
@@ -10435,8 +10464,9 @@ async function loadCreditsPage() {
   // Global credits balance
   const { data: credRow } = await supa.from('kv_store').select('value').eq('key', 'gew_credits_global').maybeSingle();
   const totalCredits = parseInt(credRow?.value || '0');
-  const CREDIT_TO_USD = 0.016; // 100 credits = $1.60
-  if (dollarEl) dollarEl.textContent = '$' + (totalCredits * CREDIT_TO_USD).toFixed(2);
+  await loadMsgPrices();
+  const avgPrice = _avgMsgPrice();
+  if (dollarEl) dollarEl.textContent = '$' + (totalCredits * avgPrice).toFixed(2);
   if (creditsEl) creditsEl.textContent = totalCredits.toLocaleString() + ' créditos';
 
   // Transactions
@@ -10469,7 +10499,7 @@ async function loadCreditsPage() {
     { label: 'Mensajes enviados', val: totalSent,   color: 'var(--text)', icon: '📤' },
     { label: 'SMS',               val: totalSMS,    color: '#fbbf24',     icon: '📱' },
     { label: 'WhatsApp',          val: totalWA,     color: '#25d366',     icon: '💬' },
-    { label: 'Gastado (USD)',      val: '$' + (totalSent * CREDIT_TO_USD).toFixed(2), color: '#e2445c', icon: '💸' },
+    { label: 'Gastado (USD)',      val: '$' + (totalSMS * _msgPriceSMS + totalWA * _msgPriceWA).toFixed(2), color: '#e2445c', icon: '💸' },
   ].map(c => `<div style="display:flex;flex-direction:column;gap:2px">
     <span style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">${c.icon} ${c.label}</span>
     <span style="font-size:18px;font-weight:700;color:${c.color}">${c.val}</span>
@@ -10546,24 +10576,63 @@ async function loadCreditsPage() {
   if (rechargeEl) rechargeEl.innerHTML = filteredTx.length ? filteredTx.map(renderTxRow).join('') : noTx;
 }
 
-// ── Buy credits modal ──
-const _BUY_PKGS = [
-  { id:'pkg_100',  credits:100,   price:'$1.60',  label:'100 mensajes' },
-  { id:'pkg_500',  credits:500,   price:'$8.00',  label:'500 mensajes' },
-  { id:'pkg_1000', credits:1000,  price:'$16.00', label:'1,000 mensajes' },
-  { id:'pkg_5000', credits:5000,  price:'$80.00', label:'5,000 mensajes' },
-];
+// ── Messaging prices (developer-configurable) ──
+const _PKG_CREDITS = [100, 500, 1000, 5000];
 let _buyPkgSelected = null;
+let _msgPriceSMS = 0.016;   // default sell price per SMS in USD
+let _msgPriceWA  = 0.016;   // default sell price per WhatsApp in USD
+
+async function loadMsgPrices() {
+  const { data: rows } = await supa.from('kv_store').select('key,value')
+    .in('key', ['gew_price_sms', 'gew_price_wa']);
+  (rows || []).forEach(r => {
+    const v = parseFloat(r.value);
+    if (!isNaN(v) && v > 0) {
+      if (r.key === 'gew_price_sms') _msgPriceSMS = v;
+      if (r.key === 'gew_price_wa')  _msgPriceWA  = v;
+    }
+  });
+  // Populate inputs if visible
+  const smsInp = document.getElementById('msg-price-sms');
+  const waInp  = document.getElementById('msg-price-wa');
+  if (smsInp) smsInp.value = _msgPriceSMS;
+  if (waInp)  waInp.value  = _msgPriceWA;
+  const cur = document.getElementById('msg-price-current');
+  if (cur) cur.textContent = `Actuales: SMS $${_msgPriceSMS} · WhatsApp $${_msgPriceWA}`;
+}
+
+async function saveMsgPrices() {
+  const smsVal = parseFloat(document.getElementById('msg-price-sms').value);
+  const waVal  = parseFloat(document.getElementById('msg-price-wa').value);
+  if (isNaN(smsVal) || smsVal <= 0 || isNaN(waVal) || waVal <= 0) {
+    showToast('Precios inválidos', 'error'); return;
+  }
+  await supa.from('kv_store').upsert({ key: 'gew_price_sms', value: String(smsVal) });
+  await supa.from('kv_store').upsert({ key: 'gew_price_wa',  value: String(waVal) });
+  _msgPriceSMS = smsVal; _msgPriceWA = waVal;
+  const st = document.getElementById('msg-price-status');
+  if (st) { st.textContent = '✓ Guardado'; setTimeout(() => { if(st) st.textContent=''; }, 2500); }
+  const cur = document.getElementById('msg-price-current');
+  if (cur) cur.textContent = `Actuales: SMS $${smsVal} · WhatsApp $${waVal}`;
+  showToast('Precios actualizados ✓', 'success');
+}
+
+// ── Buy credits modal ──
+function _avgMsgPrice() { return (_msgPriceSMS + _msgPriceWA) / 2; }
 
 function openBuyCreditsModal() {
   _buyPkgSelected = null;
-  document.getElementById('buy-pkg-grid').innerHTML = _BUY_PKGS.map(p => `
-    <div onclick="selectBuyPkg('${p.id}',this)" data-pkg="${p.id}"
+  const avgPrice = _avgMsgPrice();
+  document.getElementById('buy-pkg-grid').innerHTML = _PKG_CREDITS.map(credits => {
+    const id    = `pkg_${credits}`;
+    const total = (credits * avgPrice).toFixed(2);
+    return `<div onclick="selectBuyPkg('${id}',this)" data-pkg="${id}" data-credits="${credits}" data-cents="${Math.round(credits * avgPrice * 100)}"
       style="border:2px solid var(--border);border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;transition:border-color .12s,background .12s">
-      <div style="font-size:18px;font-weight:700;color:var(--accent)">${p.credits.toLocaleString()}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--accent)">${credits.toLocaleString()}</div>
       <div style="font-size:10px;color:var(--text2);margin:2px 0 6px">mensajes</div>
-      <div style="font-size:14px;font-weight:700;color:var(--text)">${p.price}</div>
-    </div>`).join('');
+      <div style="font-size:14px;font-weight:700;color:var(--text)">$${total}</div>
+    </div>`;
+  }).join('');
   document.getElementById('buy-credits-overlay').classList.add('open');
 }
 function closeBuyCreditsModal() { document.getElementById('buy-credits-overlay').classList.remove('open'); }
@@ -10577,6 +10646,8 @@ function selectBuyPkg(id, el) {
 }
 async function confirmBuyCredits() {
   if (!_buyPkgSelected) { showToast('Selecciona un paquete', 'error'); return; }
+  const pkgEl = document.querySelector(`#buy-pkg-grid [data-pkg="${_buyPkgSelected}"]`);
+  const unitPriceCents = pkgEl ? parseInt(pkgEl.dataset.cents) : 0;
   const btn = document.getElementById('buy-confirm-btn');
   btn.textContent = 'Procesando…'; btn.disabled = true;
   try {
@@ -10584,6 +10655,7 @@ async function confirmBuyCredits() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPA_KEY}` },
       body: JSON.stringify({ packageId: _buyPkgSelected, boardId: 'global', boardName: 'Equipo',
+        unitPriceCents,
         successUrl: window.location.origin + window.location.pathname + '?payment=success',
         cancelUrl:  window.location.origin + window.location.pathname + '?payment=cancel' }),
     });
