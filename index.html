@@ -7903,15 +7903,15 @@ function showSettingsPage() {
   // Board editor — master only
   const boardEditorCard = document.getElementById('board-editor-card');
   if (boardEditorCard) {
-    const isMaster = session && session.role === 'master';
-    boardEditorCard.style.display = isMaster ? '' : 'none';
-    if (isMaster) renderBoardEditor();
+    const isMasterForBoard = session && (session.role === 'master' || session._isMaster);
+    boardEditorCard.style.display = isMasterForBoard ? '' : 'none';
+    if (isMasterForBoard) renderBoardEditor();
   }
 
   // Repair + duplicate tools — master only
   const repairCard = document.getElementById('repair-card');
   const dupCard    = document.getElementById('dup-card');
-  const isMaster   = session && session.role === 'master';
+  const isMaster   = session && (session.role === 'master' || session._isMaster);
   if (repairCard) repairCard.style.display = isMaster ? '' : 'none';
   if (dupCard)    dupCard.style.display    = isMaster ? '' : 'none';
 }
