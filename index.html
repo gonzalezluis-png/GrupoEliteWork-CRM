@@ -1913,6 +1913,9 @@ setTimeout(function(){
     </div>
     <div class="sidebar-label">Boards</div>
     <div id="board-list"></div>
+    <div id="sidebar-conversations" style="display:none">
+      <div class="sidebar-item" id="nav-conversations" onclick="showConversationsPage()">💬 <span>Conversaciones</span></div>
+    </div>
     <div id="sidebar-scripts" style="display:none">
       <div class="sidebar-item" id="nav-scripts" onclick="showScriptsPage()">📋 <span>Scripts de Llamada</span></div>
     </div>
@@ -1927,9 +1930,6 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-calendar" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
       <div class="sidebar-item" id="nav-activity" onclick="showActivityPage()">📊 <span>Actividad</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
-    </div>
-    <div id="sidebar-conversations" style="display:none">
-      <div class="sidebar-item" id="nav-conversations" onclick="showConversationsPage()">💬 <span>Conversaciones</span></div>
     </div>
     <div id="sidebar-master" style="display:none">
       <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span></div>
