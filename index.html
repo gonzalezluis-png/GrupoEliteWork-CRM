@@ -495,6 +495,14 @@
     border:1px solid var(--border);border-radius:14px 14px 14px 4px;padding:10px 14px;font-size:13px;line-height:1.5;
   }
   .conv-msg-time { font-size:10px;color:var(--text2);margin-top:3px; }
+  /* ── Billing / Facturación page ── */
+  .billing-tab { padding:12px 22px 11px;background:none;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:color .15s,border-color .15s; }
+  .billing-tab.active { color:#0073ea;border-bottom-color:#0073ea; }
+  .billing-tab:hover:not(.active) { color:var(--text); }
+  .billing-subtab { padding:9px 16px 8px;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer; }
+  .billing-subtab.active { color:#0073ea;border-bottom-color:#0073ea; }
+  .billing-subtab:hover:not(.active) { color:var(--text); }
+  .billing-tx-row { display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:12px; }
   .conv-ch-btn {
     padding:5px 14px;border-radius:8px;border:1px solid var(--border);
     background:var(--card2);color:var(--text2);font-family:var(--font);font-size:11px;
@@ -1929,7 +1937,7 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-stats" onclick="showStatsPage()">📈 <span>Estadísticas</span></div>
       <div class="sidebar-item" id="nav-calendar" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
       <div class="sidebar-item" id="nav-activity" onclick="showActivityPage()">📊 <span>Actividad</span></div>
-      <div class="sidebar-item" id="nav-credits" onclick="showCreditsPage()">💳 <span>Créditos</span></div>
+      <div class="sidebar-item" id="nav-credits" onclick="showCreditsPage()">🧾 <span>Facturación</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
     </div>
     <div id="sidebar-master" style="display:none">
@@ -2647,49 +2655,81 @@ setTimeout(function(){
       </div><!-- /.settings-layout -->
     </div><!-- /#settings-page -->
 
-    <!-- CREDITS PAGE -->
-    <div id="credits-page" style="display:none;flex:1;overflow-y:auto">
-      <div style="max-width:920px;margin:0 auto;padding:28px 28px 60px">
-        <!-- Header -->
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:16px;flex-wrap:wrap">
-          <div>
-            <h1 style="font-size:20px;font-weight:700;color:var(--text);margin:0">💳 Créditos de Mensajería</h1>
-            <p style="font-size:12px;color:var(--text2);margin:4px 0 0">Administra el saldo para envío de SMS y WhatsApp de todo el equipo</p>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <div style="background:rgba(0,200,117,.1);border:1px solid rgba(0,200,117,.3);border-radius:12px;padding:10px 20px;text-align:center;min-width:120px">
-              <div style="font-size:28px;font-weight:700;color:#00c875;line-height:1" id="cp-total-credits">—</div>
-              <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:3px">créditos disponibles</div>
+    <!-- CREDITS PAGE (Facturación) -->
+    <div id="credits-page" style="display:none;flex:1;overflow-y:auto;background:var(--bg)">
+      <div style="max-width:1020px;margin:0 auto;padding:36px 32px 60px">
+
+        <h1 style="font-size:26px;font-weight:700;color:var(--text);margin:0 0 26px;letter-spacing:-.3px">Tablero de facturación</h1>
+
+        <!-- Main tabs -->
+        <div style="border-bottom:1px solid var(--border);margin-bottom:28px;display:flex">
+          <button class="billing-tab active" id="btab-wallet"  onclick="switchBillingTab('wallet',this)">Monedero y transacciones</button>
+          <button class="billing-tab"        id="btab-usage"   onclick="switchBillingTab('usage',this)">Desglose de uso</button>
+          <button class="billing-tab"        id="btab-history" onclick="switchBillingTab('history',this)">Historial de recargas</button>
+        </div>
+
+        <!-- ── PANE: Monedero ── -->
+        <div id="billing-pane-wallet">
+          <!-- Balance card -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px 28px 22px;margin-bottom:28px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:10px">Saldo de su monedero</div>
+                <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+                  <span id="cp-dollar-balance" style="font-size:40px;font-weight:700;color:var(--text);letter-spacing:-1.5px">$0.00</span>
+                  <span id="cp-credits-detail" style="font-size:13px;color:var(--accent);font-weight:600">0 créditos</span>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;margin-top:4px">
+                <button onclick="loadCreditsPage()" title="Actualizar" style="width:36px;height:36px;border-radius:50%;background:var(--card2);border:1px solid var(--border);color:var(--accent);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">↺</button>
+                <button onclick="openBuyCreditsModal()" style="display:flex;align-items:center;gap:6px;padding:10px 20px;background:#0073ea;color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">+ Añadir saldo</button>
+              </div>
             </div>
-            <button onclick="openBuyCreditsModal()" style="padding:11px 22px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💳 Recargar</button>
-            <button onclick="loadCreditsPage()" title="Actualizar" style="padding:10px 12px;background:var(--card2);color:var(--text2);border:1px solid var(--border);border-radius:10px;font-size:16px;cursor:pointer;line-height:1">↺</button>
+            <div id="cp-wallet-stats" style="display:flex;gap:28px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);flex-wrap:wrap"></div>
+          </div>
+
+          <!-- Transactions section -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <span style="font-size:16px;font-weight:700;color:var(--text)">Transacciones de monedero</span>
+            <button onclick="loadCreditsPage()" style="background:none;border:none;color:var(--accent);font-size:18px;cursor:pointer;padding:4px;line-height:1">↺</button>
+          </div>
+          <!-- Date filter -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--text2);font-weight:500">Período:</span>
+            <input type="date" id="cp-desde" onchange="loadCreditsPage()" style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 10px;font-family:var(--font);font-size:12px"/>
+            <span style="color:var(--text2);font-size:12px">—</span>
+            <input type="date" id="cp-hasta" onchange="loadCreditsPage()" style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 10px;font-family:var(--font);font-size:12px"/>
+            <button onclick="document.getElementById('cp-desde').value='';document.getElementById('cp-hasta').value='';loadCreditsPage()" style="padding:5px 10px;background:none;color:var(--text2);border:1px solid var(--border);border-radius:6px;font-family:var(--font);font-size:11px;cursor:pointer">✕ Limpiar</button>
+          </div>
+          <!-- Sub-tabs -->
+          <div style="border-bottom:1px solid var(--border);margin-bottom:20px;display:flex">
+            <button class="billing-subtab active" id="bstab-summary"  onclick="switchBillingSubtab('summary',this)">Resumen</button>
+            <button class="billing-subtab"        id="bstab-detailed" onclick="switchBillingSubtab('detailed',this)">Transacciones detalladas</button>
+          </div>
+          <div id="cp-wallet-summary">
+            <div id="cp-transactions" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+          <div id="cp-wallet-detailed" style="display:none">
+            <div id="cp-msg-detail" style="display:flex;flex-direction:column;gap:6px"></div>
           </div>
         </div>
-        <!-- Date filter -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;padding:12px 18px;background:var(--card2);border:1px solid var(--border);border-radius:12px;flex-wrap:wrap">
-          <span style="font-size:12px;color:var(--text2);font-weight:600">Filtrar período:</span>
-          <input type="date" id="cp-desde" onchange="loadCreditsPage()" style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 10px;font-family:var(--font);font-size:12px" />
-          <span style="color:var(--text2);font-size:12px">—</span>
-          <input type="date" id="cp-hasta" onchange="loadCreditsPage()" style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 10px;font-family:var(--font);font-size:12px" />
-          <button onclick="document.getElementById('cp-desde').value='';document.getElementById('cp-hasta').value='';loadCreditsPage()" style="padding:5px 12px;background:none;color:var(--text2);border:1px solid var(--border);border-radius:7px;font-family:var(--font);font-size:11px;cursor:pointer">✕ Limpiar</button>
+
+        <!-- ── PANE: Desglose de uso ── -->
+        <div id="billing-pane-usage" style="display:none">
+          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:16px">Mensajes enviados por agente en el período seleccionado.</div>
+          <div id="cp-agents" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div style="margin-top:28px">
+            <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:14px">Uso por board</div>
+            <div id="cp-boards" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
         </div>
-        <!-- Stats cards -->
-        <div id="cp-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:26px"></div>
-        <!-- Top consumers -->
-        <div style="margin-bottom:26px">
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:10px">👥 Mayor consumo por agente<span style="flex:1;height:1px;background:var(--border)"></span></div>
-          <div id="cp-agents" style="display:flex;flex-direction:column;gap:7px"></div>
+
+        <!-- ── PANE: Historial ── -->
+        <div id="billing-pane-history" style="display:none">
+          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:16px">Todas las recargas realizadas al monedero del equipo.</div>
+          <div id="cp-recharge-history" style="display:flex;flex-direction:column;gap:6px"></div>
         </div>
-        <!-- Saldo por board -->
-        <div style="margin-bottom:26px">
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:10px">🗂 Saldo y uso por board<span style="flex:1;height:1px;background:var(--border)"></span></div>
-          <div id="cp-boards" style="display:flex;flex-direction:column;gap:8px"></div>
-        </div>
-        <!-- Transaction history -->
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:10px">🧾 Historial de recargas<span style="flex:1;height:1px;background:var(--border)"></span></div>
-          <div id="cp-transactions" style="display:flex;flex-direction:column;gap:6px"></div>
-        </div>
+
       </div>
     </div>
 
@@ -2697,16 +2737,16 @@ setTimeout(function(){
     <div class="overlay" id="buy-credits-overlay" onclick="if(event.target===this)closeBuyCreditsModal()">
       <div class="modal" style="max-width:480px">
         <div class="modal-header">
-          <h2>💳 Recargar Créditos</h2>
+          <h2>+ Añadir saldo</h2>
           <button class="modal-close" onclick="closeBuyCreditsModal()">✕</button>
         </div>
         <div class="modal-body" style="padding:20px 24px 24px">
-          <p style="font-size:12px;color:var(--text2);margin:0 0 16px">Los créditos se suman al saldo global del equipo. Todos los agentes podrán usarlos al enviar mensajes.</p>
+          <p style="font-size:12px;color:var(--text2);margin:0 0 18px;line-height:1.6">Los créditos se acreditan al monedero global del equipo. Todos los agentes podrán usarlos al enviar SMS y WhatsApp.</p>
           <div style="margin-bottom:22px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:10px;font-weight:600">Selecciona un paquete</label>
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Selecciona un paquete</label>
             <div id="buy-pkg-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
           </div>
-          <button id="buy-confirm-btn" onclick="confirmBuyCredits()" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">Ir a pagar →</button>
+          <button id="buy-confirm-btn" onclick="confirmBuyCredits()" style="width:100%;padding:13px;background:#0073ea;color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">Ir a pagar →</button>
         </div>
       </div>
     </div>
@@ -10347,7 +10387,7 @@ function showCreditsPage() {
   document.getElementById('btn-new-lead').style.display = 'none';
   document.getElementById('btn-export').style.display   = 'none';
   document.getElementById('credits-page').style.display = 'flex';
-  document.getElementById('board-title').textContent    = 'Créditos';
+  document.getElementById('board-title').textContent    = 'Facturación';
   document.querySelectorAll('.board-item, .sidebar-item').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-credits');
   if (navEl) navEl.classList.add('active');
@@ -10355,17 +10395,39 @@ function showCreditsPage() {
   loadCreditsPage();
 }
 
+function switchBillingTab(tab, el) {
+  ['wallet','usage','history'].forEach(t => {
+    const p = document.getElementById(`billing-pane-${t}`);
+    if (p) p.style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.billing-tab').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+function switchBillingSubtab(tab, el) {
+  const s = document.getElementById('cp-wallet-summary');
+  const d = document.getElementById('cp-wallet-detailed');
+  if (s) s.style.display = tab === 'summary' ? 'block' : 'none';
+  if (d) d.style.display = tab === 'detailed' ? 'block' : 'none';
+  document.querySelectorAll('.billing-subtab').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
 async function loadCreditsPage() {
-  const statsEl  = document.getElementById('cp-stats');
   const agentsEl = document.getElementById('cp-agents');
   const boardsEl = document.getElementById('cp-boards');
   const txEl     = document.getElementById('cp-transactions');
-  const totalEl  = document.getElementById('cp-total-credits');
-  if (!statsEl) return;
+  const rechargeEl = document.getElementById('cp-recharge-history');
+  const dollarEl = document.getElementById('cp-dollar-balance');
+  const creditsEl = document.getElementById('cp-credits-detail');
+  const walletStatsEl = document.getElementById('cp-wallet-stats');
+  if (!txEl) return;
   const session = getSession();
   const isMaster = session && session.role === 'master';
   const loading = '<div style="color:var(--text2);font-size:12px;padding:8px 0">Cargando…</div>';
-  statsEl.innerHTML = agentsEl.innerHTML = boardsEl.innerHTML = txEl.innerHTML = loading;
+  if (agentsEl) agentsEl.innerHTML = loading;
+  if (boardsEl) boardsEl.innerHTML = loading;
+  if (txEl) txEl.innerHTML = loading;
+  if (rechargeEl) rechargeEl.innerHTML = loading;
 
   const desde = document.getElementById('cp-desde')?.value || '';
   const hasta  = document.getElementById('cp-hasta')?.value  || '';
@@ -10373,7 +10435,9 @@ async function loadCreditsPage() {
   // Global credits balance
   const { data: credRow } = await supa.from('kv_store').select('value').eq('key', 'gew_credits_global').maybeSingle();
   const totalCredits = parseInt(credRow?.value || '0');
-  if (totalEl) totalEl.textContent = totalCredits;
+  const CREDIT_TO_USD = 0.016; // 100 credits = $1.60
+  if (dollarEl) dollarEl.textContent = '$' + (totalCredits * CREDIT_TO_USD).toFixed(2);
+  if (creditsEl) creditsEl.textContent = totalCredits.toLocaleString() + ' créditos';
 
   // Transactions
   const { data: txRows } = await supa.from('kv_store').select('key,value').like('key', 'gew_msg_tx_%').order('key', { ascending: false });
@@ -10400,16 +10464,15 @@ async function loadCreditsPage() {
     boardSentMap[b.id] = { name: b.name, icon: b.icon, sms: bsms, wa: bwa };
   });
 
-  // Stats cards
-  statsEl.innerHTML = [
-    { label: 'Créditos totales', val: totalCredits, color: '#00c875',       icon: '💳' },
-    { label: 'Mensajes enviados', val: totalSent,   color: 'var(--accent)', icon: '📤' },
-    { label: 'SMS',               val: totalSMS,    color: '#fbbf24',       icon: '📱' },
-    { label: 'WhatsApp',          val: totalWA,     color: '#25d366',       icon: '💬' },
-  ].map(c => `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
-    <div style="font-size:20px;margin-bottom:6px">${c.icon}</div>
-    <div style="font-size:26px;font-weight:700;color:${c.color}">${c.val}</div>
-    <div style="font-size:10px;color:var(--text2);margin-top:4px;text-transform:uppercase;letter-spacing:.4px">${c.label}</div>
+  // Wallet stats mini row
+  if (walletStatsEl) walletStatsEl.innerHTML = [
+    { label: 'Mensajes enviados', val: totalSent,   color: 'var(--text)', icon: '📤' },
+    { label: 'SMS',               val: totalSMS,    color: '#fbbf24',     icon: '📱' },
+    { label: 'WhatsApp',          val: totalWA,     color: '#25d366',     icon: '💬' },
+    { label: 'Gastado (USD)',      val: '$' + (totalSent * CREDIT_TO_USD).toFixed(2), color: '#e2445c', icon: '💸' },
+  ].map(c => `<div style="display:flex;flex-direction:column;gap:2px">
+    <span style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">${c.icon} ${c.label}</span>
+    <span style="font-size:18px;font-weight:700;color:${c.color}">${c.val}</span>
   </div>`).join('');
 
   // Top consumers
@@ -10461,21 +10524,26 @@ async function loadCreditsPage() {
       return true;
     } catch { return false; }
   });
-  txEl.innerHTML = filteredTx.length ? filteredTx.map(r => {
+  const renderTxRow = (r) => {
     try {
       const tx = JSON.parse(r.value);
-      const tag = tx.manual
-        ? `<span style="background:rgba(251,191,36,.15);color:#fbbf24;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700">Manual</span>`
-        : `<span style="background:rgba(0,200,117,.12);color:#00c875;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700">Stripe</span>`;
-      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:12px;flex-wrap:wrap">
+      const isManual = tx.manual;
+      const dateStr = tx.date ? new Date(tx.date).toLocaleDateString('es-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+      const usd = isManual ? '—' : '$' + (tx.amount/100).toFixed(2);
+      const tag = isManual
+        ? `<span style="background:rgba(251,191,36,.12);color:#d97706;border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;flex-shrink:0">Manual</span>`
+        : `<span style="background:rgba(0,115,234,.1);color:#0073ea;border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;flex-shrink:0">Stripe</span>`;
+      return `<div class="billing-tx-row">
         ${tag}
-        <span style="color:var(--text);font-weight:600">+${tx.credits} créditos</span>
-        <span style="color:var(--text2);flex:1;min-width:80px">${esc(tx.boardName || tx.boardId)}</span>
-        ${!tx.manual ? `<span style="color:#00c875;font-weight:600">$${(tx.amount/100).toFixed(2)}</span>` : ''}
-        <span style="color:var(--text2)">${tx.date ? new Date(tx.date).toLocaleDateString('es-US',{month:'short',day:'numeric',year:'numeric'}) : ''}</span>
+        <span style="color:var(--text2);flex:1;font-size:12px">${dateStr}</span>
+        <span style="color:var(--text);font-weight:600;font-size:13px">+${tx.credits.toLocaleString()} créditos</span>
+        <span style="color:var(--text2);font-size:12px;min-width:60px;text-align:right">${usd}</span>
       </div>`;
     } catch { return ''; }
-  }).join('') : `<div style="color:var(--text2);font-size:12px;padding:8px 0">Sin recargas ${desde||hasta ? 'en el período seleccionado' : 'registradas'}.</div>`;
+  };
+  const noTx = `<div style="color:var(--text2);font-size:12px;padding:16px 0;text-align:center">Sin recargas ${desde||hasta ? 'en el período seleccionado' : 'registradas'}.</div>`;
+  txEl.innerHTML = filteredTx.length ? filteredTx.map(renderTxRow).join('') : noTx;
+  if (rechargeEl) rechargeEl.innerHTML = filteredTx.length ? filteredTx.map(renderTxRow).join('') : noTx;
 }
 
 // ── Buy credits modal ──
