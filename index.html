@@ -9207,45 +9207,66 @@ function hAddBtn(admId, label) {
   return `<div class="org-h-child"><div class="org-h-child-hline"></div><button class="org-tree-add" onclick="openUserModal(null,'${admId}')">${label}</button></div>`;
 }
 
-function buildManagerBranch(mgr, allUsers, admId, session) {
+function buildManagerBranch(mgr, allUsers, admId, session, renderedIds = new Set()) {
   const allAgents    = allUsers.filter(u => u.role === 'agent');
   const supervisors  = allUsers.filter(u => u.role === 'supervisor_agent' && u.orgManagerId === mgr.id);
   const directAgents = allAgents.filter(u => u.orgManagerId === mgr.id && !u.orgSupervisorId);
   let children = '';
 
   supervisors.forEach(sup => {
+    renderedIds.add(sup.id);
     const supAgents = allAgents.filter(u => u.orgSupervisorId === sup.id);
-    let supChildren = supAgents.map(ag => hChild(hOrgWrap(orgNode(ag, session), ''))).join('');
+    let supChildren = supAgents.map(ag => { renderedIds.add(ag.id); return hChild(hOrgWrap(orgNode(ag, session), '')); }).join('');
     supChildren += hAddBtn(admId, '＋ Agente');
     children += hChild(hOrgWrap(orgNode(sup, session), supChildren));
   });
-  directAgents.forEach(ag => { children += hChild(hOrgWrap(orgNode(ag, session), '')); });
+  directAgents.forEach(ag => { renderedIds.add(ag.id); children += hChild(hOrgWrap(orgNode(ag, session), '')); });
   children += hAddBtn(admId, '＋ Agente');
   return hOrgWrap(orgNode(mgr, session), children);
 }
 
 function buildOrgBranch(admId, allUsers, session) {
-  const masterMgrs = allUsers.filter(u => u.role === 'master_manager' && u.orgAdminId === admId);
-  const managers   = allUsers.filter(u => u.role === 'manager'        && u.orgAdminId === admId);
-  const agents     = allUsers.filter(u => u.role === 'agent'          && u.orgAdminId === admId);
+  const masterMgrs  = allUsers.filter(u => u.role === 'master_manager' && u.orgAdminId === admId);
+  const managers    = allUsers.filter(u => u.role === 'manager'        && u.orgAdminId === admId);
+  const supervisors = allUsers.filter(u => u.role === 'supervisor_agent' && u.orgAdminId === admId);
+  const agents      = allUsers.filter(u => u.role === 'agent'          && u.orgAdminId === admId);
+  const renderedIds = new Set();
   let children = '';
 
   masterMgrs.forEach(mm => {
+    renderedIds.add(mm.id);
     const mmManagers     = managers.filter(u => u.orgMasterManagerId === mm.id);
     const mmDirectAgents = agents.filter(u => u.orgMasterManagerId === mm.id && !u.orgManagerId && !u.orgSupervisorId);
-    let mmChildren = mmManagers.map(mgr => hChild(buildManagerBranch(mgr, allUsers, admId, session))).join('');
-    mmDirectAgents.forEach(ag => { mmChildren += hChild(hOrgWrap(orgNode(ag, session), '')); });
+    let mmChildren = mmManagers.map(mgr => {
+      renderedIds.add(mgr.id);
+      return hChild(buildManagerBranch(mgr, allUsers, admId, session, renderedIds));
+    }).join('');
+    mmDirectAgents.forEach(ag => { renderedIds.add(ag.id); mmChildren += hChild(hOrgWrap(orgNode(ag, session), '')); });
     mmChildren += hAddBtn(admId, '＋ Agregar');
     children += hChild(hOrgWrap(orgNode(mm, session), mmChildren));
   });
 
   managers.filter(u => !u.orgMasterManagerId).forEach(mgr => {
-    children += hChild(buildManagerBranch(mgr, allUsers, admId, session));
+    renderedIds.add(mgr.id);
+    children += hChild(buildManagerBranch(mgr, allUsers, admId, session, renderedIds));
   });
 
   agents.filter(u => !u.orgManagerId && !u.orgMasterManagerId && !u.orgSupervisorId).forEach(ag => {
+    renderedIds.add(ag.id);
     children += hChild(hOrgWrap(orgNode(ag, session), ''));
   });
+
+  // Usuarios de este admin que no aparecieron en el árbol (referencias rotas)
+  const orphans = [...supervisors, ...managers, ...agents].filter(u => !renderedIds.has(u.id));
+  if (orphans.length) {
+    let orphanHtml = orphans.map(u => hChild(hOrgWrap(orgNode(u, session), ''))).join('');
+    children += `<div class="org-h-child"><div class="org-h-child-hline"></div>
+      <div style="background:rgba(253,171,61,.08);border:1px dashed rgba(253,171,61,.3);border-radius:8px;padding:8px 12px;min-width:160px">
+        <div style="font-size:10px;color:var(--yellow);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">⚠ Sin asignar</div>
+        <div class="org-h-children">${orphanHtml}</div>
+      </div>
+    </div>`;
+  }
 
   children += hAddBtn(admId, '＋ Agregar usuario');
   return children;
