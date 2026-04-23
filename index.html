@@ -2632,7 +2632,7 @@ setTimeout(function(){
               <p>Define cuánto cobras al administrador por cada mensaje enviado. Afecta los paquetes de recarga y el saldo mostrado en Facturación.</p>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
                 <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">📱 Precio por SMS (USD)</label>
+                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">📱 Precio de venta SMS (USD)</label>
                   <div style="display:flex;align-items:center;gap:6px">
                     <span style="color:var(--text2);font-size:13px">$</span>
                     <input type="number" id="msg-price-sms" step="0.001" min="0.001" placeholder="0.016"
@@ -2640,10 +2640,26 @@ setTimeout(function(){
                   </div>
                 </div>
                 <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">💬 Precio por WhatsApp (USD)</label>
+                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">💬 Precio de venta WhatsApp (USD)</label>
                   <div style="display:flex;align-items:center;gap:6px">
                     <span style="color:var(--text2);font-size:13px">$</span>
                     <input type="number" id="msg-price-wa" step="0.001" min="0.001" placeholder="0.016"
+                      style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:12px;color:#e2445c;display:block;margin-bottom:6px;font-weight:600">📱 Mi costo SMS — Twilio (USD)</label>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="color:var(--text2);font-size:13px">$</span>
+                    <input type="number" id="msg-cost-sms" step="0.0001" min="0.0001" placeholder="0.0075"
+                      style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:12px;color:#e2445c;display:block;margin-bottom:6px;font-weight:600">💬 Mi costo WhatsApp — Twilio (USD)</label>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="color:var(--text2);font-size:13px">$</span>
+                    <input type="number" id="msg-cost-wa" step="0.0001" min="0.0001" placeholder="0.005"
                       style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
                   </div>
                 </div>
@@ -10495,11 +10511,16 @@ async function loadCreditsPage() {
   });
 
   // Wallet stats mini row
+  const revenue = totalSMS * _msgPriceSMS + totalWA * _msgPriceWA;
+  const myCost  = totalSMS * _msgCostSMS  + totalWA * _msgCostWA;
+  const profit  = revenue - myCost;
   if (walletStatsEl) walletStatsEl.innerHTML = [
-    { label: 'Mensajes enviados', val: totalSent,   color: 'var(--text)', icon: '📤' },
-    { label: 'SMS',               val: totalSMS,    color: '#fbbf24',     icon: '📱' },
-    { label: 'WhatsApp',          val: totalWA,     color: '#25d366',     icon: '💬' },
-    { label: 'Gastado (USD)',      val: '$' + (totalSMS * _msgPriceSMS + totalWA * _msgPriceWA).toFixed(2), color: '#e2445c', icon: '💸' },
+    { label: 'Mensajes enviados', val: totalSent,              color: 'var(--text)', icon: '📤' },
+    { label: 'SMS',               val: totalSMS,               color: '#fbbf24',     icon: '📱' },
+    { label: 'WhatsApp',          val: totalWA,                color: '#25d366',     icon: '💬' },
+    { label: 'Ingresos',          val: '$'+revenue.toFixed(2), color: 'var(--accent)', icon: '💰' },
+    { label: 'Mi costo (Twilio)', val: '$'+myCost.toFixed(2),  color: '#e2445c',     icon: '💸' },
+    { label: 'Ganancia neta',     val: '$'+profit.toFixed(2),  color: profit>=0 ? '#00c875' : '#e2445c', icon: '📈' },
   ].map(c => `<div style="display:flex;flex-direction:column;gap:2px">
     <span style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">${c.icon} ${c.label}</span>
     <span style="font-size:18px;font-weight:700;color:${c.color}">${c.val}</span>
@@ -10579,41 +10600,49 @@ async function loadCreditsPage() {
 // ── Messaging prices (developer-configurable) ──
 const _PKG_CREDITS = [100, 500, 1000, 5000];
 let _buyPkgSelected = null;
-let _msgPriceSMS = 0.016;   // default sell price per SMS in USD
-let _msgPriceWA  = 0.016;   // default sell price per WhatsApp in USD
+let _msgPriceSMS = 0.016;   // sell price per SMS
+let _msgPriceWA  = 0.016;   // sell price per WhatsApp
+let _msgCostSMS  = 0.0075;  // Twilio cost per SMS
+let _msgCostWA   = 0.005;   // Twilio cost per WhatsApp
 
 async function loadMsgPrices() {
   const { data: rows } = await supa.from('kv_store').select('key,value')
-    .in('key', ['gew_price_sms', 'gew_price_wa']);
+    .in('key', ['gew_price_sms','gew_price_wa','gew_cost_sms','gew_cost_wa']);
   (rows || []).forEach(r => {
     const v = parseFloat(r.value);
     if (!isNaN(v) && v > 0) {
       if (r.key === 'gew_price_sms') _msgPriceSMS = v;
       if (r.key === 'gew_price_wa')  _msgPriceWA  = v;
+      if (r.key === 'gew_cost_sms')  _msgCostSMS  = v;
+      if (r.key === 'gew_cost_wa')   _msgCostWA   = v;
     }
   });
-  // Populate inputs if visible
-  const smsInp = document.getElementById('msg-price-sms');
-  const waInp  = document.getElementById('msg-price-wa');
-  if (smsInp) smsInp.value = _msgPriceSMS;
-  if (waInp)  waInp.value  = _msgPriceWA;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  set('msg-price-sms', _msgPriceSMS);
+  set('msg-price-wa',  _msgPriceWA);
+  set('msg-cost-sms',  _msgCostSMS);
+  set('msg-cost-wa',   _msgCostWA);
   const cur = document.getElementById('msg-price-current');
-  if (cur) cur.textContent = `Actuales: SMS $${_msgPriceSMS} · WhatsApp $${_msgPriceWA}`;
+  if (cur) cur.textContent = `Venta SMS $${_msgPriceSMS} · WA $${_msgPriceWA} | Costo SMS $${_msgCostSMS} · WA $${_msgCostWA}`;
 }
 
 async function saveMsgPrices() {
-  const smsVal = parseFloat(document.getElementById('msg-price-sms').value);
-  const waVal  = parseFloat(document.getElementById('msg-price-wa').value);
-  if (isNaN(smsVal) || smsVal <= 0 || isNaN(waVal) || waVal <= 0) {
-    showToast('Precios inválidos', 'error'); return;
+  const vals = {
+    'gew_price_sms': parseFloat(document.getElementById('msg-price-sms')?.value),
+    'gew_price_wa':  parseFloat(document.getElementById('msg-price-wa')?.value),
+    'gew_cost_sms':  parseFloat(document.getElementById('msg-cost-sms')?.value),
+    'gew_cost_wa':   parseFloat(document.getElementById('msg-cost-wa')?.value),
+  };
+  if (Object.values(vals).some(v => isNaN(v) || v <= 0)) { showToast('Valores inválidos', 'error'); return; }
+  for (const [key, value] of Object.entries(vals)) {
+    await supa.from('kv_store').upsert({ key, value: String(value) });
   }
-  await supa.from('kv_store').upsert({ key: 'gew_price_sms', value: String(smsVal) });
-  await supa.from('kv_store').upsert({ key: 'gew_price_wa',  value: String(waVal) });
-  _msgPriceSMS = smsVal; _msgPriceWA = waVal;
+  _msgPriceSMS = vals['gew_price_sms']; _msgPriceWA = vals['gew_price_wa'];
+  _msgCostSMS  = vals['gew_cost_sms'];  _msgCostWA  = vals['gew_cost_wa'];
   const st = document.getElementById('msg-price-status');
   if (st) { st.textContent = '✓ Guardado'; setTimeout(() => { if(st) st.textContent=''; }, 2500); }
   const cur = document.getElementById('msg-price-current');
-  if (cur) cur.textContent = `Actuales: SMS $${smsVal} · WhatsApp $${waVal}`;
+  if (cur) cur.textContent = `Venta SMS $${_msgPriceSMS} · WA $${_msgPriceWA} | Costo SMS $${_msgCostSMS} · WA $${_msgCostWA}`;
   showToast('Precios actualizados ✓', 'success');
 }
 
