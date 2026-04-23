@@ -1015,6 +1015,10 @@
   .user-card-email { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .user-card-bottom { display: flex; align-items: center; justify-content: space-between; }
   .role-badge { padding: 3px 9px; border-radius: 10px; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+  /* ── Visibility emblems (only rendered for master) ── */
+  .emblem-dev   { display:none;margin-left:auto;align-items:center;gap:3px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:6px;padding:1px 6px;font-size:9px;font-weight:700;letter-spacing:.3px;white-space:nowrap;flex-shrink:0 }
+  .emblem-admin { display:none;margin-left:auto;align-items:center;gap:3px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a5b4fc;border-radius:6px;padding:1px 6px;font-size:9px;font-weight:700;letter-spacing:.3px;white-space:nowrap;flex-shrink:0 }
+  .show-emblems .emblem-dev, .show-emblems .emblem-admin { display:inline-flex; }
   .role-admin          { background: rgba(0,115,234,.2); color: #4da8ff; }
   .role-master_manager    { background: rgba(0,183,195,.2); color: #00b7c3; }
   .role-manager           { background: rgba(0,200,117,.2); color: #00c875; }
@@ -1922,7 +1926,7 @@ setTimeout(function(){
     <div class="sidebar-label">Boards</div>
     <div id="board-list"></div>
     <div id="sidebar-conversations" style="display:none">
-      <div class="sidebar-item" id="nav-conversations" onclick="showConversationsPage()">💬 <span>Conversaciones</span></div>
+      <div class="sidebar-item" id="nav-conversations" onclick="showConversationsPage()">💬 <span>Conversaciones</span><span class="emblem-dev">🙈 Solo yo</span></div>
     </div>
     <div id="sidebar-scripts" style="display:none">
       <div class="sidebar-item" id="nav-scripts" onclick="showScriptsPage()">📋 <span>Scripts de Llamada</span></div>
@@ -1937,11 +1941,11 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-stats" onclick="showStatsPage()">📈 <span>Estadísticas</span></div>
       <div class="sidebar-item" id="nav-calendar" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
       <div class="sidebar-item" id="nav-activity" onclick="showActivityPage()">📊 <span>Actividad</span></div>
-      <div class="sidebar-item" id="nav-credits" onclick="showCreditsPage()">🧾 <span>Facturación</span></div>
+      <div class="sidebar-item" id="nav-credits" onclick="showCreditsPage()">🧾 <span>Facturación</span><span class="emblem-admin">👥 Admin+</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
     </div>
     <div id="sidebar-master" style="display:none">
-      <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span></div>
+      <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span><span class="emblem-dev">🙈 Solo yo</span></div>
     </div>
   </nav>
 
@@ -2138,8 +2142,8 @@ setTimeout(function(){
 
           <div class="settings-nav-group" id="snav-sec-messaging" style="display:none">
             <span class="settings-nav-group-label">Mensajería</span>
-            <button class="settings-nav-item" data-tab="messaging" id="snav-messaging" onclick="switchSettingsTab('messaging')">
-              <span class="sni-icon-wrap">💬</span>Panel de mensajes
+            <button class="settings-nav-item" data-tab="messaging" id="snav-messaging" onclick="switchSettingsTab('messaging')" style="display:flex;align-items:center;gap:0">
+              <span class="sni-icon-wrap">💬</span><span style="flex:1">Panel de mensajes</span><span class="emblem-dev">🙈 Solo yo</span>
             </button>
           </div>
 
@@ -2628,7 +2632,7 @@ setTimeout(function(){
 
             <!-- Pricing config (developer only) -->
             <div class="settings-section" style="margin-bottom:24px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.05);border-radius:12px;padding:18px 20px">
-              <h3 style="margin-top:0">💰 Precios de venta por mensaje</h3>
+              <h3 style="margin-top:0;display:flex;align-items:center;gap:8px">💰 Precios de venta por mensaje <span class="emblem-dev">🙈 Solo yo</span></h3>
               <p>Define cuánto cobras al administrador por cada mensaje enviado. Afecta los paquetes de recarga y el saldo mostrado en Facturación.</p>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
                 <div>
@@ -8544,6 +8548,7 @@ function doLogout() {
   document.getElementById('sidebar-agent').style.display   = 'none';
   document.getElementById('sidebar-master').style.display  = 'none';
   document.getElementById('sidebar-scripts').style.display = 'none';
+  document.body.classList.remove('show-emblems');
   document.getElementById('board-list').style.display      = '';
   document.getElementById('scripts-page').classList.remove('visible');
   document.getElementById('btn-scripts-panel').style.display = 'none';
@@ -8748,6 +8753,7 @@ function initApp(user) {
     if (user.role === 'master') {
       document.getElementById('sidebar-master').style.display = 'block';
       document.getElementById('sidebar-conversations').style.display = 'block';
+      document.body.classList.add('show-emblems');
     }
     selectBoard('dallas');
   }
@@ -10565,10 +10571,16 @@ async function loadCreditsPage() {
     { label: 'Ganancia neta',     val: '$'+profit.toFixed(2),  color: profit>=0 ? '#00c875' : '#e2445c', icon: '📈' },
   ];
   const statsToShow = isMaster ? [...baseStats, ...masterStats] : baseStats;
-  if (walletStatsEl) walletStatsEl.innerHTML = statsToShow.map(c => `<div style="display:flex;flex-direction:column;gap:2px">
+  const masterSeparator = isMaster
+    ? `<div style="width:1px;background:var(--border);margin:0 4px;align-self:stretch"></div><div style="display:flex;flex-direction:column;justify-content:center"><span class="emblem-dev" style="margin-left:0">🙈 Solo yo</span></div>`
+    : '';
+  if (walletStatsEl) walletStatsEl.innerHTML = baseStats.map(c => `<div style="display:flex;flex-direction:column;gap:2px">
     <span style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">${c.icon} ${c.label}</span>
     <span style="font-size:18px;font-weight:700;color:${c.color}">${c.val}</span>
-  </div>`).join('');
+  </div>`).join('') + (isMaster ? masterSeparator + masterStats.map(c => `<div style="display:flex;flex-direction:column;gap:2px">
+    <span style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">${c.icon} ${c.label}</span>
+    <span style="font-size:18px;font-weight:700;color:${c.color}">${c.val}</span>
+  </div>`).join('') : '');
 
   // Top consumers
   const agentList = Object.entries(agentMap).sort((a, b) => (b[1].sms + b[1].wa) - (a[1].sms + a[1].wa));
