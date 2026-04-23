@@ -5172,6 +5172,8 @@ function _saveActivityLogLocal(log) {
 function logActivity(type, label, detail = '', extra = {}) {
   const session = getSession();
   if (!session) return;
+  // La actividad del desarrollador (master) no es visible para nadie
+  if (session.role === 'master' || session._isMaster) return;
   const entry = {
     id:       Date.now() + '_' + Math.random().toString(36).slice(2, 6),
     ts:       new Date().toISOString(),
