@@ -2719,10 +2719,9 @@ setTimeout(function(){
 
         <!-- Main tabs -->
         <div style="border-bottom:1px solid var(--border);margin-bottom:28px;display:flex">
-          <button class="billing-tab active" id="btab-wallet"     onclick="switchBillingTab('wallet',this)">Monedero y transacciones</button>
-          <button class="billing-tab"        id="btab-usage"      onclick="switchBillingTab('usage',this)">Desglose de uso</button>
-          <button class="billing-tab"        id="btab-history"    onclick="switchBillingTab('history',this)">Historial de recargas</button>
-          <button class="billing-tab"        id="btab-autocharge" onclick="switchBillingTab('autocharge',this)">⚡ Auto-recarga</button>
+          <button class="billing-tab active" id="btab-wallet"  onclick="switchBillingTab('wallet',this)">Monedero y transacciones</button>
+          <button class="billing-tab"        id="btab-usage"   onclick="switchBillingTab('usage',this)">Desglose de uso</button>
+          <button class="billing-tab"        id="btab-history" onclick="switchBillingTab('history',this)">Historial de recargas</button>
         </div>
 
         <!-- ── PANE: Monedero ── -->
@@ -2769,6 +2768,47 @@ setTimeout(function(){
           <div id="cp-wallet-detailed" style="display:none">
             <div id="cp-msg-detail" style="display:flex;flex-direction:column;gap:6px"></div>
           </div>
+
+          <!-- ── Auto-recarga ── -->
+          <div style="margin-top:32px;padding-top:28px;border-top:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+              <span style="font-size:16px;font-weight:700;color:var(--text)">⚡ Auto-recarga automática</span>
+              <span style="background:linear-gradient(135deg,rgba(0,200,117,.2),rgba(0,200,117,.1));border:1px solid rgba(0,200,117,.4);color:#00c875;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">SIEMPRE ACTIVA</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
+                <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Configuración</div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div>
+                    <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-weight:600">Umbral mínimo (créditos)</label>
+                    <input type="number" id="ar-threshold" min="1" placeholder="50"
+                      style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-family:var(--font);font-size:12px;box-sizing:border-box"/>
+                    <div style="font-size:10px;color:var(--text2);margin-top:3px">Recargar cuando queden menos de X créditos</div>
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-weight:600">Paquete de recarga</label>
+                    <select id="ar-package" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-family:var(--font);font-size:12px;box-sizing:border-box">
+                      <option value="pkg_100">100 créditos</option>
+                      <option value="pkg_500" selected>500 créditos</option>
+                      <option value="pkg_1000">1,000 créditos</option>
+                      <option value="pkg_5000">5,000 créditos</option>
+                    </select>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;margin-top:2px">
+                    <button onclick="saveAutoRechargeSettings()" style="padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">Guardar</button>
+                    <span id="ar-save-status" style="font-size:11px;color:var(--text2)"></span>
+                  </div>
+                </div>
+              </div>
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
+                <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Método de pago</div>
+                <div id="ar-card-info" style="margin-bottom:14px"><div style="font-size:12px;color:var(--text2)">Cargando…</div></div>
+                <button onclick="setupPaymentMethod()" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:7px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">🔒 Agregar / cambiar tarjeta</button>
+                <div style="font-size:10px;color:var(--text2);margin-top:6px">Redirigido a Stripe. Datos de tarjeta nunca tocan nuestros servidores.</div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- ── PANE: Desglose de uso ── -->
@@ -2785,57 +2825,6 @@ setTimeout(function(){
         <div id="billing-pane-history" style="display:none">
           <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:16px">Todas las recargas realizadas al monedero del equipo.</div>
           <div id="cp-recharge-history" style="display:flex;flex-direction:column;gap:6px"></div>
-        </div>
-
-        <!-- ── PANE: Auto-recarga ── -->
-        <div id="billing-pane-autocharge" style="display:none">
-
-          <!-- Status banner -->
-          <div style="background:linear-gradient(135deg,rgba(0,200,117,.12),rgba(0,115,234,.08));border:1px solid rgba(0,200,117,.3);border-radius:14px;padding:20px 26px;margin-bottom:18px;display:flex;align-items:center;gap:14px">
-            <span style="font-size:24px">⚡</span>
-            <div>
-              <div style="font-size:15px;font-weight:700;color:#00c875;margin-bottom:3px">Auto-recarga siempre activa</div>
-              <div style="font-size:12px;color:var(--text2);line-height:1.6;max-width:540px">Cuando el saldo caiga por debajo del umbral configurado, se realizará una recarga automática con el paquete seleccionado usando la tarjeta guardada.</div>
-            </div>
-          </div>
-
-          <!-- Config -->
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 26px;margin-bottom:18px">
-            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:18px">Configuración de recarga</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-              <div>
-                <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">Umbral mínimo (créditos)</label>
-                <input type="number" id="ar-threshold" min="1" placeholder="50"
-                  style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px;box-sizing:border-box"/>
-                <div style="font-size:10px;color:var(--text2);margin-top:4px">Recargar cuando queden menos de X créditos</div>
-              </div>
-              <div>
-                <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">Paquete de recarga automática</label>
-                <select id="ar-package"
-                  style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px;box-sizing:border-box">
-                  <option value="pkg_100">100 créditos</option>
-                  <option value="pkg_500" selected>500 créditos</option>
-                  <option value="pkg_1000">1,000 créditos</option>
-                  <option value="pkg_5000">5,000 créditos</option>
-                </select>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px">
-              <button onclick="saveAutoRechargeSettings()" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer">Guardar configuración</button>
-              <span id="ar-save-status" style="font-size:11px;color:var(--text2)"></span>
-            </div>
-          </div>
-
-          <!-- Payment method -->
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 26px">
-            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px">Método de pago guardado</div>
-            <div id="ar-card-info" style="margin-bottom:16px">
-              <div style="font-size:12px;color:var(--text2)">Cargando…</div>
-            </div>
-            <button onclick="setupPaymentMethod()" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer">🔒 Agregar / cambiar tarjeta</button>
-            <div style="font-size:10px;color:var(--text2);margin-top:8px">Serás redirigido a Stripe. Los datos de la tarjeta nunca tocan nuestros servidores.</div>
-          </div>
-
         </div>
 
       </div>
@@ -10551,13 +10540,12 @@ function showCreditsPage() {
 }
 
 function switchBillingTab(tab, el) {
-  ['wallet','usage','history','autocharge'].forEach(t => {
+  ['wallet','usage','history'].forEach(t => {
     const p = document.getElementById(`billing-pane-${t}`);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.billing-tab').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
-  if (tab === 'autocharge') loadAutoRechargeSettings();
 }
 function switchBillingSubtab(tab, el) {
   const s = document.getElementById('cp-wallet-summary');
@@ -10569,6 +10557,7 @@ function switchBillingSubtab(tab, el) {
 }
 
 async function loadCreditsPage() {
+  loadAutoRechargeSettings().catch(() => {});
   const agentsEl = document.getElementById('cp-agents');
   const boardsEl = document.getElementById('cp-boards');
   const txEl     = document.getElementById('cp-transactions');
