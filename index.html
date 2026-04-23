@@ -9699,12 +9699,20 @@ function orgNode(u, session) {
   const dropAttrs    = canEdit && u.role !== 'master' && u.role !== 'agent' ? `ondragover="orgDragOver(event,'${u.id}')" ondragleave="orgDragLeave(event)" ondrop="orgDrop(event,'${u.id}')"` : '';
   const inactiveCls  = u.inactive ? ' org-node-inactive' : '';
   const inactiveBadge = u.inactive ? `<span class="badge-inactive">INACTIVO</span>` : '';
+  const isMasterSelf = session.role === 'master' || session._isMaster;
+  const inactiveInfo = u.inactive && isMasterSelf && u._inactivatedBy
+    ? (() => {
+        const d = u._inactivatedAt ? new Date(u._inactivatedAt).toLocaleDateString('es-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+        return `<div style="font-size:9px;color:#f59e0b;margin-top:2px">⏸ por ${esc(u._inactivatedBy)}${d?' · '+d:''}</div>`;
+      })()
+    : '';
   return `<div class="${nodeClass}${inactiveCls}" data-uid="${u.id}" ${dragAttrs} ${dropAttrs}>
     <div style="width:32px;height:32px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
     <div class="org-node-info">
       <div class="org-node-name">${esc(u.name)}${inactiveBadge}</div>
       <div class="org-node-email">${esc(u.email)}</div>
       <span class="role-badge ${roleCls}" style="margin-top:3px;display:inline-block">${roleLabel}</span>
+      ${inactiveInfo}
     </div>
     <div class="org-node-actions">${viewAsBtn}${editBtn}${inactiveBtn}${delBtn}</div>
   </div>`;
@@ -10594,6 +10602,13 @@ async function toggleUserInactive(userId) {
   const action = goingInactive ? 'marcar como inactivo' : 'reactivar';
   if (!confirm(`¿Deseas ${action} a ${u.name}?`)) return;
   users[idx].inactive = goingInactive;
+  if (goingInactive) {
+    users[idx]._inactivatedBy   = session.name || session.email;
+    users[idx]._inactivatedAt   = new Date().toISOString();
+  } else {
+    delete users[idx]._inactivatedBy;
+    delete users[idx]._inactivatedAt;
+  }
   await saveUsers(users);
   logActivity(goingInactive ? 'user_deactivated' : 'user_reactivated',
     `Usuario ${goingInactive ? 'inactivado' : 'reactivado'}: ${u.name}`, `Email: ${u.email}`);
