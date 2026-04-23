@@ -2716,6 +2716,32 @@ setTimeout(function(){
       </div>
     </div>
 
+    <!-- CHAT POPUP -->
+    <div id="chat-popup" style="display:none;position:fixed;bottom:0;right:24px;width:360px;height:520px;background:var(--card);border:1px solid var(--border);border-bottom:none;border-radius:14px 14px 0 0;box-shadow:0 -4px 32px rgba(0,0,0,.35);z-index:60000;display:none;flex-direction:column">
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer" onclick="toggleChatPopup()">
+        <div id="cp-avatar" style="width:34px;height:34px;border-radius:50%;background:rgba(0,115,234,.18);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div id="cp-name" style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          <div id="cp-phone" style="font-size:11px;color:var(--text2)"></div>
+        </div>
+        <button onclick="event.stopPropagation();closeChatPopup()" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1">✕</button>
+      </div>
+      <div id="cp-msgs" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px"></div>
+      <div style="padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0">
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button id="cp-ch-sms" onclick="setCpChannel('sms')" class="conv-ch-btn active" style="font-size:11px;padding:4px 10px">📱 SMS</button>
+          <button id="cp-ch-wa" onclick="setCpChannel('whatsapp')" class="conv-ch-btn" style="font-size:11px;padding:4px 10px">💬 WhatsApp</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <textarea id="cp-input" rows="2" placeholder="Escribe un mensaje…"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatPopupMsg()}"
+            style="flex:1;resize:none;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:var(--font);font-size:12px;line-height:1.5"></textarea>
+          <button onclick="sendChatPopupMsg()" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;height:38px;flex-shrink:0">➤</button>
+        </div>
+        <div id="cp-status" style="font-size:10px;color:var(--text2);margin-top:5px;height:12px"></div>
+      </div>
+    </div>
+
     <!-- TRASH PAGE -->
     <div id="trash-page">
       <div class="trash-header">
@@ -4231,8 +4257,8 @@ function renderRows(board, leads) {
       if (c.key === 'nombre') {
         const sess2 = getSession();
         const masterBtns = (sess2 && sess2.role === 'master')
-          ? `<button onclick="event.stopPropagation()" title="Favorito" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:2px;flex-shrink:0;line-height:1">✦</button><button onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">≡</button>`
-          : '';
+          ? `<button onclick="event.stopPropagation()" title="Favorito" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:2px;flex-shrink:0;line-height:1">✦</button><button onclick="event.stopPropagation();openNotesPanel('${l.id}')" title="Notas" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">≡</button><button onclick="event.stopPropagation();openChatPopup('${l.id}')" title="Chat" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">💬</button>`
+          : `<button onclick="event.stopPropagation();openChatPopup('${l.id}')" title="Chat" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;line-height:1">💬</button>`;
         return `<td class="td-name"><div style="display:flex;align-items:center;gap:8px"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(l.nombre||'')}">${esc(l.nombre||'—')}</span>${masterBtns}</div></td>`;
       }
       if (c.key === 'lead') {
@@ -9849,6 +9875,114 @@ async function sendLeadMessage() {
     status.style.color = '#e2445c';
   }
   btn.disabled = false;
+}
+
+// ════════════════════════════════════════════
+//  CHAT POPUP
+// ════════════════════════════════════════════
+let _cpLeadId = null, _cpBoardId = null, _cpChannel = 'sms', _cpOpen = false;
+
+function openChatPopup(leadId) {
+  const boardId = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
+  if (!boardId) return;
+  const lead = loadLeads(boardId).find(l => l.id === leadId);
+  if (!lead) return;
+  _cpLeadId = leadId;
+  _cpBoardId = boardId;
+
+  const initials = (lead.nombre||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const bg = strToTableColor(lead.nombre) || '#0073ea';
+  const av = document.getElementById('cp-avatar');
+  av.textContent = initials;
+  av.style.background = bg + '25';
+  av.style.color = bg;
+  document.getElementById('cp-name').textContent = lead.nombre || '—';
+  document.getElementById('cp-phone').textContent = lead.telefono || '';
+
+  const popup = document.getElementById('chat-popup');
+  popup.style.display = 'flex';
+  _cpOpen = true;
+  renderChatPopupMsgs(lead);
+}
+
+function closeChatPopup() {
+  document.getElementById('chat-popup').style.display = 'none';
+  _cpOpen = false;
+}
+
+function toggleChatPopup() {
+  const msgs = document.getElementById('cp-msgs');
+  const input = document.getElementById('cp-input').parentElement;
+  const chBtns = document.getElementById('cp-ch-sms').parentElement;
+  const collapsed = msgs.style.display === 'none';
+  msgs.style.display = collapsed ? 'flex' : 'none';
+  input.style.display = collapsed ? 'flex' : 'none';
+  chBtns.style.display = collapsed ? 'flex' : 'none';
+  document.getElementById('chat-popup').style.height = collapsed ? '520px' : '48px';
+}
+
+function setCpChannel(ch) {
+  _cpChannel = ch;
+  document.getElementById('cp-ch-sms').classList.toggle('active', ch === 'sms');
+  document.getElementById('cp-ch-wa').classList.toggle('active', ch === 'whatsapp');
+}
+
+function renderChatPopupMsgs(lead) {
+  const msgs = JSON.parse(lead._messages || '[]');
+  const el = document.getElementById('cp-msgs');
+  if (!msgs.length) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text2);font-size:12px;margin:auto">Sin mensajes aún.</div>`;
+    return;
+  }
+  el.innerHTML = msgs.map(m => {
+    const isOut = m.direction !== 'inbound';
+    const time = m.date ? new Date(m.date).toLocaleTimeString('es-US',{hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div style="display:flex;flex-direction:column;${isOut?'align-items:flex-end':'align-items:flex-start'}">
+      <div class="${isOut?'conv-msg-out':'conv-msg-in'}" style="font-size:12px;padding:8px 12px">${esc(m.body||'')}</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:2px">${time}${m.error?` ⚠️`:` ✓`}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendChatPopupMsg() {
+  if (!_cpLeadId || !_cpBoardId) return;
+  const input = document.getElementById('cp-input');
+  const body = input.value.trim();
+  const statusEl = document.getElementById('cp-status');
+  if (!body) return;
+
+  const leads = loadLeads(_cpBoardId);
+  const lead = leads.find(l => l.id === _cpLeadId);
+  if (!lead?.telefono) { statusEl.textContent = '⚠️ Sin número de teléfono'; return; }
+
+  statusEl.textContent = 'Enviando…';
+  input.disabled = true;
+
+  try {
+    const res = await fetch(`${SUPA_URL}/functions/v1/send-message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPA_KEY}` },
+      body: JSON.stringify({ to: lead.telefono, body, channel: _cpChannel, boardId: _cpBoardId }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const session = getSession();
+    const msgs = JSON.parse(lead._messages || '[]');
+    msgs.push({ to: lead.telefono, body, channel: _cpChannel, date: new Date().toISOString(), author: session?.name || '?', sid: data.sid || '', error: '', direction: 'outbound' });
+    lead._messages = JSON.stringify(msgs);
+    saveLeads(_cpBoardId, leads);
+
+    input.value = '';
+    statusEl.textContent = '✓ Enviado';
+    setTimeout(() => statusEl.textContent = '', 2000);
+    renderChatPopupMsgs(lead);
+  } catch(e) {
+    statusEl.textContent = '⚠️ ' + e.message;
+  }
+  input.disabled = false;
+  input.focus();
 }
 
 // ════════════════════════════════════════════
