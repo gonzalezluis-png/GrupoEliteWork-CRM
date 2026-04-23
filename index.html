@@ -9894,11 +9894,23 @@ async function deleteUser(userId) {
         ✓ Este usuario no tiene leads asignados actualmente.
       </div>`;
 
+  // Primera confirmación de clave
   requirePasswordForUserAction(
-    '🗑 Eliminar Usuario',
-    `${leadWarning}Estás a punto de eliminar a <strong>${esc(u.name)}</strong> (${esc(u.email)}).<br><span style="color:var(--red);font-size:12px">Esta acción <strong>no se puede deshacer</strong>.</span>`,
-    'Eliminar definitivamente',
+    '🗑 Eliminar Usuario — Confirmación 1 de 2',
+    `${leadWarning}Estás a punto de eliminar a <strong>${esc(u.name)}</strong> (${esc(u.email)}).<br><span style="color:var(--yellow);font-size:12px">Confirma tu contraseña para continuar.</span>`,
+    'Continuar →',
     async () => {
+      // Segunda confirmación de clave
+      requirePasswordForUserAction(
+        '⛔ Confirma nuevamente — Paso 2 de 2',
+        `<div style="background:rgba(226,68,92,.1);border:1px solid rgba(226,68,92,.3);border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:var(--red);line-height:1.7">
+          <strong>ÚLTIMA ADVERTENCIA</strong><br>
+          Eliminarás a <strong>${esc(u.name)}</strong> de forma <strong>permanente</strong>.<br>
+          Esta acción <strong>no se puede deshacer</strong>.
+        </div>
+        Ingresa tu contraseña por segunda vez para confirmar.`,
+        '⛔ Eliminar definitivamente',
+        async () => {
       // Soft-delete all leads belonging to this user across all boards
       if (leadCount > 0) {
         const trash = loadDeletedLeads();
@@ -9930,8 +9942,10 @@ async function deleteUser(userId) {
       logActivity('user_deleted', `Usuario eliminado: ${u.name}`, `Email: ${u.email} · Rol: ${u.role}${leadCount > 0 ? ` · ${leadCount} leads movidos a Eliminados` : ''}`);
       renderUsersGrid();
       showToast(`Usuario eliminado${leadCount > 0 ? ` · ${leadCount} lead${leadCount !== 1 ? 's' : ''} movidos a Eliminados` : ''}`, 'error');
-    }
-  );
+        } // fin acción segunda confirmación
+      ); // fin requirePasswordForUserAction segunda
+    } // fin acción primera confirmación
+  ); // fin requirePasswordForUserAction primera
 }
 
 async function toggleUserInactive(userId) {
