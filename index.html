@@ -2291,6 +2291,24 @@ setTimeout(function(){
               <div class="st-card-body"><div id="board-editor-list"></div></div>
             </div>
 
+            <!-- Repair tool (master only) -->
+            <div class="st-card" id="repair-card" style="display:none">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-icon" style="background:rgba(239,68,68,.12)">🔧</div>
+                  <div class="st-card-text">
+                    <div class="st-card-title">Reparar Asignaciones de Leads</div>
+                    <div class="st-card-desc">Detecta leads con agentes que ya no existen o que cambiaron de nombre y permite reasignarlos.</div>
+                  </div>
+                </div>
+                <button onclick="runRepairScan()" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">🔍 Escanear</button>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body">
+                <div id="repair-results" style="color:var(--text2);font-size:13px">Presiona Escanear para buscar leads huérfanos.</div>
+              </div>
+            </div>
+
             <!-- Column editor -->
             <div class="st-card">
               <div class="st-card-header">
@@ -7864,6 +7882,13 @@ function showSettingsPage() {
     boardEditorCard.style.display = isMaster ? '' : 'none';
     if (isMaster) renderBoardEditor();
   }
+
+  // Repair tool — master only
+  const repairCard = document.getElementById('repair-card');
+  if (repairCard) {
+    const isMaster = session && session.role === 'master';
+    repairCard.style.display = isMaster ? '' : 'none';
+  }
 }
 
 function _getLineUsers(session) {
@@ -8144,6 +8169,118 @@ function refreshBoards() {
 }
 
 // ── Board Editor UI ──
+// ── Repair Tool ────────────────────────────────────────────────────────────
+function runRepairScan() {
+  const el = document.getElementById('repair-results');
+  if (!el) return;
+  el.innerHTML = '<span style="color:var(--text2)">Escaneando...</span>';
+
+  const allUsers = loadUsers();
+  const validNames = new Set(allUsers.map(u => u.name));
+
+  // Scan all boards
+  const orphanMap = {}; // orphanName -> { count, boards: Set }
+  for (const board of BOARDS) {
+    const bLeads = loadLeads(board.id);
+    for (const l of bLeads) {
+      if (l.asignado && !validNames.has(l.asignado)) {
+        if (!orphanMap[l.asignado]) orphanMap[l.asignado] = { count: 0, boardSet: new Set() };
+        orphanMap[l.asignado].count++;
+        orphanMap[l.asignado].boardSet.add(board.nombre || board.id);
+      }
+    }
+  }
+  // Also scan trash
+  const trash = loadDeletedLeads();
+  for (const l of trash) {
+    if (l.asignado && !validNames.has(l.asignado)) {
+      if (!orphanMap[l.asignado]) orphanMap[l.asignado] = { count: 0, boardSet: new Set() };
+      orphanMap[l.asignado].count++;
+      orphanMap[l.asignado].boardSet.add('🗑 Eliminados');
+    }
+  }
+
+  const orphans = Object.entries(orphanMap);
+  if (!orphans.length) {
+    el.innerHTML = '<span style="color:#22c55e;font-weight:600">✅ Todo en orden. No se encontraron leads huérfanos.</span>';
+    return;
+  }
+
+  const agentOptions = allUsers
+    .filter(u => u.role === 'agent' || u.role === 'supervisor_agent' || u.role === 'manager')
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(u => `<option value="${esc(u.name)}">${esc(u.name)} (${u.role})</option>`)
+    .join('');
+
+  const rows = orphans.map(([name, info]) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+      <div style="flex:1;min-width:150px">
+        <div style="font-weight:600;color:var(--text)">${esc(name)}</div>
+        <div style="font-size:11px;color:var(--text2)">${info.count} lead(s) · ${[...info.boardSet].join(', ')}</div>
+      </div>
+      <select id="repair-sel-${encodeURIComponent(name)}" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px">
+        <option value="">— Seleccionar agente —</option>
+        ${agentOptions}
+      </select>
+      <button onclick="applyRepair('${esc(name)}')" style="background:rgba(0,115,234,.15);color:var(--accent);border:1px solid rgba(0,115,234,.3);padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Reasignar</button>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div style="margin-bottom:10px;color:#f59e0b;font-weight:600">⚠ Se encontraron ${orphans.length} nombre(s) sin usuario activo:</div>
+    ${rows}
+    <button onclick="applyRepairAll()" style="margin-top:14px;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🔧 Reasignar todos los seleccionados</button>
+  `;
+}
+
+async function applyRepair(orphanName) {
+  const key = encodeURIComponent(orphanName);
+  const sel = document.getElementById('repair-sel-' + key);
+  if (!sel || !sel.value) { showToast('Selecciona un agente primero'); return; }
+  const newName = sel.value;
+  let total = 0;
+
+  for (const board of BOARDS) {
+    const bLeads = loadLeads(board.id);
+    let changed = false;
+    bLeads.forEach(l => { if (l.asignado === orphanName) { l.asignado = newName; changed = true; total++; } });
+    if (changed) await saveLeads(board.id, bLeads);
+  }
+  const trash = loadDeletedLeads();
+  let trashChanged = false;
+  trash.forEach(l => { if (l.asignado === orphanName) { l.asignado = newName; trashChanged = true; total++; } });
+  if (trashChanged) await saveDeletedLeads(trash);
+
+  showToast(`✅ ${total} lead(s) reasignados a ${newName}`);
+  runRepairScan();
+}
+
+async function applyRepairAll() {
+  const el = document.getElementById('repair-results');
+  if (!el) return;
+  const sels = el.querySelectorAll('select[id^="repair-sel-"]');
+  let applied = 0;
+  for (const sel of sels) {
+    if (!sel.value) continue;
+    const orphanName = decodeURIComponent(sel.id.replace('repair-sel-', ''));
+    let total = 0;
+    for (const board of BOARDS) {
+      const bLeads = loadLeads(board.id);
+      let changed = false;
+      bLeads.forEach(l => { if (l.asignado === orphanName) { l.asignado = sel.value; changed = true; total++; } });
+      if (changed) await saveLeads(board.id, bLeads);
+    }
+    const trash = loadDeletedLeads();
+    let trashChanged = false;
+    trash.forEach(l => { if (l.asignado === orphanName) { l.asignado = sel.value; trashChanged = true; total++; } });
+    if (trashChanged) await saveDeletedLeads(trash);
+    applied += total;
+  }
+  showToast(`✅ ${applied} lead(s) reasignados`);
+  runRepairScan();
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function renderBoardEditor() {
   const el = document.getElementById('board-editor-list');
   if (!el) return;
