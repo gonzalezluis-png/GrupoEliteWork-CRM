@@ -6801,6 +6801,10 @@ function showImportPanel() {
             </select>
           </div>
           <div class="imp-dest-field">
+            <label>Ubicación para todos</label>
+            <input type="text" id="global-ubicacion" placeholder="Ej: Houston, TX" oninput="applyGlobalUbicacion()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-family:var(--font);font-size:12px;outline:none;width:140px"/>
+          </div>
+          <div class="imp-dest-field">
             <label>Tipo de lead para todos</label>
             <select id="global-lead-type" onchange="applyGlobalLeadType()">${leadTypeOpts}</select>
           </div>
@@ -6871,7 +6875,7 @@ let pastedRows = []; // { checked, dest, cells[], extra:{}, aiAddress:null, useA
 let pastedHeaders = [];
 
 // Fixed columns always shown in the edit table
-const IMP_FIXED_FIELDS = ['nombre','hijos','telefono','email','direccion'];
+const IMP_FIXED_FIELDS = ['nombre','hijos','telefono','email','direccion','ubicacion'];
 
 function getRowField(row, field) {
   if (row.extra && field in row.extra) return row.extra[field];
@@ -7091,6 +7095,19 @@ function applyGlobalDest() {
   if (!dest) return;
   pastedRows.forEach(r => r.dest = dest);
   document.querySelectorAll('#imp-edit-table tbody td.imp-dest-td select').forEach(s => s.value = dest);
+  // Auto-suggest board name as ubicacion if ubicacion field is empty
+  const board = getBoard(dest);
+  const ubInput = document.getElementById('global-ubicacion');
+  if (board && ubInput && !ubInput.value) {
+    ubInput.value = board.name;
+    applyGlobalUbicacion();
+  }
+}
+
+function applyGlobalUbicacion() {
+  const ub = document.getElementById('global-ubicacion')?.value || '';
+  pastedRows.forEach((_, ri) => setRowField(ri, 'ubicacion', ub));
+  renderImportEditTable();
 }
 
 function applyGlobalLeadType() {
@@ -7139,8 +7156,10 @@ function applyGlobalPrice() {
 function clearPaste() {
   pastedRows = []; pastedHeaders = [];
   window._pastedMappings = [];
-  window._globalLeadType = '';
+  window._globalLeadType  = '';
   window._globalLeadPrice = 0;
+  const ubInp = document.getElementById('global-ubicacion');
+  if (ubInp) ubInp.value = '';
   goImportStep(1);
   const area = document.getElementById('paste-area');
   if (area) { area.value = ''; area.classList.remove('has-data'); }
