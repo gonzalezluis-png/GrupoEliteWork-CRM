@@ -5349,12 +5349,13 @@ function getColumns(board) {
 }
 
 function loadAgentLeads(agentName, agentId) {
+  if (!agentName && !agentId) return [];
   const all = [];
   const norm = (agentName || '').trim().toLowerCase();
   BOARDS.forEach(b => loadLeads(b.id).forEach(l => {
     const match = (agentId && l.asignadoId)
       ? l.asignadoId === agentId
-      : (l.asignado || '').trim().toLowerCase() === norm;
+      : (norm && (l.asignado || '').trim().toLowerCase() === norm);
     if (match) all.push({ ...l, _boardId: b.id });
   }));
   return all;
@@ -5747,6 +5748,9 @@ function saveLead() {
   const leads  = loadLeads(saveBoardId);
   const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
 
+  const asignadoName = normalizeAsignado(get('f_asignado'));
+  const asignadoUser = asignadoName ? loadUsers().find(u => u.name === asignadoName) : null;
+
   const data = {
     nombre:      nombre,
     lead:        get('f_lead'),
@@ -5755,11 +5759,13 @@ function saveLead() {
     hijos:       get('f_hijos'),
     direccion:   get('f_direccion'),
     ubicacion:   get('f_ubicacion'),
-    asignado:    normalizeAsignado(get('f_asignado')),
+    asignado:    asignadoName,
+    asignadoId:  asignadoUser ? asignadoUser.id : undefined,
     estado:      get('f_estado'),
     resultado:   get('f_resultado'),
     notas:       get('f_notas'),
   };
+  if (!data.asignadoId) delete data.asignadoId;
 
   let oldLead = null;
   if (editingLeadId) {
@@ -5770,11 +5776,13 @@ function saveLead() {
     if (oldLead.asignado && oldLead.asignado !== newAgent) {
       checkReassign(oldLead, newAgent, (mode) => {
         const merged = { ...oldLead, ...data };
+        if (!data.asignadoId) delete merged.asignadoId;
         if (mode === 'original') {
           const keep = ['id','nombre','lead','email','telefono','hijos','direccion','ubicacion','creacion','_testLead'];
           Object.keys(merged).forEach(k => { if (!keep.includes(k)) delete merged[k]; });
           merged.notas = ''; merged.resultado = ''; merged.estado = '';
           merged.asignado = newAgent;
+          if (data.asignadoId) merged.asignadoId = data.asignadoId;
         }
         leads[idx] = merged;
         saveLeads(saveBoardId, leads);
@@ -5784,7 +5792,9 @@ function saveLead() {
       });
       return;
     }
-    leads[idx] = { ...oldLead, ...data };
+    const merged = { ...oldLead, ...data };
+    if (!data.asignadoId) delete merged.asignadoId;
+    leads[idx] = merged;
   } else {
     data.id      = uid();
     data.creacion = today();
@@ -5862,7 +5872,7 @@ function softDeleteLead(leadId, boardId) {
   const leads   = loadLeads(boardId);
   const lead    = leads.find(l => l.id === leadId);
   if (!lead) return;
-  _deletedLeadIds.add(leadId); // prevent resurrection during merge
+  _deletedLeadIds.add(leadId);
   const board = getBoard(boardId);
   const trash = loadDeletedLeads();
   trash.unshift({
@@ -8983,11 +8993,18 @@ function applyBulkEdit() {
       : []
   );
 
+  const _bulkAsignadoUser = asignado ? loadUsers().find(u => u.name === asignado) : null;
+  const _bulkAsignadoId   = _bulkAsignadoUser ? _bulkAsignadoUser.id : null;
+
   const doApply = (mode) => {
     let changed = 0;
     leads.forEach(l => {
       if (!snapshotIds.has(l.id)) return;
-      if (asignado)  applyReassignMode(l, asignado, reassignSet.has(l.id) ? mode : 'full');
+      if (asignado) {
+        applyReassignMode(l, asignado, reassignSet.has(l.id) ? mode : 'full');
+        if (_bulkAsignadoId) l.asignadoId = _bulkAsignadoId;
+        else delete l.asignadoId;
+      }
       if (ubicacion) l.ubicacion = ubicacion;
       if (resultado) l.resultado = resultado;
       if (leadType)  l.lead      = leadType;
@@ -9117,7 +9134,8 @@ function pickAgent(name, userId) {
   const leads = loadLeads(boardId);
   const lead  = leads.find(l => l.id === leadId);
   if (!lead) return;
-  const prevAsignado = lead.asignado || '';
+  const prevAsignado   = lead.asignado   || '';
+  const prevAsignadoId = lead.asignadoId || null;
   const newAgent = normalizeAsignado(name);
   checkReassign(lead, newAgent, (mode) => {
     applyReassignMode(lead, newAgent, mode);
@@ -9125,7 +9143,7 @@ function pickAgent(name, userId) {
     else delete lead.asignadoId;
     saveLeads(boardId, leads);
     renderTableKeepSelection();
-    showAssignUndoBar(leadId, boardId, prevAsignado, newAgent);
+    showAssignUndoBar(leadId, boardId, prevAsignado, prevAsignadoId, newAgent);
   });
 }
 
@@ -9213,8 +9231,8 @@ function cancelReassign() {
 let _assignUndoTimer = null;
 let _assignUndoData  = null;
 
-function showAssignUndoBar(leadId, boardId, prevAsignado, newAsignado) {
-  _assignUndoData = { leadId, boardId, prevAsignado };
+function showAssignUndoBar(leadId, boardId, prevAsignado, prevAsignadoId, newAsignado) {
+  _assignUndoData = { leadId, boardId, prevAsignado, prevAsignadoId };
   if (_assignUndoTimer) clearTimeout(_assignUndoTimer);
   const bar  = document.getElementById('assign-undo-bar');
   const text = document.getElementById('assign-undo-text');
@@ -9238,7 +9256,7 @@ function showAssignUndoBar(leadId, boardId, prevAsignado, newAsignado) {
 
 function undoLastAssign() {
   if (!_assignUndoData) return;
-  const { leadId, boardId, prevAsignado } = _assignUndoData;
+  const { leadId, boardId, prevAsignado, prevAsignadoId } = _assignUndoData;
   if (_assignUndoTimer) clearTimeout(_assignUndoTimer);
   document.getElementById('assign-undo-bar').classList.remove('visible');
   _assignUndoData = null;
@@ -9246,6 +9264,8 @@ function undoLastAssign() {
   const lead  = leads.find(l => l.id === leadId);
   if (!lead) return;
   lead.asignado = prevAsignado || '';
+  if (prevAsignadoId) lead.asignadoId = prevAsignadoId;
+  else delete lead.asignadoId;
   saveLeads(boardId, leads);
   renderTableKeepSelection();
   showToast('Asignación deshecha ✓', 'success');
