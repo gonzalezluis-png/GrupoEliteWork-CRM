@@ -5154,8 +5154,9 @@ function renderSidebar() {
   const sideLineNames = (isManager || isMasterManager || isSupervisorAgent || isCaller)
     ? new Set(_getLineUsers(session).map(u => u.name))
     : null;
+  const _sessNameNorm = (session?.name || '').trim().toLowerCase();
   const visibleBoards = isAgent
-    ? BOARDS.filter(b => loadLeads(b.id).some(l => l.asignado === session.name))
+    ? BOARDS.filter(b => loadLeads(b.id).some(l => (l.asignado || '').trim().toLowerCase() === _sessNameNorm))
     : sideLineNames
       ? BOARDS.filter(b => loadLeads(b.id).some(l => sideLineNames.has(l.asignado)))
       : BOARDS;
@@ -5296,8 +5297,9 @@ function getColumns(board) {
 
 function loadAgentLeads(agentName) {
   const all = [];
+  const norm = (agentName || '').trim().toLowerCase();
   BOARDS.forEach(b => loadLeads(b.id).forEach(l => {
-    if (l.asignado === agentName) all.push({ ...l, _boardId: b.id });
+    if ((l.asignado || '').trim().toLowerCase() === norm) all.push({ ...l, _boardId: b.id });
   }));
   return all;
 }
