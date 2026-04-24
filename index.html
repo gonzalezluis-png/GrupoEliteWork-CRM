@@ -7640,9 +7640,18 @@ function wrpRemoveDiscount(ws, id) {
 }
 
 function wrpEditDiscount(ws, id, field, val) {
-  const disc = window._wrpOverrides[ws]?.discounts?.find(d => d.id === id);
+  if (!window._wrpOverrides[ws]?.discounts) return;
+  const parsed = field === 'desc' ? val : (parseFloat(val) || 0);
+  // Auto-remove row when quantity drops to 0 or below
+  if (field === 'leads' && parsed <= 0) {
+    window._wrpOverrides[ws].discounts = window._wrpOverrides[ws].discounts.filter(d => d.id !== id);
+    renderWrpDiscounts(ws);
+    wrpScheduleSave();
+    return;
+  }
+  const disc = window._wrpOverrides[ws].discounts.find(d => d.id === id);
   if (!disc) return;
-  disc[field] = field === 'desc' ? val : (parseFloat(val)||0);
+  disc[field] = parsed;
   wrpUpdateInvoiceTotals(ws);
   wrpScheduleSave();
 }
@@ -7880,22 +7889,6 @@ async function loadWeeklyReportPage() {
           </div>
         </div>
 
-        <!-- Pills -->
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #e2e8f0">
-          <div style="padding:16px 24px;border-right:1px solid #e2e8f0">
-            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Boards</div>
-            <div style="font-size:22px;font-weight:800;color:#0f172a;margin-top:4px">${boards.length}</div>
-          </div>
-          <div style="padding:16px 24px;border-right:1px solid #e2e8f0">
-            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Total Leads</div>
-            <div style="font-size:22px;font-weight:800;color:#1d4ed8;margin-top:4px">${grandTotal}</div>
-          </div>
-          <div style="padding:16px 24px">
-            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Total Neto</div>
-            <div style="font-size:22px;font-weight:800;color:#059669;margin-top:4px" id="wrp-pill-${ws}">${total>0?fmtMoney(total):'—'}</div>
-          </div>
-        </div>
-
         <!-- Table -->
         <table style="width:100%;border-collapse:collapse">
           <thead>
@@ -7931,6 +7924,22 @@ async function loadWeeklyReportPage() {
           </table>
         </div>
 
+        <!-- Stats row (bottom) -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:2px solid #e2e8f0;background:#f8faff">
+          <div style="padding:14px 24px;border-right:1px solid #e2e8f0">
+            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Boards</div>
+            <div style="font-size:20px;font-weight:800;color:#0f172a;margin-top:2px">${boards.length}</div>
+          </div>
+          <div style="padding:14px 24px;border-right:1px solid #e2e8f0">
+            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Total Leads</div>
+            <div style="font-size:20px;font-weight:800;color:#1d4ed8;margin-top:2px">${grandTotal}</div>
+          </div>
+          <div style="padding:14px 24px">
+            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Total Neto</div>
+            <div style="font-size:20px;font-weight:800;color:#059669;margin-top:2px" id="wrp-pill-${ws}">${total>0?fmtMoney(total):'—'}</div>
+          </div>
+        </div>
+
         <!-- Card footer -->
         <div style="padding:12px 24px;background:#f1f5f9;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
           <span style="font-size:10px;color:#94a3b8">Grupo Elite Work · CRM Development Services</span>
@@ -7939,22 +7948,7 @@ async function loadWeeklyReportPage() {
       </div>`;
     }).join('');
 
-    const summaryBanner = `<div style="background:linear-gradient(135deg,#1d4ed8,#1e3a5f);border-radius:14px;padding:20px 28px;margin-bottom:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:0;box-shadow:0 4px 20px rgba(29,78,216,.25)">
-      <div style="border-right:1px solid rgba(255,255,255,.15);padding-right:24px">
-        <div style="font-size:10px;font-weight:600;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em">Semanas registradas</div>
-        <div style="font-size:28px;font-weight:800;color:#fff;margin-top:4px">${sortedWeeks.length}</div>
-      </div>
-      <div style="border-right:1px solid rgba(255,255,255,.15);padding:0 24px">
-        <div style="font-size:10px;font-weight:600;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em">Total leads cargados</div>
-        <div style="font-size:28px;font-weight:800;color:#60a5fa;margin-top:4px">${allLeads.toLocaleString()}</div>
-      </div>
-      <div style="padding-left:24px">
-        <div style="font-size:10px;font-weight:600;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em">Valor total acumulado</div>
-        <div style="font-size:28px;font-weight:800;color:#34d399;margin-top:4px">${allRevenue>0?fmtMoney(allRevenue):'—'}</div>
-      </div>
-    </div>`;
-
-    body.innerHTML = summaryBanner + invoiceCards;
+    body.innerHTML = invoiceCards;
 
     // Render discount sections after DOM is ready
     sortedWeeks.forEach(ws => {
@@ -8056,18 +8050,9 @@ async function loadDetailedReport() {
 
       return `<div style="margin-bottom:36px">
         <!-- Month header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:4px;height:28px;background:#1d4ed8;border-radius:2px"></div>
-            <div>
-              <div style="font-size:16px;font-weight:800;color:#0f172a">${MONTHS_ES[m.month]} ${m.year}</div>
-              <div style="font-size:11px;color:#6b7280">${sortedWeeks.length} semana${sortedWeeks.length!==1?'s':''} · ${fmtNum(monthLeads)} leads</div>
-            </div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Total del mes</div>
-            <div style="font-size:20px;font-weight:800;color:#059669">${fmtMoney(monthRevenue)}</div>
-          </div>
+        <div style="display:flex;align-items:center;margin-bottom:8px;gap:10px">
+          <div style="width:4px;height:28px;background:#1d4ed8;border-radius:2px"></div>
+          <div style="font-size:16px;font-weight:800;color:#0f172a">${MONTHS_ES[m.month]} ${m.year}</div>
         </div>
         <div style="overflow-x:auto;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.08);border:1px solid #d1d5db">
           <table style="width:100%;border-collapse:collapse;font-family:'Segoe UI',system-ui,sans-serif;background:#fff">
@@ -8080,44 +8065,12 @@ async function loadDetailedReport() {
               ${CH('Notas','min-width:120px')}
             </tr></thead>
             <tbody>${weekRows.join('')}</tbody>
-            <tfoot>
-              <tr style="background:#0f2044">
-                <td style="padding:11px 14px;border:1px solid #1e3a5f;font-size:12px;font-weight:800;color:#bfdbfe;text-transform:uppercase;letter-spacing:.06em" colspan="2">Total ${MONTHS_ES[m.month]}</td>
-                <td style="padding:11px 14px;border:1px solid #1e3a5f;text-align:right;font-size:14px;font-weight:800;color:#60a5fa">${fmtNum(monthLeads)}</td>
-                <td style="padding:11px 14px;border:1px solid #1e3a5f"></td>
-                <td style="padding:11px 14px;border:1px solid #1e3a5f;text-align:right;font-size:14px;font-weight:800;color:#34d399">${fmtMoney(monthRevenue)}</td>
-                <td style="padding:11px 14px;border:1px solid #1e3a5f"></td>
-              </tr>
-            </tfoot>
           </table>
         </div>
       </div>`;
     });
 
-    // Grand total banner
-    const grandBanner = `<div style="background:linear-gradient(135deg,#0f2044,#1e3a5f);border-radius:12px;padding:20px 28px;margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;box-shadow:0 4px 20px rgba(15,32,68,.3)">
-      <div>
-        <div style="font-size:11px;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Grupo Elite Work · CRM Development Services</div>
-        <div style="font-size:17px;font-weight:800;color:#fff">Reporte Contable — Histórico Completo</div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px">Generado ${new Date().toLocaleDateString('es-US',{year:'numeric',month:'long',day:'numeric'})}</div>
-      </div>
-      <div style="display:flex;gap:32px;flex-wrap:wrap">
-        <div style="text-align:center">
-          <div style="font-size:10px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Meses</div>
-          <div style="font-size:26px;font-weight:800;color:#fff">${sortedMonths.length}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:10px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Total Leads</div>
-          <div style="font-size:26px;font-weight:800;color:#60a5fa">${fmtNum(grandLeads)}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:10px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Valor Total</div>
-          <div style="font-size:26px;font-weight:800;color:#34d399">${fmtMoney(grandRevenue)}</div>
-        </div>
-      </div>
-    </div>`;
-
-    body.innerHTML = grandBanner + monthBlocks.join('');
+    body.innerHTML = monthBlocks.join('');
 
   } catch(e) {
     body.innerHTML = `<div style="color:var(--red);font-size:13px">Error: ${e.message}</div>`;
