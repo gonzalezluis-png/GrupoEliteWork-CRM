@@ -6686,7 +6686,11 @@ function showImportPanel() {
       </div>
       <div class="imp-s2-actions">
         <button class="btn btn-secondary" onclick="clearPaste()">← Atrás</button>
-        <button class="btn btn-primary" onclick="goImportPreview()">Vista previa →</button>
+        <button class="btn btn-secondary" id="imp-ai-btn" onclick="aiCompleteAddresses()" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);border-color:#7c3aed;color:#fff;display:inline-flex;align-items:center;gap:6px">
+          ✨ Completar direcciones con IA
+        </button>
+        <div id="imp-ai-status" style="font-size:11px;color:var(--text2)"></div>
+        <button class="btn btn-primary" onclick="goImportPreview()" style="margin-left:auto">Vista previa →</button>
       </div>
     </div>
 
@@ -6928,6 +6932,67 @@ async function confirmImport() {
   showToast(`✓ ${total} leads importados exitosamente`, 'success');
   clearPaste();
   renderImportHistory();
+}
+
+async function aiCompleteAddresses() {
+  const mappings = window._pastedMappings || [];
+  const dirIdx = mappings.indexOf('direccion');
+  const ubxIdx = mappings.indexOf('ubicacion');
+
+  if (dirIdx === -1 && ubxIdx === -1) {
+    showToast('Mapea al menos una columna como "direccion" o "ubicacion" primero', 'error');
+    return;
+  }
+
+  const rows = pastedRows.filter(r => r.checked);
+  if (!rows.length) { showToast('No hay filas seleccionadas', 'error'); return; }
+
+  const btn = document.getElementById('imp-ai-btn');
+  const status = document.getElementById('imp-ai-status');
+  btn.disabled = true;
+  btn.textContent = '✨ Analizando…';
+  status.textContent = `Enviando ${rows.length} direcciones a Claude…`;
+
+  // Build payload — only rows that have something in address columns
+  const payload = rows.map((row, i) => ({
+    idx:       pastedRows.indexOf(row),
+    direccion: dirIdx !== -1 ? (row.cells[dirIdx] || '') : '',
+    ubicacion: ubxIdx !== -1 ? (row.cells[ubxIdx] || '') : '',
+  })).filter(r => r.direccion || r.ubicacion);
+
+  try {
+    const res = await fetch(`${SUPA_FN_URL}/claude-enrich`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPA_KEY}` },
+      body: JSON.stringify({ task: 'complete_addresses', data: payload }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Error de IA');
+
+    let changed = 0;
+    data.result.forEach(r => {
+      const row = pastedRows[r.idx];
+      if (!row) return;
+      if (dirIdx !== -1 && r.direccion && r.direccion !== row.cells[dirIdx]) {
+        row.cells[dirIdx] = r.direccion; changed++;
+      }
+      if (ubxIdx !== -1 && r.ubicacion && r.ubicacion !== row.cells[ubxIdx]) {
+        row.cells[ubxIdx] = r.ubicacion; changed++;
+      }
+    });
+
+    renderImportEditTable();
+    status.textContent = `✓ ${changed} campo(s) completados/corregidos`;
+    status.style.color = 'var(--green)';
+    showToast(`✨ IA completó ${changed} campos de dirección`, 'success');
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+    status.style.color = 'var(--red)';
+    showToast('Error con Claude: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✨ Completar direcciones con IA';
+  }
 }
 
 async function renderImportHistory() {
