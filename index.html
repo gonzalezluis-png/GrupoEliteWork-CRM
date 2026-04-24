@@ -929,6 +929,24 @@
   .imp-history-total { font-size:22px; font-weight:800; color:var(--text); text-align:right; white-space:nowrap; }
   .imp-history-total span { display:block; font-size:10px; font-weight:400; color:var(--text2); }
 
+  /* Connections page */
+  .conn-card { background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden; }
+  .conn-card-header { padding:16px 18px 14px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border); }
+  .conn-card-icon { width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0; }
+  .conn-card-title { font-size:14px;font-weight:800;color:var(--text); }
+  .conn-card-url { font-size:10px;color:var(--text2);margin-top:2px;word-break:break-all; }
+  .conn-status-badge { margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap; }
+  .conn-status-badge.ok  { background:rgba(34,197,94,.12);color:#22c55e; }
+  .conn-status-badge.err { background:rgba(239,68,68,.12);color:#ef4444; }
+  .conn-status-badge.chk { background:rgba(245,158,11,.12);color:#f59e0b; }
+  .conn-card-body { padding:14px 18px;display:flex;flex-direction:column;gap:8px; }
+  .conn-detail-row { display:flex;align-items:baseline;gap:8px;font-size:12px; }
+  .conn-detail-label { color:var(--text2);min-width:90px;flex-shrink:0;font-size:11px; }
+  .conn-detail-val { color:var(--text);font-weight:600;word-break:break-all; }
+  .conn-card-footer { padding:10px 18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
+  .conn-latency { font-size:11px;color:var(--text2); }
+  .conn-last-checked { font-size:10px;color:var(--text2); }
+
   /* Weekly report */
   .wkr-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:18px; }
   .wkr-header { background:linear-gradient(90deg,#1e3a5f,#1a2e4a); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; }
@@ -2041,6 +2059,7 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-reconcile" onclick="showReconcilePage()">🔗 <span>Reconciliar Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-weekly-report" onclick="showWeeklyReportPage()">📈 <span>Reporte Semanal</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span><span class="emblem-dev">🙈 Solo yo</span></div>
+      <div class="sidebar-item" id="nav-connections" onclick="showConnectionsPage()">🔌 <span>Conexiones</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-users" onclick="showSettingsPage();switchSettingsTab('team')" style="display:none">👥 <span>Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-messaging" onclick="showSettingsPage();switchSettingsTab('messaging')" style="display:none">💬 <span>Panel de mensajería</span><span class="emblem-dev">🙈 Solo yo</span></div>
 
@@ -3316,6 +3335,18 @@ setTimeout(function(){
         <button onclick="loadWeeklyReportPage()" style="background:var(--card2);border:1px solid var(--border);color:var(--text2);padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer">↻ Actualizar</button>
       </div>
       <div id="weekly-report-page-body" style="flex:1;overflow-y:auto;padding:28px 36px 60px"></div>
+    </div>
+
+    <!-- CONNECTIONS PAGE -->
+    <div id="connections-page" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+      <div style="padding:24px 36px 0;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:20px;font-weight:800;color:var(--text)">🔌 Conexiones del Sistema</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px">Estado en tiempo real de todos los servicios externos</div>
+        </div>
+        <button onclick="checkAllConnections()" style="background:var(--accent);border:none;color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">↻ Verificar todo</button>
+      </div>
+      <div id="connections-grid" style="flex:1;overflow-y:auto;padding:24px 36px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;align-content:start"></div>
     </div>
 
     <!-- SCRIPTS PAGE -->
@@ -10318,6 +10349,178 @@ function startConnectionPing() {
   if (_connPingInterval) clearInterval(_connPingInterval);
   _connPingInterval = setInterval(pingConnections, 60_000);
 }
+
+function showConnectionsPage() {
+  showBoardView();
+  document.getElementById('connections-page').style.display = 'flex';
+  document.getElementById('table-wrap').style.display  = 'none';
+  document.getElementById('toolbar').style.display     = 'none';
+  document.getElementById('btn-new-lead').style.display = 'none';
+  document.getElementById('btn-export').style.display   = 'none';
+  document.querySelectorAll('.board-item,.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-connections').classList.add('active');
+  checkAllConnections();
+}
+
+async function checkAllConnections() {
+  const grid = document.getElementById('connections-grid');
+  if (!grid) return;
+
+  const now = () => new Date().toLocaleTimeString('es-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  const services = [
+    { id:'supa',       icon:'🗄️',  bg:'#1a3a5c', name:'Supabase',         url: SUPA_URL },
+    { id:'github',     icon:'🐙',  bg:'#24292f', name:'GitHub',            url:'https://github.com/gonzalezluis-png/GrupoEliteWork-CRM' },
+    { id:'zoom',       icon:'📹',  bg:'#2D5BE3', name:'Zoom Phone',        url:'https://zoom.us' },
+    { id:'twilio',     icon:'💬',  bg:'#e53935', name:'Twilio',            url:'https://twilio.com' },
+    { id:'stripe',     icon:'💳',  bg:'#635bff', name:'Stripe',            url:'https://stripe.com' },
+    { id:'anthropic',  icon:'✨',  bg:'#5436DA', name:'Claude (Anthropic)',url:'https://anthropic.com' },
+  ];
+
+  // Render skeleton cards first
+  grid.innerHTML = services.map(s => `
+    <div class="conn-card" id="conn-card-${s.id}">
+      <div class="conn-card-header">
+        <div class="conn-card-icon" style="background:${s.bg}">${s.icon}</div>
+        <div style="min-width:0;flex:1">
+          <div class="conn-card-title">${s.name}</div>
+          <div class="conn-card-url">${s.url}</div>
+        </div>
+        <div class="conn-status-badge chk" id="conn-badge-${s.id}">● Verificando…</div>
+      </div>
+      <div class="conn-card-body" id="conn-body-${s.id}">
+        <div style="color:var(--text2);font-size:12px">Conectando…</div>
+      </div>
+      <div class="conn-card-footer">
+        <span class="conn-latency" id="conn-latency-${s.id}">—</span>
+        <span class="conn-last-checked" id="conn-time-${s.id}">—</span>
+      </div>
+    </div>`).join('');
+
+  const setStatus = (id, ok, ms, details) => {
+    const badge   = document.getElementById(`conn-badge-${id}`);
+    const latency = document.getElementById(`conn-latency-${id}`);
+    const timeEl  = document.getElementById(`conn-time-${id}`);
+    const body    = document.getElementById(`conn-body-${id}`);
+    if (badge) {
+      badge.className = `conn-status-badge ${ok ? 'ok' : 'err'}`;
+      badge.textContent = ok ? '● En línea' : '● Sin conexión';
+    }
+    if (latency) latency.textContent = ms != null ? `${ms} ms` : '';
+    if (timeEl)  timeEl.textContent  = `Verificado ${now()}`;
+    if (body && details) {
+      body.innerHTML = details.map(d =>
+        `<div class="conn-detail-row"><span class="conn-detail-label">${d.label}</span><span class="conn-detail-val">${d.value}</span></div>`
+      ).join('');
+    }
+  };
+
+  // ── Supabase ──
+  (async () => {
+    try {
+      const t0 = Date.now();
+      const r = await fetch(`${SUPA_URL}/rest/v1/kv_store?limit=1`, {
+        headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }
+      });
+      const ms = Date.now() - t0;
+      const rows = await r.json();
+      setStatus('supa', r.ok, ms, [
+        { label:'Proyecto',  value: SUPA_URL.split('//')[1].split('.')[0] },
+        { label:'URL',       value: SUPA_URL },
+        { label:'Registros', value: Array.isArray(rows) ? `${rows.length} row(s) en kv_store` : 'OK' },
+        { label:'Latencia',  value: ms + ' ms' },
+      ]);
+    } catch(e) { setStatus('supa', false, null, [{ label:'Error', value: e.message }]); }
+  })();
+
+  // ── GitHub ──
+  (async () => {
+    try {
+      const t0 = Date.now();
+      const r = await fetch('https://api.github.com/repos/gonzalezluis-png/GrupoEliteWork-CRM', { mode:'cors' });
+      const ms = Date.now() - t0;
+      const d  = await r.json();
+      setStatus('github', r.ok, ms, [
+        { label:'Repo',        value: d.full_name || 'gonzalezluis-png/GrupoEliteWork-CRM' },
+        { label:'Branch',      value: d.default_branch || 'main' },
+        { label:'Último push', value: d.pushed_at ? new Date(d.pushed_at).toLocaleString('es-US') : '—' },
+        { label:'Visibilidad', value: d.private ? 'Privado 🔒' : 'Público 🌐' },
+      ]);
+    } catch(e) { setStatus('github', false, null, [{ label:'Error', value: e.message }]); }
+  })();
+
+  // ── Zoom (status page) ──
+  (async () => {
+    try {
+      const t0 = Date.now();
+      const r = await fetch('https://status.zoom.us/api/v2/status.json');
+      const ms = Date.now() - t0;
+      const d  = await r.json();
+      const ok = d.status?.indicator === 'none' || d.status?.indicator === 'minor';
+      setStatus('zoom', ok, ms, [
+        { label:'Estado',      value: d.status?.description || '—' },
+        { label:'Indicador',   value: d.status?.indicator   || '—' },
+        { label:'App OAuth',   value: ZOOM_CLIENT_ID },
+        { label:'Redirect',    value: ZOOM_REDIRECT },
+      ]);
+    } catch(e) { setStatus('zoom', false, null, [{ label:'Error', value: e.message }]); }
+  })();
+
+  // ── Twilio (status page) ──
+  (async () => {
+    try {
+      const t0 = Date.now();
+      const r = await fetch('https://status.twilio.com/api/v2/status.json');
+      const ms = Date.now() - t0;
+      const d  = await r.json();
+      const ok = d.status?.indicator === 'none' || d.status?.indicator === 'minor';
+      setStatus('twilio', ok, ms, [
+        { label:'Estado',    value: d.status?.description || '—' },
+        { label:'Indicador', value: d.status?.indicator   || '—' },
+        { label:'Webhook',   value: `${SUPA_FN_URL}/twilio-webhook` },
+        { label:'Mensajes',  value: 'SMS / Conversations API' },
+      ]);
+    } catch(e) { setStatus('twilio', false, null, [{ label:'Error', value: e.message }]); }
+  })();
+
+  // ── Stripe (status page) ──
+  (async () => {
+    try {
+      const t0 = Date.now();
+      const r = await fetch('https://status.stripe.com/api/v2/status.json');
+      const ms = Date.now() - t0;
+      const d  = await r.json();
+      const ok = d.status?.indicator === 'none' || d.status?.indicator === 'minor';
+      setStatus('stripe', ok, ms, [
+        { label:'Estado',    value: d.status?.description || '—' },
+        { label:'Indicador', value: d.status?.indicator   || '—' },
+        { label:'Checkout',  value: `${SUPA_FN_URL}/create-checkout` },
+        { label:'Uso',       value: 'Facturación / auto-recarga' },
+      ]);
+    } catch(e) { setStatus('stripe', false, null, [{ label:'Error', value: e.message }]); }
+  })();
+
+  // ── Anthropic/Claude ──
+  (async () => {
+    try {
+      const t0 = Date.now();
+      const r = await fetch(`${SUPA_FN_URL}/claude-enrich`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', Authorization:`Bearer ${SUPA_KEY}` },
+        body: JSON.stringify({ task:'complete_addresses', data:[{ idx:0, direccion:'77001', ubicacion:'' }] }),
+      });
+      const ms = Date.now() - t0;
+      const d  = await r.json();
+      const ok = r.ok && !d.error;
+      setStatus('anthropic', ok, ms, [
+        { label:'Modelo',    value: 'claude-haiku-4-5-20251001' },
+        { label:'Función',   value: `${SUPA_FN_URL}/claude-enrich` },
+        { label:'Uso',       value: 'Completar direcciones con IA' },
+        { label:'Estado API',value: ok ? 'Respondiendo ✓' : (d.error || 'Error') },
+      ]);
+    } catch(e) { setStatus('anthropic', false, null, [{ label:'Error', value: e.message }]); }
+  })();
+}
 const ZOOM_CLIENT_ID  = 'XW9e43_3Ro2nY8dcHl_BUg';
 const ZOOM_REDIRECT   = 'https://lead.grupoelitework.com';
 const SUPA_FN_URL     = 'https://vpwbczzmonboirjckpmy.supabase.co/functions/v1';
@@ -10763,8 +10966,11 @@ function showBoardView() {
   document.getElementById('stats-page').style.display     = 'none';
   document.getElementById('reconcile-page').style.display = 'none';
   document.getElementById('weekly-report-page').style.display = 'none';
+  document.getElementById('connections-page').style.display = 'none';
   const navWR = document.getElementById('nav-weekly-report');
   if (navWR) navWR.classList.remove('active');
+  const navConn = document.getElementById('nav-connections');
+  if (navConn) navConn.classList.remove('active');
   const navAct = document.getElementById('nav-activity');
   if (navAct) navAct.classList.remove('active');
   const navCal = document.getElementById('nav-calendar');
