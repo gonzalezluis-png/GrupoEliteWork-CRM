@@ -1917,11 +1917,11 @@
   <div class="sync-msg" id="sync-msg">Conectando con la base de datos…</div>
 </div>
 <script>
-// Failsafe: force-hide overlay after 2s regardless of main script state
+// Failsafe: force-hide overlay after 8s in case main script hangs
 setTimeout(function(){
   var o=document.getElementById('sync-overlay');
   if(o){o.style.display='none';o.style.pointerEvents='none';}
-},2000);
+},8000);
 </script>
 
 <!-- LOGIN SCREEN -->
@@ -10246,7 +10246,6 @@ async function orgDrop(e, targetId) {
   if (!dragged || !target || !_orgIsValidDrop(dragged, target)) return;
 
   const fromName = _orgParentName(dragged, users);
-  if (!confirm(`¿Mover a ${dragged.name} de "${fromName}" a "${target.name}"?`)) return;
 
   const idx = users.findIndex(u => u.id === dragged.id);
   const u = users[idx];
@@ -12528,7 +12527,7 @@ async function exportBackupToDrive() {
 const BACKUP_KEYS = [
   'gew_users', 'gew_virtual_users', 'gew_session',
   'gew_activity_log', 'gew_calendar', 'gew_terms',
-  'gew_app_name', 'gew_lead_types', 'gew_columns',
+  'gew_appname', 'gew_lead_types', 'gew_columns',
   'gew_ubicaciones_boards'
 ];
 
@@ -12653,7 +12652,7 @@ function _applyRealtimeKey(key) {
     updateTrashBadge();
     return;
   }
-  if (key === 'gew_deleted_leads') {
+  if (key === TRASH_KEY || key === 'gew_deleted_leads') {
     updateTrashBadge();
     const tp = document.getElementById('trash-page');
     if (tp && tp.classList.contains('visible')) renderTrashTable();
@@ -12705,9 +12704,10 @@ async function loadFromSupabase() {
             const remote = JSON.parse(row.value) || [];
             const local  = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
             const merged = [...remote];
+            const remoteIds = new Set(remote.map(ru => ru.id));
             // Only add local users not in remote AND not previously deleted
             local.forEach(lu => {
-              if (!merged.find(ru => ru.id === lu.id) && !deletedUserIds.has(lu.id)) {
+              if (!remoteIds.has(lu.id) && !deletedUserIds.has(lu.id)) {
                 merged.push(lu);
               }
             });
