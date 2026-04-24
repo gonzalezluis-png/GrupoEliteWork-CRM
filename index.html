@@ -4321,6 +4321,20 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // ── Initials ──
 function getInitials(n) { return (n||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
 
+// ── Password hashing (Web Crypto API) ──
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function _isHashed(s) { return typeof s === 'string' && /^[0-9a-f]{64}$/.test(s); }
+// Verifies plain-text input against stored value (hash or legacy plain-text).
+// Auto-migration: callers that have the users array should rehash after a plain-text match.
+async function verifyPass(input, stored) {
+  if (!input || !stored) return false;
+  if (_isHashed(stored)) return (await sha256(input)) === stored;
+  return input === stored;
+}
+
 function _hexToRgba(hex, alpha) {
   const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
   return `rgba(${r},${g},${b},${alpha})`;
@@ -8220,9 +8234,10 @@ async function changeEmail() {
   if (!pass) { showToast('Ingresa tu contraseña para confirmar', 'error'); return; }
 
   // verify password
+  const _ceUser = loadUsers().find(u => u.id === session.id);
   const ok = session.role === 'master'
-    ? pass === MASTER_USER.password
-    : loadUsers().find(u => u.id === session.id && u.password === pass);
+    ? await sha256(pass) === MASTER_USER.passwordHash
+    : await verifyPass(pass, _ceUser?.password);
   if (!ok) { showToast('Contraseña incorrecta', 'error'); return; }
 
   if (newEmail === MASTER_USER.email.toLowerCase()) { showToast('Ese correo no está disponible', 'error'); return; }
@@ -8251,9 +8266,10 @@ async function changePassword() {
   if (!newPass || newPass.length < 6) { showToast('La nueva contraseña debe tener al menos 6 caracteres', 'error'); return; }
   if (newPass !== confirm2) { showToast('Las contraseñas no coinciden', 'error'); return; }
 
+  const _cpUser = loadUsers().find(u => u.id === session.id);
   const ok = session.role === 'master'
-    ? current === MASTER_USER.password
-    : loadUsers().find(u => u.id === session.id && u.password === current);
+    ? await sha256(current) === MASTER_USER.passwordHash
+    : await verifyPass(current, _cpUser?.password);
   if (!ok) { showToast('Contraseña actual incorrecta', 'error'); return; }
 
   if (!confirm('¿Confirmas el cambio de contraseña?')) return;
@@ -8264,7 +8280,7 @@ async function changePassword() {
   }
   const users = loadUsers();
   const idx = users.findIndex(u => u.id === session.id);
-  if (idx !== -1) { users[idx].password = newPass; await saveUsers(users); }
+  if (idx !== -1) { users[idx].password = await sha256(newPass); await saveUsers(users); }
   toggleAccountSection('pass');
   showToast('Contraseña actualizada ✓', 'success');
 }
@@ -9049,7 +9065,7 @@ const SESSION_KEY       = 'gew_session';
 const GOOGLE_CLIENT_ID = '109274524960-a4vfb0q45fa1dqcre2579024plc2jntd.apps.googleusercontent.com';
 
 // Usuario Desarrollador — hardcoded, no editable ni visible desde UI
-const MASTER_USER = { id: 'master', name: 'Luis González', email: 'gonzalezluis@grupoelitework.com', password: '21241800', role: 'master', termsAccepted: true };
+const MASTER_USER = { id: 'master', name: 'Luis González', email: 'gonzalezluis@grupoelitework.com', passwordHash: 'c4f35af8db7b111df37816d336b7a6bd8abc30cb3258c67e1ee7f1b1baafd99f', role: 'master', termsAccepted: true };
 
 function loadUsers() {
   try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; } catch { return []; }
@@ -9290,7 +9306,7 @@ async function doLogin() {
   try {
     // 1. Check master user
     let user = null;
-    if (email === MASTER_USER.email.toLowerCase() && pass === MASTER_USER.password) {
+    if (email === MASTER_USER.email.toLowerCase() && await sha256(pass) === MASTER_USER.passwordHash) {
       user = MASTER_USER;
     } else {
       // 2. Check localStorage
@@ -9301,7 +9317,14 @@ async function doLogin() {
         if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
         return;
       }
-      user = users.find(u => u.email.toLowerCase() === email && u.password === pass);
+      if (byEmail && await verifyPass(pass, byEmail.password)) {
+        user = byEmail;
+        if (!_isHashed(byEmail.password)) {
+          byEmail.password = await sha256(pass);
+          localStorage.setItem('gew_users', JSON.stringify(users));
+          supaSync('gew_users', JSON.stringify(users));
+        }
+      }
 
       // 3. Fallback: fetch fresh from Supabase if not found locally
       if (!user) {
@@ -9310,7 +9333,15 @@ async function doLogin() {
           if (data && data.value) {
             const remoteUsers = JSON.parse(data.value) || [];
             localStorage.setItem('gew_users', data.value);
-            user = remoteUsers.find(u => u.email.toLowerCase() === email && u.password === pass);
+            const byEmail3 = remoteUsers.find(u => u.email.toLowerCase() === email);
+            if (byEmail3 && await verifyPass(pass, byEmail3.password)) {
+              user = byEmail3;
+              if (!_isHashed(byEmail3.password)) {
+                byEmail3.password = await sha256(pass);
+                localStorage.setItem('gew_users', JSON.stringify(remoteUsers));
+                supaSync('gew_users', JSON.stringify(remoteUsers));
+              }
+            }
           }
         } catch(_) {}
       }
@@ -10583,7 +10614,7 @@ async function saveUser() {
       freshUsers[i].orgManagerId       = orgManagerId;
       freshUsers[i].orgSupervisorId    = orgSupervisorId;
       freshUsers[i].mustChangePassword = forcePass;
-      if (pass && pass.length >= 6) freshUsers[i].password = pass;
+      if (pass && pass.length >= 6) freshUsers[i].password = await sha256(pass);
       if (session && session.id === editingUserId) {
         setSession({ ...session, name, email, role });
         renderTopbarUser({ ...session, name, email, role });
@@ -10639,7 +10670,7 @@ async function saveUser() {
     if (users.find(u => u.name.toLowerCase() === name.toLowerCase()) || name.toLowerCase() === MASTER_USER.name.toLowerCase()) {
       showToast('Ya existe un usuario con ese nombre. Los nombres deben ser únicos.', 'error'); return;
     }
-    users.push({ id: uid(), name, email, password: pass, role, orgAdminId, orgMasterManagerId, orgManagerId, orgSupervisorId, createdAt: today(), userCode: _nextUserCode(users) });
+    users.push({ id: uid(), name, email, password: await sha256(pass), role, orgAdminId, orgMasterManagerId, orgManagerId, orgSupervisorId, createdAt: today(), userCode: _nextUserCode(users) });
     await saveUsers(users);
     logActivity('user_created', `Usuario creado: ${name}`, `Email: ${email} · Rol: ${role}`);
     closeUserModal();
@@ -10721,7 +10752,7 @@ async function submitRegisterRequest() {
     return;
   }
 
-  pending.push({ id: uid(), name, email, password: pass || null, googleAuth: hasGoogleAuth, agentNum, phone, city, state, requestedAt: new Date().toISOString() });
+  pending.push({ id: uid(), name, email, password: pass ? await sha256(pass) : null, googleAuth: hasGoogleAuth, agentNum, phone, city, state, requestedAt: new Date().toISOString() });
   await savePendingUsers(pending);
   closeRegisterForm();
   showToast('¡Solicitud enviada! Un administrador la revisará pronto.', 'success');
@@ -10837,7 +10868,8 @@ async function approveRequest() {
   if (users.some(x => x.email.toLowerCase() === u.email.toLowerCase())) {
     showToast('Ese email ya tiene una cuenta activa.', 'error'); return;
   }
-  users.push({ id: uid(), name: u.name, email: u.email, password: u.password || null, googleAuth: u.googleAuth || false, role, orgAdminId, orgMasterManagerId, orgManagerId, orgSupervisorId, createdAt: today() });
+  const _pendingPwd = u.password && !_isHashed(u.password) ? await sha256(u.password) : (u.password || null);
+  users.push({ id: uid(), name: u.name, email: u.email, password: _pendingPwd, googleAuth: u.googleAuth || false, role, orgAdminId, orgMasterManagerId, orgManagerId, orgSupervisorId, createdAt: today() });
   await saveUsers(users);
 
   const remaining = loadPendingUsers().filter(x => x.id !== _approvingId);
@@ -10883,10 +10915,10 @@ async function confirmUserAction() {
   const session = getSession();
   let valid = false;
   if (session.id === MASTER_USER.id) {
-    valid = pass === MASTER_USER.password;
+    valid = await sha256(pass) === MASTER_USER.passwordHash;
   } else {
     const me = loadUsers().find(u => u.id === session.id);
-    valid = me && me.password === pass;
+    valid = me && await verifyPass(pass, me.password);
   }
   if (!valid) { showToast('Contraseña incorrecta', 'error'); document.getElementById('ua-pass').value = ''; document.getElementById('ua-pass').focus(); return; }
   const action = _pendingUserAction;
