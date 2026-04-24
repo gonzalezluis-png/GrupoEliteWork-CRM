@@ -947,6 +947,11 @@
   .conn-latency { font-size:11px;color:var(--text2); }
   .conn-last-checked { font-size:10px;color:var(--text2); }
 
+  /* Weekly report page tabs */
+  .wrp-tab { background:none;border:none;border-bottom:3px solid transparent;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:600;padding:10px 20px;cursor:pointer;transition:all .15s;border-radius:0; }
+  .wrp-tab:hover { color:var(--text); }
+  .wrp-tab-active { color:var(--accent) !important;border-bottom-color:var(--accent) !important; }
+
   /* Weekly report */
   .wkr-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:18px; }
   .wkr-header { background:linear-gradient(90deg,#1e3a5f,#1a2e4a); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; }
@@ -3327,14 +3332,24 @@ setTimeout(function(){
 
     <!-- WEEKLY REPORT PAGE -->
     <div id="weekly-report-page" style="display:none;flex:1;flex-direction:column;overflow:hidden;background:#f1f5f9">
-      <div style="padding:20px 36px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;background:var(--bg);border-bottom:1px solid var(--border)">
-        <div>
-          <div style="font-size:18px;font-weight:800;color:var(--text)">📈 Reporte Semanal de Leads</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">Grupo Elite Work · CRM Development Services</div>
+      <!-- Page header -->
+      <div style="padding:16px 36px 0;flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+          <div>
+            <div style="font-size:18px;font-weight:800;color:var(--text)">📈 Reportes de Leads</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">Grupo Elite Work · CRM Development Services</div>
+          </div>
+          <button id="wrp-refresh-btn" onclick="wrpRefresh()" style="background:var(--accent);border:none;color:#fff;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">↻ Actualizar</button>
         </div>
-        <button onclick="loadWeeklyReportPage()" style="background:var(--accent);border:none;color:#fff;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">↻ Actualizar</button>
+        <!-- Tabs -->
+        <div style="display:flex;gap:0">
+          <button id="wrp-tab-weekly" onclick="wrpSwitchTab('weekly')" class="wrp-tab wrp-tab-active">📊 Reporte Semanal</button>
+          <button id="wrp-tab-detail" onclick="wrpSwitchTab('detail')" class="wrp-tab">🗂 Reporte Detallado</button>
+        </div>
       </div>
-      <div id="weekly-report-page-body" style="flex:1;overflow-y:auto;padding:32px 40px 60px"></div>
+      <!-- Tab panes -->
+      <div id="wrp-pane-weekly" style="flex:1;overflow-y:auto;padding:32px 40px 60px"></div>
+      <div id="wrp-pane-detail" style="flex:1;overflow-y:auto;padding:32px 40px 60px;display:none"></div>
     </div>
 
     <!-- CONNECTIONS PAGE -->
@@ -7543,6 +7558,8 @@ function showImportPage() {
   showImportPanel();
 }
 
+let _wrpCurrentTab = 'weekly';
+
 function showWeeklyReportPage() {
   showBoardView();
   document.getElementById('weekly-report-page').style.display = 'flex';
@@ -7552,11 +7569,26 @@ function showWeeklyReportPage() {
   document.getElementById('btn-export').style.display   = 'none';
   document.querySelectorAll('.board-item,.sidebar-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-weekly-report').classList.add('active');
-  loadWeeklyReportPage();
+  wrpSwitchTab(_wrpCurrentTab, true);
+}
+
+function wrpSwitchTab(tab, forceLoad) {
+  _wrpCurrentTab = tab;
+  ['weekly','detail'].forEach(t => {
+    document.getElementById(`wrp-pane-${t}`).style.display  = t === tab ? '' : 'none';
+    document.getElementById(`wrp-tab-${t}`).className = `wrp-tab${t === tab ? ' wrp-tab-active' : ''}`;
+  });
+  if (tab === 'weekly') loadWeeklyReportPage();
+  else loadDetailedReport();
+}
+
+function wrpRefresh() {
+  if (_wrpCurrentTab === 'weekly') loadWeeklyReportPage();
+  else loadDetailedReport();
 }
 
 async function loadWeeklyReportPage() {
-  const body = document.getElementById('weekly-report-page-body');
+  const body = document.getElementById('wrp-pane-weekly');
   if (!body) return;
   body.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:20px 0">Cargando…</div>`;
 
@@ -7722,6 +7754,163 @@ async function loadWeeklyReportPage() {
 
   } catch(e) {
     body.innerHTML = `<div style="color:var(--red);font-size:13px">Error cargando reporte: ${e.message}</div>`;
+  }
+}
+
+async function loadDetailedReport() {
+  const body = document.getElementById('wrp-pane-detail');
+  if (!body) return;
+  body.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:20px 0">Cargando…</div>`;
+
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
+    const history = JSON.parse(data?.value || '[]');
+
+    if (!history.length) {
+      body.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--text2)"><div style="font-size:40px;margin-bottom:12px">🗂</div><div style="font-size:14px;font-weight:600">Sin registros</div></div>`;
+      return;
+    }
+
+    // Build nested structure: month -> week -> board -> {count, price}
+    const months = {}; // key: "YYYY-MM"
+    history.forEach(r => {
+      const ws = r.weekStart || r.date?.slice(0,10) || '';
+      if (!ws) return;
+      const d     = new Date(ws + 'T00:00:00');
+      const mKey  = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const sun   = new Date(d); sun.setDate(d.getDate() + 6);
+      const wKey  = ws;
+      if (!months[mKey]) months[mKey] = { label: '', year: d.getFullYear(), month: d.getMonth(), weeks: {} };
+      if (!months[mKey].weeks[wKey]) months[mKey].weeks[wKey] = { end: sun.toISOString().slice(0,10), boards: {}, price: 0 };
+      const price = r.pricePerLead || 0;
+      if (price > 0) months[mKey].weeks[wKey].price = price;
+      (r.distribution || []).forEach(dist => {
+        const b = dist.boardName;
+        if (!months[mKey].weeks[wKey].boards[b]) months[mKey].weeks[wKey].boards[b] = { count: 0, price };
+        months[mKey].weeks[wKey].boards[b].count += dist.count;
+        if (price > 0) months[mKey].weeks[wKey].boards[b].price = price;
+      });
+    });
+
+    const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const fmtDate  = s => { const d = new Date(s+'T00:00:00'); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`; };
+    const fmtMoney = n => n > 0 ? '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+    const fmtNum   = n => n.toLocaleString('en-US');
+    const C  = (content, style='') => `<td style="padding:8px 14px;border:1px solid #d1d5db;${style}">${content}</td>`;
+    const CH = (content, style='') => `<th style="padding:9px 14px;border:1px solid #9ca3af;background:#1e3a5f;color:#e0e7ff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;${style}">${content}</th>`;
+
+    const sortedMonths = Object.keys(months).sort((a,b) => b.localeCompare(a));
+    let grandLeads = 0, grandRevenue = 0;
+
+    const monthBlocks = sortedMonths.map(mKey => {
+      const m = months[mKey];
+      const sortedWeeks = Object.keys(m.weeks).sort((a,b) => b.localeCompare(a));
+      let monthLeads = 0, monthRevenue = 0;
+
+      const weekRows = sortedWeeks.flatMap((wKey, wi) => {
+        const w = m.weeks[wKey];
+        const boardEntries = Object.entries(w.boards);
+        let weekLeads = 0, weekRevenue = 0;
+        const bRows = boardEntries.map(([bName, info], bi) => {
+          const sub = info.count * info.price;
+          weekLeads += info.count; weekRevenue += sub;
+          const isFirst = bi === 0;
+          const weekCell = isFirst
+            ? `<td style="padding:8px 14px;border:1px solid #d1d5db;vertical-align:top;font-size:11px;color:#374151;white-space:nowrap;background:#f9fafb" rowspan="${boardEntries.length}">
+                <div style="font-weight:700;color:#1e3a5f;font-size:12px">Sem. ${String(wi+1).padStart(2,'0')}</div>
+                <div style="color:#6b7280;margin-top:2px">${fmtDate(wKey)}</div>
+                <div style="color:#6b7280">al ${fmtDate(w.end)}</div>
+               </td>`
+            : '';
+          return `<tr style="background:${bi%2===0?'#fff':'#f3f6fb'}">
+            ${weekCell}
+            ${C(esc(bName),'font-size:12px;color:#111827;font-weight:500')}
+            ${C(fmtNum(info.count),'text-align:right;font-size:12px;font-weight:700;color:#1d4ed8')}
+            ${C(info.price>0?fmtMoney(info.price):'—','text-align:right;font-size:12px;color:#374151')}
+            ${C(fmtMoney(sub),'text-align:right;font-size:12px;font-weight:700;color:#059669')}
+            ${C('','font-size:11px;color:#9ca3af')}
+          </tr>`;
+        });
+        monthLeads += weekLeads; monthRevenue += weekRevenue;
+        // Week subtotal row
+        const subRow = `<tr style="background:#e8edf5">
+          <td style="padding:7px 14px;border:1px solid #d1d5db;font-size:11px;font-weight:700;color:#374151;text-align:right;font-style:italic" colspan="2">Subtotal semana</td>
+          ${C(fmtNum(weekLeads),'text-align:right;font-weight:800;color:#1d4ed8;font-size:12px')}
+          ${C('','text-align:right')}
+          ${C(fmtMoney(weekRevenue),'text-align:right;font-weight:800;color:#059669;font-size:12px')}
+          ${C('')}
+        </tr>`;
+        return [...bRows, subRow];
+      });
+      grandLeads += monthLeads; grandRevenue += monthRevenue;
+
+      return `<div style="margin-bottom:36px">
+        <!-- Month header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:4px;height:28px;background:#1d4ed8;border-radius:2px"></div>
+            <div>
+              <div style="font-size:16px;font-weight:800;color:#0f172a">${MONTHS_ES[m.month]} ${m.year}</div>
+              <div style="font-size:11px;color:#6b7280">${sortedWeeks.length} semana${sortedWeeks.length!==1?'s':''} · ${fmtNum(monthLeads)} leads</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Total del mes</div>
+            <div style="font-size:20px;font-weight:800;color:#059669">${fmtMoney(monthRevenue)}</div>
+          </div>
+        </div>
+        <div style="overflow-x:auto;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.08);border:1px solid #d1d5db">
+          <table style="width:100%;border-collapse:collapse;font-family:'Segoe UI',system-ui,sans-serif;background:#fff">
+            <thead><tr>
+              ${CH('Semana','min-width:130px')}
+              ${CH('Board / Ciudad','min-width:200px')}
+              ${CH('Leads','text-align:right;min-width:80px')}
+              ${CH('$/Lead','text-align:right;min-width:90px')}
+              ${CH('Subtotal','text-align:right;min-width:110px')}
+              ${CH('Notas','min-width:120px')}
+            </tr></thead>
+            <tbody>${weekRows.join('')}</tbody>
+            <tfoot>
+              <tr style="background:#0f2044">
+                <td style="padding:11px 14px;border:1px solid #1e3a5f;font-size:12px;font-weight:800;color:#bfdbfe;text-transform:uppercase;letter-spacing:.06em" colspan="2">Total ${MONTHS_ES[m.month]}</td>
+                <td style="padding:11px 14px;border:1px solid #1e3a5f;text-align:right;font-size:14px;font-weight:800;color:#60a5fa">${fmtNum(monthLeads)}</td>
+                <td style="padding:11px 14px;border:1px solid #1e3a5f"></td>
+                <td style="padding:11px 14px;border:1px solid #1e3a5f;text-align:right;font-size:14px;font-weight:800;color:#34d399">${fmtMoney(monthRevenue)}</td>
+                <td style="padding:11px 14px;border:1px solid #1e3a5f"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>`;
+    });
+
+    // Grand total banner
+    const grandBanner = `<div style="background:linear-gradient(135deg,#0f2044,#1e3a5f);border-radius:12px;padding:20px 28px;margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;box-shadow:0 4px 20px rgba(15,32,68,.3)">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Grupo Elite Work · CRM Development Services</div>
+        <div style="font-size:17px;font-weight:800;color:#fff">Reporte Contable — Histórico Completo</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">Generado ${new Date().toLocaleDateString('es-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+      </div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div style="font-size:10px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Meses</div>
+          <div style="font-size:26px;font-weight:800;color:#fff">${sortedMonths.length}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Total Leads</div>
+          <div style="font-size:26px;font-weight:800;color:#60a5fa">${fmtNum(grandLeads)}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Valor Total</div>
+          <div style="font-size:26px;font-weight:800;color:#34d399">${fmtMoney(grandRevenue)}</div>
+        </div>
+      </div>
+    </div>`;
+
+    body.innerHTML = grandBanner + monthBlocks.join('');
+
+  } catch(e) {
+    body.innerHTML = `<div style="color:var(--red);font-size:13px">Error: ${e.message}</div>`;
   }
 }
 
