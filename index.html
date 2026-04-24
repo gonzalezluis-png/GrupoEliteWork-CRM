@@ -7682,24 +7682,28 @@ function renderWrpDiscounts(ws) {
     const bg    = (leadRowCount + i) % 2 === 0 ? '#f8faff' : '#eef3fb';
     const total = d.leads * d.price;
     const descCell = editable
-      ? `<input value="${esc(d.desc)}" placeholder="Motivo de reclamación…" oninput="wrpEditDiscount('${ws}','${d.id}','desc',this.value)"
+      ? `<input value="${esc(d.desc)}" placeholder="Motivo…" data-ws="${ws}" data-id="${d.id}" data-field="desc"
+           class="wrp-disc-input"
            style="width:100%;background:transparent;border:none;border-bottom:1px dashed #fca5a5;padding:3px 0;font-size:13px;color:#1f2937;outline:none;font-family:inherit"/>`
-      : (esc(d.desc) || 'Reclamación');
+      : (esc(d.desc) || 'Reposición');
     const leadsCell = editable
-      ? `<input type="number" min="0" value="${d.leads}" oninput="wrpEditDiscount('${ws}','${d.id}','leads',this.value)"
+      ? `<input type="number" min="0" value="${d.leads}" data-ws="${ws}" data-id="${d.id}" data-field="leads"
+           class="wrp-disc-input"
            style="width:65px;background:transparent;border:none;border-bottom:1px dashed #fca5a5;padding:3px 0;font-size:13px;font-weight:700;text-align:center;outline:none;font-family:inherit"/>`
       : d.leads;
     const priceCell = editable
-      ? `<input type="number" min="0" step="0.01" value="${d.price}" oninput="wrpEditDiscount('${ws}','${d.id}','price',this.value)"
+      ? `<input type="number" min="0" step="0.01" value="${d.price}" data-ws="${ws}" data-id="${d.id}" data-field="price"
+           class="wrp-disc-input"
            style="width:75px;background:transparent;border:none;border-bottom:1px dashed #fca5a5;padding:3px 0;font-size:13px;text-align:right;outline:none;font-family:inherit"/>`
       : (d.price ? '$'+d.price.toFixed(2) : '—');
     const deleteBtn = editable
-      ? `<button onclick="wrpRemoveDiscount('${ws}','${d.id}')" title="Eliminar" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px;opacity:.7">✕</button>`
+      ? `<button data-ws="${ws}" data-id="${d.id}" class="wrp-disc-del" title="Eliminar"
+           style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px;opacity:.7">✕</button>`
       : '';
     return `<tr style="background:${bg}">
       <td style="padding:11px 20px;font-size:13px;color:#1e293b;border-bottom:1px solid #dde6f0">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:8px;vertical-align:middle"></span>
-        Descuento · ${descCell}
+        Reposición de lead · ${descCell}
       </td>
       <td style="padding:11px 20px;text-align:center;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0;font-weight:700;color:#dc2626">${leadsCell}</td>
       <td style="padding:11px 20px;text-align:right;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0;color:#475569">${priceCell}</td>
@@ -7710,11 +7714,23 @@ function renderWrpDiscounts(ws) {
 
   const addBtn = editable
     ? `<tr style="background:#f8faff"><td colspan="5" style="padding:8px 20px;border-bottom:1px solid #dde6f0">
-        <button onclick="wrpAddDiscount('${ws}')" style="background:none;border:1px dashed #fca5a5;color:#dc2626;border-radius:6px;padding:4px 14px;font-size:11px;cursor:pointer;font-weight:700">＋ Descuento por reclamación</button>
+        <button data-ws="${ws}" class="wrp-disc-add" style="background:none;border:1px dashed #fca5a5;color:#dc2626;border-radius:6px;padding:4px 14px;font-size:11px;cursor:pointer;font-weight:700">＋ Reposición de lead</button>
        </td></tr>`
     : '';
 
   el.innerHTML = addBtn + rows;
+
+  // Attach events via JS (avoids onclick quoting issues with dynamic ws/id values)
+  el.querySelectorAll('.wrp-disc-del').forEach(btn => {
+    btn.addEventListener('click', () => wrpRemoveDiscount(btn.dataset.ws, btn.dataset.id));
+  });
+  el.querySelectorAll('.wrp-disc-add').forEach(btn => {
+    btn.addEventListener('click', () => wrpAddDiscount(btn.dataset.ws));
+  });
+  el.querySelectorAll('.wrp-disc-input').forEach(inp => {
+    inp.addEventListener('input', () => wrpEditDiscount(inp.dataset.ws, inp.dataset.id, inp.dataset.field, inp.value));
+  });
+
   wrpUpdateInvoiceTotals(ws);
 }
 
@@ -7905,7 +7921,7 @@ async function loadWeeklyReportPage() {
               <td style="padding:10px 20px;text-align:right;font-size:13px;font-weight:700;color:#0f172a" id="wrp-sub-${ws}">${fmtMoney(grandSubtotal)}</td>
             </tr>
             <tr style="background:#fff5f5">
-              <td style="padding:10px 20px;font-size:12px;color:#dc2626;font-weight:600">Descuento por reclamación</td>
+              <td style="padding:10px 20px;font-size:12px;color:#dc2626;font-weight:600">Reposición de lead</td>
               <td style="padding:10px 20px;text-align:right;font-size:13px;font-weight:700;color:#dc2626" id="wrp-dsc-${ws}">${discountTotal>0?'-'+fmtMoney(discountTotal):'—'}</td>
             </tr>
             <tr style="background:#0f2044">
