@@ -3155,6 +3155,30 @@ setTimeout(function(){
       </div>
       <div style="flex:1;overflow-y:auto;padding:16px 28px 40px">
 
+        <!-- MOVER LEADS ENTRE USUARIOS -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:24px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">🔀 Mover leads de un usuario a otro</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:160px">
+              <div style="font-size:10px;color:var(--text2);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">De</div>
+              <select id="rec-move-from" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:13px">
+                <option value="">— Elegir origen —</option>
+              </select>
+            </div>
+            <div style="font-size:20px;color:var(--text2);margin-top:16px">→</div>
+            <div style="flex:1;min-width:160px">
+              <div style="font-size:10px;color:var(--text2);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">A</div>
+              <select id="rec-move-to" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:13px">
+                <option value="">— Elegir destino —</option>
+              </select>
+            </div>
+            <div style="margin-top:16px">
+              <button onclick="applyMoveLeads()" style="background:var(--accent);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Mover leads</button>
+            </div>
+          </div>
+          <div id="rec-move-preview" style="margin-top:10px;font-size:11px;color:var(--text2)"></div>
+        </div>
+
         <!-- USERS GRID -->
         <div style="margin-bottom:20px">
           <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px">
@@ -3427,6 +3451,13 @@ setTimeout(function(){
       <button class="btn btn-secondary" onclick="closeRestoreModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmRestore()">Restaurar</button>
     </div>
+  </div>
+</div>
+
+<!-- AGENT SUMMARY MODAL -->
+<div class="overlay" id="agent-summary-overlay" onclick="if(event.target===this)closeAgentSummary()">
+  <div class="modal" style="max-width:480px;padding:0;overflow:hidden">
+    <div id="agent-summary-content"></div>
   </div>
 </div>
 
@@ -4385,6 +4416,28 @@ function selectBoard(id) {
   document.getElementById('import-panel').classList.remove('visible');
   document.getElementById('leads-table').style.display = '';
 
+  // Refresh user data from Supabase so inactive/deleted status is always current
+  supa.from('kv_store').select('key, value').in('key', [USERS_KEY, DELETED_USERS_KEY]).then(({ data }) => {
+    if (!data) return;
+    const usersRow   = data.find(r => r.key === USERS_KEY);
+    const deletedRow = data.find(r => r.key === DELETED_USERS_KEY);
+    if (!usersRow?.value) return;
+    try {
+      const remote = JSON.parse(usersRow.value) || [];
+      const local  = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+      const deletedIds = new Set();
+      try { (JSON.parse(deletedRow?.value || '[]')).forEach(u => u.id && deletedIds.add(u.id)); } catch(_) {}
+      try { (JSON.parse(localStorage.getItem(DELETED_USERS_KEY) || '[]')).forEach(u => u.id && deletedIds.add(u.id)); } catch(_) {}
+      const merged = [...remote];
+      local.forEach(lu => {
+        if (!merged.find(ru => ru.id === lu.id) && !deletedIds.has(lu.id)) merged.push(lu);
+      });
+      localStorage.setItem(USERS_KEY, JSON.stringify(merged));
+    } catch(_) {}
+    populateAgentFilter();
+    renderTableKeepSelection();
+  }).catch(() => {});
+
   populateAgentFilter();
   populateLeadFilter();
   renderTable();
@@ -5337,6 +5390,31 @@ function renderReconcilePage() {
   const validNames  = new Set(allUsers.map(u => u.name));
   const roleLabel   = r => ({ master:'Master', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
 
+  // --- MOVER LEADS DROPDOWNS ---
+  // "De": all names that appear in leads (any name, including orphaned)
+  // "A": all registered users
+  const fromSel = document.getElementById('rec-move-from');
+  const toSel   = document.getElementById('rec-move-to');
+  if (fromSel) {
+    // Collect all unique asignado names across boards
+    const allAsigNames = new Set();
+    for (const board of BOARDS)
+      for (const l of loadLeads(board.id))
+        if (l.asignado && l.asignado !== 'Sin asignar') allAsigNames.add(l.asignado);
+    // Also include all user names even if they have 0 leads (so you can pick anyone)
+    allUsers.forEach(u => allAsigNames.add(u.name));
+    const sortedNames = [...allAsigNames].sort((a,b) => a.localeCompare(b));
+    fromSel.innerHTML = '<option value="">— Elegir origen —</option>' +
+      sortedNames.map(n => `<option value="${esc(n)}">${esc(n)}${asigMap[n]?' ('+asigMap[n].count+' leads)':' (0 leads)'}</option>`).join('');
+    fromSel.onchange = _updateMovePreview;
+  }
+  if (toSel) {
+    toSel.innerHTML = '<option value="">— Elegir destino —</option>' +
+      [...allUsers].sort((a,b) => a.name.localeCompare(b.name))
+        .map(u => `<option value="${esc(u.name)}">${esc(u.name)}${u.inactive?' (inactivo)':''}</option>`).join('');
+    toSel.onchange = _updateMovePreview;
+  }
+
   // --- USERS GRID ---
   const usersGrid = document.getElementById('rec-users-grid');
   const userCount = document.getElementById('rec-user-count');
@@ -5379,7 +5457,7 @@ function renderReconcilePage() {
   if (tableBody) {
     // header
     tableBody.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 80px 120px 1fr 100px;gap:0;background:var(--card2);padding:8px 16px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">
+      <div style="display:grid;grid-template-columns:1fr 80px 120px 1fr 130px;gap:0;background:var(--card2);padding:8px 16px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">
         <div>Nombre en leads</div>
         <div>Leads</div>
         <div>Estado</div>
@@ -5400,7 +5478,7 @@ function renderReconcilePage() {
         ).join('');
         const rowBg = isValid ? '' : 'background:rgba(245,158,11,.04);';
         const key   = encodeURIComponent(name);
-        return `<div style="display:grid;grid-template-columns:1fr 80px 120px 1fr 100px;align-items:center;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);${rowBg}">
+        return `<div style="display:grid;grid-template-columns:1fr 80px 120px 1fr 130px;align-items:center;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);${rowBg}">
           <div>
             <div style="font-weight:600;font-size:13px;color:var(--text)">${esc(name)}</div>
             <div style="font-size:10px;color:var(--text2);margin-top:1px">${[...info.boards].slice(0,2).join(', ')}${info.boards.size>2?'…':''}</div>
@@ -5414,7 +5492,8 @@ function renderReconcilePage() {
               ${opts}
             </select>
           </div>
-          <div style="text-align:right">
+          <div style="text-align:right;display:flex;gap:4px;justify-content:flex-end">
+            <button onclick="invertReconcileRow('${esc(name)}')" title="Invertir: poner este nombre como destino en la fila contraria" style="background:rgba(253,171,61,.12);color:#fdab3d;border:1px solid rgba(253,171,61,.35);padding:4px 8px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">↔</button>
             <button onclick="applyReconcileRow('${esc(name)}')" style="background:rgba(0,115,234,.15);color:var(--accent);border:1px solid rgba(0,115,234,.3);padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Aplicar</button>
           </div>
         </div>`;
@@ -5457,6 +5536,161 @@ async function applyReconcileAll() {
   }
   showToast(`✅ ${applied} lead(s) reasignados`);
   renderReconcilePage();
+}
+
+function _updateMovePreview() {
+  const from = document.getElementById('rec-move-from')?.value;
+  const to   = document.getElementById('rec-move-to')?.value;
+  const prev = document.getElementById('rec-move-preview');
+  if (!prev) return;
+  if (!from || !to) { prev.textContent = ''; return; }
+  if (from === to)  { prev.innerHTML = '<span style="color:#f59e0b">⚠ Origen y destino son el mismo usuario.</span>'; return; }
+  let count = 0;
+  for (const board of BOARDS)
+    count += loadLeads(board.id).filter(l => l.asignado === from).length;
+  prev.innerHTML = count > 0
+    ? `Se moverán <strong>${count} lead${count!==1?'s':''}</strong> de <em>${esc(from)}</em> → <em>${esc(to)}</em>`
+    : `<span style="color:var(--text2)">No hay leads asignados a "${esc(from)}".</span>`;
+}
+
+async function applyMoveLeads() {
+  const from = document.getElementById('rec-move-from')?.value;
+  const to   = document.getElementById('rec-move-to')?.value;
+  if (!from || !to) { showToast('Elige origen y destino'); return; }
+  if (from === to)  { showToast('Origen y destino son el mismo', 'error'); return; }
+  let total = 0;
+  for (const board of BOARDS) {
+    const leads = loadLeads(board.id);
+    let changed = false;
+    leads.forEach(l => { if (l.asignado === from) { l.asignado = to; changed = true; total++; } });
+    if (changed) await saveLeads(board.id, leads);
+  }
+  if (total === 0) { showToast(`No había leads de "${from}"`); return; }
+  showToast(`✅ ${total} lead${total!==1?'s':''} movidos de "${from}" → "${to}"`);
+  renderReconcilePage();
+}
+
+function closeAgentSummary() {
+  document.getElementById('agent-summary-overlay').classList.remove('open');
+}
+
+function showAgentSummary(userId) {
+  const allUsers = loadUsers();
+  const u = allUsers.find(x => x.id === userId);
+  if (!u) return;
+
+  // --- Build work line (chain upward) ---
+  const roleLabel = r => ({ master:'Desarrollador', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
+  const chain = [];
+  let sup = u.orgSupervisorId    ? allUsers.find(x => x.id === u.orgSupervisorId)    : null;
+  let mgr = u.orgManagerId       ? allUsers.find(x => x.id === u.orgManagerId)       : null;
+  let mga = u.orgMasterManagerId ? allUsers.find(x => x.id === u.orgMasterManagerId) : null;
+  let adm = u.orgAdminId         ? allUsers.find(x => x.id === u.orgAdminId)         : null;
+  if (sup) chain.push({ label: roleLabel(sup.role), name: sup.name });
+  if (mgr) chain.push({ label: roleLabel(mgr.role), name: mgr.name });
+  if (mga) chain.push({ label: roleLabel(mga.role), name: mga.name });
+  if (adm) chain.push({ label: roleLabel(adm.role), name: adm.name });
+
+  // --- Count personal leads ---
+  let myLeads = 0;
+  for (const b of BOARDS) myLeads += loadLeads(b.id).filter(l => l.asignado === u.name).length;
+
+  // --- Count team leads (everyone in their line) ---
+  const lineUsers = _getLineUsers({ ...u, role: u.role });
+  const lineNames = new Set(lineUsers.map(x => x.name));
+  let lineLeads = 0;
+  for (const b of BOARDS) lineLeads += loadLeads(b.id).filter(l => lineNames.has(l.asignado)).length;
+
+  // --- Last login ---
+  const fmtDate = iso => {
+    if (!iso) return 'Nunca registrada';
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-US', { day:'2-digit', month:'short', year:'numeric' }) +
+           ' · ' + d.toLocaleTimeString('es-US', { hour:'2-digit', minute:'2-digit' });
+  };
+
+  // --- Avatar color ---
+  const avatarBg = u.role==='admin'?'var(--accent)':u.role==='master_manager'?'#00b7c3':u.role==='manager'?'var(--green)':u.role==='supervisor_agent'?'#ff8c00':'var(--purple)';
+  const initials = (u.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const roleCls  = `role-${u.role}`;
+
+  const chainHtml = chain.length
+    ? chain.map(c => `<span style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;white-space:nowrap"><span style="color:var(--text2);font-size:10px">${c.label} · </span>${esc(c.name)}</span>`).join('<span style="color:var(--text2);padding:0 4px">→</span>')
+    : `<span style="color:var(--text2);font-size:12px">Sin línea asignada</span>`;
+
+  const html = `
+    <div style="padding:24px 24px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:48px;height:48px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+          <div>
+            <div style="font-size:16px;font-weight:700;color:var(--text)">${esc(u.name)}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:1px">${esc(u.email||'—')}</div>
+            <span class="role-badge ${roleCls}" style="margin-top:5px;display:inline-block">${roleLabel(u.role)}</span>
+            ${u.inactive ? '<span class="badge-inactive" style="margin-left:4px">INACTIVO</span>' : ''}
+          </div>
+        </div>
+        <button onclick="closeAgentSummary()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:0">✕</button>
+      </div>
+
+      <!-- Línea de trabajo -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Línea de trabajo</div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">${chainHtml}</div>
+      </div>
+
+      <!-- Última conexión -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">🕐</span>
+        <div>
+          <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Última conexión</div>
+          <div style="font-size:13px;color:var(--text);font-weight:500;margin-top:2px">${fmtDate(u.lastLogin)}</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:var(--accent)">${myLeads}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">Sus leads asignados</div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#00c875">${lineLeads}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">Leads de su línea</div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('agent-summary-content').innerHTML = html;
+  document.getElementById('agent-summary-overlay').classList.add('open');
+}
+
+function invertReconcileRow(sourceName) {
+  // Get selected target for this row
+  const key    = encodeURIComponent(sourceName);
+  const sel    = document.getElementById('rec-sel-' + key);
+  if (!sel || !sel.value) { showToast('Primero selecciona un usuario destino en esta fila'); return; }
+  const targetName = sel.value;
+
+  // Find the row where source = targetName and set its dropdown to sourceName
+  const targetKey = encodeURIComponent(targetName);
+  const targetSel = document.getElementById('rec-sel-' + targetKey);
+  if (targetSel) {
+    // Set the target row's dropdown to sourceName
+    for (let i = 0; i < targetSel.options.length; i++) {
+      if (targetSel.options[i].value === sourceName) {
+        targetSel.selectedIndex = i;
+        break;
+      }
+    }
+    // Clear this row's selection (no longer needed)
+    sel.value = '';
+    showToast(`↔ Invertido: "${targetName}" → "${sourceName}"`);
+  } else {
+    // The target name has no leads row — just clear this row and explain
+    sel.value = '';
+    showToast(`↔ La fila "${targetName}" no existe en leads. Selección limpiada.`);
+  }
 }
 
 // ════════════════════════════════════════════
@@ -8035,6 +8269,9 @@ function switchSettingsTab(tab) {
   if (tab === 'org' || tab === 'team') {
     loadFromSupabase().then(() => renderUsersGrid()).catch(() => {});
   }
+  if (tab === 'requests') {
+    loadFromSupabase().then(() => renderPendingList()).catch(() => renderPendingList());
+  }
 }
 
 function showSettingsPage() {
@@ -8968,51 +9205,39 @@ async function seedDefaultAdmin() {
 async function seedAlexanderAgentsV2() {
   if (localStorage.getItem('gew_seed_alexander_agents_v2')) return;
   const users = loadUsers();
+  const deletedEmails = new Set(loadDeletedUsers().map(u => (u.email||'').toLowerCase()));
   const alexander = users.find(u => u.email === 'alexander@gmail.com') || users.find(u => u.name && u.name.toLowerCase().includes('alexander'));
-  if (!alexander) return;
+  if (!alexander) { localStorage.setItem('gew_seed_alexander_agents_v2', '1'); supaSync('gew_seed_alexander_agents_v2', '1'); return; }
   const names = ['Orlando','Lianet','Edgar','Christopher','Cecilia'];
   let changed = false;
   names.forEach(name => {
-    const emailName = name.toLowerCase().replace(/\s+/g, '');
-    if (users.find(u => u.email === emailName + '@gmail.com')) return;
-    users.push({ id: uid(), name: name, email: emailName + '@gmail.com', password: '123456', role: 'agent', orgManagerId: alexander.id, termsAccepted: true, mustChangePassword: true, createdAt: today() });
+    const emailName = name.toLowerCase().replace(/\s+/g, '') + '@gmail.com';
+    if (users.find(u => u.email === emailName) || deletedEmails.has(emailName)) return;
+    users.push({ id: uid(), name: name, email: emailName, password: '123456', role: 'agent', orgManagerId: alexander.id, termsAccepted: true, mustChangePassword: true, createdAt: today() });
     changed = true;
   });
   if (changed) { await saveUsers(users); showToast('5 agentes adicionales de Alexander agregados ✓', 'success'); }
   localStorage.setItem('gew_seed_alexander_agents_v2', '1');
+  supaSync('gew_seed_alexander_agents_v2', '1');
 }
 
 async function seedAlexanderAgents() {
   if (localStorage.getItem('gew_seed_alexander_agents_v1')) return;
   const users = loadUsers();
+  const deletedEmails = new Set(loadDeletedUsers().map(u => (u.email||'').toLowerCase()));
   const alexander = users.find(u => u.email === 'alexander@gmail.com') || users.find(u => u.name && u.name.toLowerCase().includes('alexander'));
-  if (!alexander) return; // Alexander not found yet, skip
+  if (!alexander) { localStorage.setItem('gew_seed_alexander_agents_v1', '1'); supaSync('gew_seed_alexander_agents_v1', '1'); return; }
   const names = ['Harold','Kenia','Lisbeth','Chacha','Barbara','Augusto','Bryan','Yarlys','Yarisleidy','Madison','Marta','Guadalupe','Neyda','Maria Lugo','Elizabeth'];
   let changed = false;
   names.forEach(name => {
-    const emailName = name.toLowerCase().replace(/\s+/g, '');
-    const alreadyExists = users.find(u => u.email === emailName + '@gmail.com');
-    if (alreadyExists) return;
-    users.push({
-      id: uid(),
-      name: name,
-      email: emailName + '@gmail.com',
-      password: '123456',
-      role: 'agent',
-      orgManagerId: alexander.id,
-      termsAccepted: true,
-      mustChangePassword: true,
-      createdAt: today()
-    });
+    const emailName = name.toLowerCase().replace(/\s+/g, '') + '@gmail.com';
+    if (users.find(u => u.email === emailName) || deletedEmails.has(emailName)) return;
+    users.push({ id: uid(), name: name, email: emailName, password: '123456', role: 'agent', orgManagerId: alexander.id, termsAccepted: true, mustChangePassword: true, createdAt: today() });
     changed = true;
   });
-  if (changed) {
-    await saveUsers(users);
-    localStorage.setItem('gew_seed_alexander_agents_v1', '1');
-    showToast('15 agentes de Alexander agregados ✓', 'success');
-  } else {
-    localStorage.setItem('gew_seed_alexander_agents_v1', '1');
-  }
+  if (changed) { await saveUsers(users); showToast('15 agentes de Alexander agregados ✓', 'success'); }
+  localStorage.setItem('gew_seed_alexander_agents_v1', '1');
+  supaSync('gew_seed_alexander_agents_v1', '1');
 }
 
 async function doLogin() {
@@ -9499,6 +9724,17 @@ async function saveTerms() {
 // Every login path (password, Google, terms acceptance) MUST call this.
 // Add any future post-login logic here and it applies everywhere automatically.
 function _finalizeLogin(user) {
+  // Record last login timestamp
+  if (user.role !== 'master') {
+    const _allU = loadUsers();
+    const _uidx = _allU.findIndex(u => u.id === user.id);
+    if (_uidx !== -1) {
+      _allU[_uidx].lastLogin = new Date().toISOString();
+      localStorage.setItem(USERS_KEY, JSON.stringify(_allU));
+      supaSync(USERS_KEY, JSON.stringify(_allU));
+      user = { ...user, lastLogin: _allU[_uidx].lastLogin };
+    }
+  }
   setSession(user);
   document.getElementById('login-screen').classList.add('hidden');
   if (user.mustChangePassword) {
@@ -9690,6 +9926,7 @@ function orgNode(u, session) {
   const isMasterViewing = session.role === 'master' || session._isMaster || session.role === 'admin';
   const viewAsBtn    = isMasterViewing && u.role !== 'master' && !sessionStorage.getItem('gew_preview_session')
     ? `<button onclick="openPreviewAs('${u.id}')" title="Ver como este usuario" style="color:#a78bfa">👁</button>` : '';
+  const summaryBtn   = isMasterViewing && u.role !== 'master' ? `<button onclick="showAgentSummary('${u.id}')" title="Ver resumen del agente" style="color:#00c875">📊</button>` : '';
   const editBtn      = canEdit && u.role !== 'master' ? `<button onclick="openUserModal('${u.id}')" title="Editar">✏️</button>` : '';
   const inactiveBtn  = canEdit && u.role !== 'master' && u.id !== session.id
     ? (u.inactive
@@ -9717,7 +9954,7 @@ function orgNode(u, session) {
       <span class="role-badge ${roleCls}" style="margin-top:3px;display:inline-block">${roleLabel}</span>
       ${inactiveInfo}
     </div>
-    <div class="org-node-actions">${viewAsBtn}${editBtn}${inactiveBtn}${delBtn}</div>
+    <div class="org-node-actions">${summaryBtn}${viewAsBtn}${editBtn}${inactiveBtn}${delBtn}</div>
   </div>`;
 }
 
@@ -9780,6 +10017,15 @@ function buildOrgBranch(admId, allUsers, session) {
   managers.filter(u => !u.orgMasterManagerId).forEach(mgr => {
     renderedIds.add(mgr.id);
     children += hChild(buildManagerBranch(mgr, allUsers, admId, session, renderedIds));
+  });
+
+  // Any supervisor not yet placed (no manager, or broken manager reference)
+  supervisors.filter(sup => !renderedIds.has(sup.id)).forEach(sup => {
+    renderedIds.add(sup.id);
+    const supAgents = agents.filter(ag => ag.orgSupervisorId === sup.id);
+    let supChildren = supAgents.map(ag => { renderedIds.add(ag.id); return hChild(hOrgWrap(orgNode(ag, session), '')); }).join('');
+    supChildren += hAddBtn(admId, '＋ Agente');
+    children += hChild(hOrgWrap(orgNode(sup, session), supChildren));
   });
 
   agents.filter(u => !u.orgManagerId && !u.orgMasterManagerId && !u.orgSupervisorId).forEach(ag => {
@@ -9959,16 +10205,16 @@ async function assignOrphanUser(userId) {
   delete u.orgSupervisorId; delete u.orgManagerId; delete u.orgMasterManagerId;
   if (target.role === 'supervisor_agent') {
     u.orgSupervisorId    = target.id;
-    u.orgManagerId       = target.orgManagerId       || null;
-    u.orgMasterManagerId = target.orgMasterManagerId || null;
-    u.orgAdminId         = target.orgAdminId         || null;
+    u.orgManagerId       = null;
+    u.orgMasterManagerId = null;
+    u.orgAdminId         = target.orgAdminId || null;
   } else if (target.role === 'manager') {
     u.orgManagerId       = target.id;
-    u.orgMasterManagerId = target.orgMasterManagerId || null;
-    u.orgAdminId         = target.orgAdminId         || null;
+    u.orgMasterManagerId = null;
+    u.orgAdminId         = target.orgAdminId || null;
   } else if (target.role === 'master_manager') {
     u.orgMasterManagerId = target.id;
-    u.orgAdminId         = target.orgAdminId         || null;
+    u.orgAdminId         = target.orgAdminId || null;
   }
   await saveUsers(users);
   renderUsersGrid();
@@ -10382,7 +10628,14 @@ async function submitRegisterRequest() {
     err.textContent = 'Ese email ya tiene una cuenta activa. Inicia sesión directamente.';
     return;
   }
-  const pending = loadPendingUsers();
+  // Always fetch from Supabase first so multiple requests from different devices don't overwrite each other
+  let pending = [];
+  try {
+    const { data: _supaRow } = await supa.from('kv_store').select('value').eq('key', PENDING_KEY).maybeSingle();
+    if (_supaRow?.value) pending = JSON.parse(_supaRow.value) || [];
+  } catch(_) {
+    pending = loadPendingUsers();
+  }
   if (pending.some(u => u.email.toLowerCase() === email)) {
     err.textContent = 'Ya existe una solicitud pendiente con ese email.';
     return;
@@ -12328,10 +12581,17 @@ function _applyRealtimeKey(key) {
     populateAgentFilter();
     const ug = document.getElementById('users-grid');
     if (ug) renderUsersGrid();
+    renderTableKeepSelection();
     return;
   }
   if (key === 'gew_calendar_events') {
     if (typeof renderCalendar === 'function') renderCalendar();
+    return;
+  }
+  if (key === PENDING_KEY) {
+    updatePendingBadge();
+    const reqTab = document.getElementById('stab-requests');
+    if (reqTab && reqTab.classList.contains('active')) renderPendingList();
     return;
   }
 }
@@ -12341,14 +12601,34 @@ async function loadFromSupabase() {
     const { data, error } = await supa.from('kv_store').select('key, value');
     if (error) { console.error('Supabase load error:', error.message); return; }
     if (data && data.length > 0) {
+      // Build a map of all remote data first so we can cross-reference during merge
+      const remoteMap = {};
+      data.forEach(row => { remoteMap[row.key] = row.value; });
+
+      // Collect deleted user IDs from the remote batch to prevent resurrection
+      let deletedUserIds = new Set();
+      try {
+        const deletedRemote = JSON.parse(remoteMap[DELETED_USERS_KEY] || '[]');
+        deletedRemote.forEach(u => { if (u.id) deletedUserIds.add(u.id); });
+      } catch(_) {}
+      // Also include any locally tracked deleted users
+      try {
+        const deletedLocal = JSON.parse(localStorage.getItem(DELETED_USERS_KEY) || '[]');
+        deletedLocal.forEach(u => { if (u.id) deletedUserIds.add(u.id); });
+      } catch(_) {}
+
       data.forEach(row => {
-        // For users key: merge — keep whichever has more entries to avoid losing locally-created users
         if (row.key === USERS_KEY) {
           try {
             const remote = JSON.parse(row.value) || [];
             const local  = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
             const merged = [...remote];
-            local.forEach(lu => { if (!merged.find(ru => ru.id === lu.id)) merged.push(lu); });
+            // Only add local users not in remote AND not previously deleted
+            local.forEach(lu => {
+              if (!merged.find(ru => ru.id === lu.id) && !deletedUserIds.has(lu.id)) {
+                merged.push(lu);
+              }
+            });
             localStorage.setItem(row.key, JSON.stringify(merged));
           } catch { localStorage.setItem(row.key, row.value); }
         } else {
