@@ -2281,6 +2281,9 @@ setTimeout(function(){
             <button class="settings-nav-item" data-tab="backup" id="snav-backup" onclick="switchSettingsTab('backup')">
               <span class="sni-icon-wrap">💾</span>Respaldo
             </button>
+            <button class="settings-nav-item" data-tab="permisos" id="snav-permisos" onclick="switchSettingsTab('permisos')">
+              <span class="sni-icon-wrap">🔐</span>Permisos por Rol
+            </button>
           </div>
 
           <div class="settings-nav-group" style="margin-top:auto">
@@ -2825,6 +2828,356 @@ setTimeout(function(){
               </div>
             </div>
 
+          </div>
+
+          <!-- TAB: Permisos por Rol (master only) -->
+          <div class="settings-tab" id="stab-permisos">
+            <div class="st-header">
+              <div>
+                <div class="st-title">🔐 Permisos por Rol</div>
+                <div class="st-subtitle">Visibilidad detallada de lo que cada rol puede ver y hacer en el sistema.</div>
+              </div>
+            </div>
+            <style>
+              .perm-table { width:100%; border-collapse:collapse; font-size:12px; }
+              .perm-table th { padding:10px 12px; text-align:center; font-weight:700; font-size:11px; letter-spacing:.3px; border-bottom:2px solid var(--border); position:sticky; top:0; background:var(--card); z-index:2; }
+              .perm-table th.col-feature { text-align:left; min-width:200px; }
+              .perm-table td { padding:8px 12px; border-bottom:1px solid rgba(255,255,255,.05); text-align:center; vertical-align:middle; }
+              .perm-table td.col-feature { text-align:left; color:var(--text); font-weight:500; }
+              .perm-table tr:hover td { background:rgba(255,255,255,.03); }
+              .perm-table .section-row td { background:var(--card2); color:var(--accent); font-weight:700; font-size:11px; letter-spacing:.5px; text-transform:uppercase; padding:6px 12px; }
+              .perm-table .section-row td.col-feature { border-radius:6px 0 0 6px; }
+              .perm-yes  { color:#3ecf8e; font-size:16px; }
+              .perm-no   { color:rgba(255,255,255,.15); font-size:14px; }
+              .perm-partial { color:#fdab3d; font-size:13px; font-weight:700; }
+              .perm-solo { color:#f472b6; font-size:13px; font-weight:700; }
+              .perm-col-master { background:rgba(99,102,241,.07); }
+              .role-head { display:flex; flex-direction:column; align-items:center; gap:3px; }
+              .role-head-badge { padding:2px 7px; border-radius:8px; font-size:9px; font-weight:700; letter-spacing:.4px; }
+            </style>
+            <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border)">
+              <table class="perm-table">
+                <thead>
+                  <tr>
+                    <th class="col-feature">Función / Sección</th>
+                    <th class="perm-col-master"><div class="role-head"><span>👑</span><span class="role-head-badge" style="background:rgba(99,102,241,.3);color:#a5b4fc">Master</span><span style="font-size:9px;color:var(--text2);font-weight:400">Solo yo</span></div></th>
+                    <th><div class="role-head"><span>🏢</span><span class="role-head-badge" style="background:rgba(0,115,234,.2);color:#4da8ff">Admin</span></div></th>
+                    <th><div class="role-head"><span>⭐</span><span class="role-head-badge" style="background:rgba(0,183,195,.2);color:#00b7c3">MGA</span></div></th>
+                    <th><div class="role-head"><span>📋</span><span class="role-head-badge" style="background:rgba(0,200,117,.2);color:#00c875">GA</span></div></th>
+                    <th><div class="role-head"><span>🔹</span><span class="role-head-badge" style="background:rgba(255,140,0,.2);color:#ff8c00">SA</span></div></th>
+                    <th><div class="role-head"><span>📞</span><span class="role-head-badge" style="background:rgba(236,72,153,.2);color:#f472b6">Caller</span></div></th>
+                    <th><div class="role-head"><span>👤</span><span class="role-head-badge" style="background:rgba(120,75,209,.2);color:#a97ff2">Agente</span></div></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- LEADS -->
+                  <tr class="section-row"><td colspan="8">📋 Visualización de Leads</td></tr>
+                  <tr>
+                    <td class="col-feature">Ver todos los boards y todos los leads</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Ver leads de toda su organización (admin)</td>
+                    <td class="perm-col-master"><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Ver leads de su línea jerárquica</td>
+                    <td class="perm-col-master"><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Ver solo sus leads asignados</td>
+                    <td class="perm-col-master"><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Filtrar leads por agente</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <!-- ACCIONES EN LEADS -->
+                  <tr class="section-row"><td colspan="8">⚡ Acciones sobre Leads</td></tr>
+                  <tr>
+                    <td class="col-feature">Seleccionar múltiples leads (bulk)</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Reasignar / transferir leads a otro agente</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Editar resultado y notas de un lead</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Eliminar leads (mover a papelera)</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Restaurar leads de la papelera</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Importar leads (carga masiva)</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Exportar leads (CSV)</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <!-- NAVEGACIÓN -->
+                  <tr class="section-row"><td colspan="8">🗂 Navegación y Secciones</td></tr>
+                  <tr>
+                    <td class="col-feature">Eliminados (papelera)</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Estadísticas</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Calendario</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Actividad (log de acciones)</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Facturación</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Reporte Semanal</td>
+                    <td class="perm-col-master"><span class="perm-solo">★ Solo yo</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Scripts de Llamada</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Conexiones (Zoom, integraciones)</td>
+                    <td class="perm-col-master"><span class="perm-solo">★ Solo yo</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <!-- CONFIGURACIÓN -->
+                  <tr class="section-row"><td colspan="8">⚙️ Configuración</td></tr>
+                  <tr>
+                    <td class="col-feature">Ver y gestionar usuarios del equipo</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Crear y editar usuarios</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Gestionar boards y columnas</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Crear tipos de lead</td>
+                    <td class="perm-col-master"><span class="perm-solo">★ Solo yo</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Reconciliar usuarios</td>
+                    <td class="perm-col-master"><span class="perm-solo">★ Solo yo</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Editar su propia cuenta / contraseña</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                  </tr>
+                  <!-- NOTIFICACIONES -->
+                  <tr class="section-row"><td colspan="8">🔔 Notificaciones y Alertas</td></tr>
+                  <tr>
+                    <td class="col-feature">Notificación de leads nuevos al entrar</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Punto naranja en boards con leads nuevos</td>
+                    <td class="perm-col-master"><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-yes">✓</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="col-feature">Barra de estado de conexiones (tiempo real)</td>
+                    <td class="perm-col-master"><span class="perm-solo">★ Solo yo</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                    <td><span class="perm-no">—</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="margin-top:16px;display:flex;gap:20px;font-size:11px;color:var(--text2);flex-wrap:wrap">
+              <span><span class="perm-yes">✓</span> Tiene acceso</span>
+              <span><span class="perm-no">—</span> Sin acceso</span>
+              <span><span class="perm-solo">★ Solo yo</span> Exclusivo Master</span>
+            </div>
           </div>
 
           <!-- TAB: Mensajería (developer only) -->
