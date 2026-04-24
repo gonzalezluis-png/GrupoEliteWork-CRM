@@ -1066,13 +1066,14 @@
   .org-h-child-hline { width:28px; height:2px; background:var(--border); flex-shrink:0; }
   /* Node card */
   .org-node {
-    display:inline-flex; align-items:center; gap:8px;
-    background:var(--card); border:1px solid var(--border);
-    border-radius:10px; padding:8px 12px;
-    width:200px; flex-shrink:0;
-    transition:border-color .15s;
+    display:inline-flex; align-items:center; gap:10px;
+    background:var(--card); border:1.5px solid var(--border);
+    border-radius:12px; padding:10px 14px;
+    width:260px; flex-shrink:0;
+    transition:border-color .15s, box-shadow .15s;
+    box-shadow:0 1px 4px rgba(0,0,0,.18);
   }
-  .org-node:hover { border-color:var(--accent); }
+  .org-node:hover { border-color:var(--accent); box-shadow:0 2px 12px rgba(0,115,234,.15); }
   .org-node-master         { border-color:var(--yellow); }
   .org-node-admin          { border-color:var(--accent); }
   .org-node-master_manager { border-color:#00b7c3; }
@@ -1080,11 +1081,11 @@
   .org-node-supervisor_agent { border-color:#ff8c00; }
   .org-node-agent          { border-color:var(--border); }
   .org-node-info { flex:1; min-width:0; }
-  .org-node-name  { font-size:11px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .org-node-email { font-size:9px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .org-node-actions { display:flex; gap:2px; flex-shrink:0; }
-  .org-node-actions button { background:transparent; border:none; color:var(--text2); cursor:pointer; font-size:11px; padding:2px 4px; border-radius:4px; transition:background .12s,color .12s; }
-  .org-node-actions button:hover { background:var(--border); color:#fff; }
+  .org-node-name  { font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .org-node-email { font-size:10px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+  .org-node-actions { display:flex; gap:1px; flex-shrink:0; }
+  .org-node-actions button { background:transparent; border:none; color:var(--text2); cursor:pointer; font-size:13px; padding:3px 5px; border-radius:6px; transition:background .12s,color .12s; }
+  .org-node-actions button:hover { background:rgba(255,255,255,.08); color:#fff; }
   .org-node-actions button.del:hover { color:var(--red); }
   .org-tree-add { display:inline-flex; align-items:center; gap:5px; background:transparent; border:1px dashed var(--border); border-radius:8px; padding:5px 12px; color:var(--text2); font-size:10px; font-weight:600; cursor:pointer; transition:border-color .15s,color .15s; white-space:nowrap; }
   .org-tree-add:hover { border-color:var(--accent); color:var(--accent); }
@@ -9947,7 +9948,7 @@ function orgNode(u, session) {
       })()
     : '';
   return `<div class="${nodeClass}${inactiveCls}" data-uid="${u.id}" ${dragAttrs} ${dropAttrs}>
-    <div style="width:32px;height:32px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+    <div style="width:36px;height:36px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.3)">${initials}</div>
     <div class="org-node-info">
       <div class="org-node-name">${esc(u.name)}${inactiveBadge}</div>
       <div class="org-node-email">${esc(u.email)}</div>
