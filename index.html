@@ -929,6 +929,14 @@
   .imp-history-total { font-size:22px; font-weight:800; color:var(--text); text-align:right; white-space:nowrap; }
   .imp-history-total span { display:block; font-size:10px; font-weight:400; color:var(--text2); }
 
+  /* Weekly report */
+  .wkr-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:18px; }
+  .wkr-header { background:linear-gradient(90deg,#1e3a5f,#1a2e4a); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; }
+  .wkr-week-label { font-size:13px; font-weight:700; color:#e2e8f0; }
+  .wkr-total-badge { font-size:12px; font-weight:700; background:rgba(99,102,241,.3); color:#a5b4fc; border-radius:20px; padding:3px 12px; }
+  .wkr-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .wkr-table tbody tr:hover { background:rgba(255,255,255,.03); }
+
   /* Column mapping section */
   .imp-map-section { background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:12px; }
   .imp-map-label   { font-size:10px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
@@ -2031,9 +2039,30 @@ setTimeout(function(){
     </div>
     <div id="sidebar-master" style="display:none">
       <div class="sidebar-item" id="nav-reconcile" onclick="showReconcilePage()">🔗 <span>Reconciliar Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
+      <div class="sidebar-item" id="nav-weekly-report" onclick="showWeeklyReportPage()">📈 <span>Reporte Semanal</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-users" onclick="showSettingsPage();switchSettingsTab('team')" style="display:none">👥 <span>Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-messaging" onclick="showSettingsPage();switchSettingsTab('messaging')" style="display:none">💬 <span>Panel de mensajería</span><span class="emblem-dev">🙈 Solo yo</span></div>
+
+      <!-- Connection status widget -->
+      <div id="conn-status-widget" style="margin:12px 10px 4px;padding:10px 12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.07);border-radius:10px">
+        <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+          Conexiones
+          <button onclick="pingConnections()" title="Actualizar" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:11px;padding:0;line-height:1">↻</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:7px;font-size:11px">
+            <span id="conn-dot-supa" style="width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0;transition:background .3s"></span>
+            <span style="color:var(--text2);flex:1">Supabase</span>
+            <span id="conn-ms-supa" style="font-size:10px;color:var(--text2)">—</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;font-size:11px">
+            <span id="conn-dot-gh" style="width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0;transition:background .3s"></span>
+            <span style="color:var(--text2);flex:1">GitHub</span>
+            <span id="conn-ms-gh" style="font-size:10px;color:var(--text2)">—</span>
+          </div>
+        </div>
+      </div>
     </div>
   </nav>
 
@@ -3275,6 +3304,18 @@ setTimeout(function(){
         </div>
 
       </div>
+    </div>
+
+    <!-- WEEKLY REPORT PAGE -->
+    <div id="weekly-report-page" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+      <div style="padding:24px 36px 0 36px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:20px;font-weight:800;color:var(--text)">📈 Reporte Semanal de Leads</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px">Leads importados por semana y su distribución por board</div>
+        </div>
+        <button onclick="loadWeeklyReportPage()" style="background:var(--card2);border:1px solid var(--border);color:var(--text2);padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer">↻ Actualizar</button>
+      </div>
+      <div id="weekly-report-page-body" style="flex:1;overflow-y:auto;padding:28px 36px 60px"></div>
     </div>
 
     <!-- SCRIPTS PAGE -->
@@ -6698,6 +6739,14 @@ function showImportPanel() {
             <label>Tipo de lead para todos</label>
             <select id="global-lead-type" onchange="applyGlobalLeadType()">${leadTypeOpts}</select>
           </div>
+          <div class="imp-dest-field">
+            <label>Semana asignada</label>
+            <select id="imp-week-sel">${getWeekOptions().map(w=>`<option value="${w.start}" ${w.isCurrent?'selected':''}>${w.label}</option>`).join('')}</select>
+          </div>
+          <div class="imp-dest-field">
+            <label>Precio por lead ($)</label>
+            <input type="number" id="imp-global-price" min="0" step="0.01" value="0" placeholder="0.00" oninput="applyGlobalPrice()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-family:var(--font);font-size:12px;outline:none;width:90px"/>
+          </div>
           <div class="imp-stats-badge" id="imp-stats"></div>
           <button class="btn btn-secondary btn-sm" onclick="clearPaste()" style="margin-left:auto">✕ Limpiar</button>
         </div>
@@ -6729,10 +6778,27 @@ function showImportPanel() {
       <div class="imp-history-title">📊 Historial de Importaciones</div>
       <div id="imp-history-list"></div>
     </div>
+
+    <!-- Weekly Report (dev only) -->
+    <div class="imp-history-section" id="imp-weekly-report-section" style="display:none;margin-top:24px">
+      <div class="imp-history-title" style="display:flex;align-items:center;gap:10px">
+        📈 Reporte Semanal de Leads
+        <span style="font-size:11px;font-weight:400;color:var(--text2);background:rgba(99,102,241,.15);padding:2px 8px;border-radius:20px">Solo desarrollador</span>
+      </div>
+      <div id="imp-weekly-report"></div>
+    </div>
   </div>`;
 
   window._impFieldOpts = fieldOpts;
   window._impBoardOpts = boardOpts;
+
+  // Explicitly set current week as selected value
+  const weekSel = document.getElementById('imp-week-sel');
+  if (weekSel) {
+    const cur = getWeekOptions().find(w => w.isCurrent);
+    if (cur) weekSel.value = cur.start;
+  }
+
   renderImportHistory();
 }
 
@@ -6965,14 +7031,51 @@ function applyGlobalDest() {
 function applyGlobalLeadType() {
   const lt = document.getElementById('global-lead-type')?.value;
   if (!lt) return;
-  // Store globally, applied at import time
   window._globalLeadType = lt;
+}
+
+function getWeekOptions() {
+  const weeks = [];
+  const now = new Date();
+  // Find the most recent Monday
+  const day = now.getDay(); // 0=Sun, 1=Mon...
+  const diffToMon = (day === 0 ? -6 : 1 - day);
+  const curMonday = new Date(now);
+  curMonday.setDate(now.getDate() + diffToMon);
+  curMonday.setHours(0,0,0,0);
+
+  const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const fmt = d => `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+
+  // 12 past weeks + current + 4 future
+  for (let i = -12; i <= 4; i++) {
+    const mon = new Date(curMonday);
+    mon.setDate(curMonday.getDate() + i * 7);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    const label = `${MONTHS_ES[mon.getMonth()]} ${fmt(mon)} – ${fmt(sun)}`;
+    weeks.push({
+      start: mon.toISOString().slice(0,10),
+      end:   sun.toISOString().slice(0,10),
+      label,
+      isCurrent: i === 0,
+    });
+  }
+  return weeks;
+}
+
+function applyGlobalPrice() {
+  const price = parseFloat(document.getElementById('imp-global-price')?.value) || 0;
+  window._globalLeadPrice = price;
+  // Update per-row price inputs
+  document.querySelectorAll('.imp-price-cell').forEach(inp => inp.value = price.toFixed(2));
 }
 
 function clearPaste() {
   pastedRows = []; pastedHeaders = [];
   window._pastedMappings = [];
   window._globalLeadType = '';
+  window._globalLeadPrice = 0;
   goImportStep(1);
   const area = document.getElementById('paste-area');
   if (area) { area.value = ''; area.classList.remove('has-data'); }
@@ -7043,6 +7146,9 @@ async function confirmImport() {
     distribution.push({ boardId, boardName: getBoard(boardId)?.name || boardId, count: leads.length });
   });
 
+  const weekStart = document.getElementById('imp-week-sel')?.value || new Date().toISOString().slice(0,10);
+  const pricePerLead = parseFloat(document.getElementById('imp-global-price')?.value) || 0;
+
   // Save to history
   const record = {
     id:         uid(),
@@ -7051,6 +7157,8 @@ async function confirmImport() {
     importedByEmail: session?.email || '',
     total,
     distribution,
+    weekStart,
+    pricePerLead,
   };
   try {
     const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
@@ -7141,7 +7249,87 @@ async function renderImportHistory() {
         <div class="imp-history-total">${r.total}<span>leads</span></div>
       </div>`;
     }).join('');
+    if (_isZoomDev()) renderWeeklyReport(history);
   } catch(_) { el.innerHTML = `<div class="imp-history-empty">Error cargando historial.</div>`; }
+}
+
+function renderWeeklyReport(history) {
+  const section = document.getElementById('imp-weekly-report-section');
+  const el = document.getElementById('imp-weekly-report');
+  if (!section || !el) return;
+  section.style.display = '';
+
+  // Group imports by weekStart
+  const weeks = {}; // weekStart -> { end, boards: { boardName -> {count, price} } }
+  history.forEach(r => {
+    if (!r.weekStart) return;
+    if (!weeks[r.weekStart]) {
+      // Compute week end (Sunday)
+      const mon = new Date(r.weekStart + 'T00:00:00');
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      weeks[r.weekStart] = { end: sun.toISOString().slice(0,10), boards: {} };
+    }
+    const price = r.pricePerLead || 0;
+    (r.distribution || []).forEach(d => {
+      const key = d.boardName;
+      if (!weeks[r.weekStart].boards[key]) weeks[r.weekStart].boards[key] = { count: 0, price };
+      weeks[r.weekStart].boards[key].count += d.count;
+      if (price > 0) weeks[r.weekStart].boards[key].price = price; // last price wins
+    });
+  });
+
+  const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const fmtDate = s => { const d = new Date(s + 'T00:00:00'); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`; };
+
+  const sortedWeeks = Object.keys(weeks).sort((a,b) => b.localeCompare(a));
+  if (!sortedWeeks.length) { el.innerHTML = `<div class="imp-history-empty">No hay datos semanales aún. Asigna una semana al importar.</div>`; return; }
+
+  el.innerHTML = sortedWeeks.map(wStart => {
+    const w = weeks[wStart];
+    const mon = new Date(wStart + 'T00:00:00');
+    const monName = MONTHS_ES[mon.getMonth()];
+    const label = `${monName} ${fmtDate(wStart)} a ${fmtDate(w.end)}`;
+    const boards = Object.entries(w.boards);
+    let grandTotal = 0; let grandSubtotal = 0;
+    const rows = boards.map(([bName, info]) => {
+      const subtotal = info.count * info.price;
+      grandTotal += info.count; grandSubtotal += subtotal;
+      return `<tr>
+        <td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.06)">${esc(bName)}</td>
+        <td style="padding:7px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)">${info.count}</td>
+        <td style="padding:7px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)">${info.price > 0 ? '$'+info.price.toFixed(2) : '—'}</td>
+        <td style="padding:7px 14px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06);font-weight:600;color:var(--green)">${subtotal > 0 ? '$'+subtotal.toFixed(2) : '—'}</td>
+        <td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.06);color:var(--text2);font-size:11px"></td>
+      </tr>`;
+    }).join('');
+    return `<div class="wkr-card">
+      <div class="wkr-header">
+        <span class="wkr-week-label">${label}</span>
+        <span class="wkr-total-badge">${grandTotal} leads${grandSubtotal > 0 ? ' · $'+grandSubtotal.toFixed(2) : ''}</span>
+      </div>
+      <table class="wkr-table">
+        <thead>
+          <tr>
+            <th style="padding:8px 14px;text-align:left;font-weight:600;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Lead / Board</th>
+            <th style="padding:8px 14px;text-align:center;font-weight:600;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Cantidad</th>
+            <th style="padding:8px 14px;text-align:center;font-weight:600;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">$</th>
+            <th style="padding:8px 14px;text-align:right;font-weight:600;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Subtotal</th>
+            <th style="padding:8px 14px;font-weight:600;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Notas</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="background:rgba(99,102,241,.1)">
+            <td style="padding:9px 14px;font-weight:700">TOTAL</td>
+            <td style="padding:9px 14px;text-align:center;font-weight:700">${grandTotal}</td>
+            <td></td>
+            <td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--green)">${grandSubtotal > 0 ? '$'+grandSubtotal.toFixed(2) : '—'}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  }).join('');
 }
 
 function hideImportPanel() {
@@ -7165,6 +7353,111 @@ function showImportPage() {
   document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-import').classList.add('active');
   showImportPanel();
+}
+
+function showWeeklyReportPage() {
+  showBoardView();
+  document.getElementById('weekly-report-page').style.display = 'flex';
+  document.getElementById('table-wrap').style.display = 'none';
+  document.getElementById('toolbar').style.display    = 'none';
+  document.getElementById('btn-new-lead').style.display = 'none';
+  document.getElementById('btn-export').style.display   = 'none';
+  document.querySelectorAll('.board-item,.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-weekly-report').classList.add('active');
+  loadWeeklyReportPage();
+}
+
+async function loadWeeklyReportPage() {
+  const body = document.getElementById('weekly-report-page-body');
+  if (!body) return;
+  body.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:20px 0">Cargando…</div>`;
+
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
+    const history = JSON.parse(data?.value || '[]');
+
+    // Group by weekStart
+    const weeks = {};
+    history.forEach(r => {
+      const ws = r.weekStart;
+      if (!ws) return;
+      if (!weeks[ws]) {
+        const mon = new Date(ws + 'T00:00:00');
+        const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+        weeks[ws] = { end: sun.toISOString().slice(0,10), boards: {} };
+      }
+      const price = r.pricePerLead || 0;
+      (r.distribution || []).forEach(d => {
+        const key = d.boardName;
+        if (!weeks[ws].boards[key]) weeks[ws].boards[key] = { count: 0, price: 0 };
+        weeks[ws].boards[key].count += d.count;
+        if (price > 0) weeks[ws].boards[key].price = price;
+      });
+    });
+
+    const sortedWeeks = Object.keys(weeks).sort((a,b) => b.localeCompare(a));
+    if (!sortedWeeks.length) {
+      body.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:40px 0;text-align:center">No hay datos semanales aún.<br>Importa leads asignando una semana para que aparezcan aquí.</div>`;
+      return;
+    }
+
+    const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const fmtDate = s => {
+      const d = new Date(s + 'T00:00:00');
+      return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+    };
+
+    body.innerHTML = sortedWeeks.map(ws => {
+      const w = weeks[ws];
+      const mon = new Date(ws + 'T00:00:00');
+      const monthName = MONTHS_ES[mon.getMonth()];
+      const title = `${monthName}  ${fmtDate(ws)} a ${fmtDate(w.end)}`;
+      const boards = Object.entries(w.boards);
+      let grandTotal = 0, grandSubtotal = 0;
+
+      const rows = boards.map(([bName, info], idx) => {
+        const subtotal = info.count * info.price;
+        grandTotal += info.count;
+        grandSubtotal += subtotal;
+        const bg = idx % 2 === 0 ? '#dce6f1' : '#c5d9f0';
+        return `<tr>
+          <td style="padding:9px 16px;background:${bg};font-weight:700;font-size:13px;border-bottom:1px solid #b8cde0">Lead: ${esc(bName)}</td>
+          <td style="padding:9px 16px;background:${bg};text-align:right;font-style:italic;font-weight:700;font-size:13px;border-bottom:1px solid #b8cde0;border-left:1px solid #b8cde0">${info.count}</td>
+          <td style="padding:9px 16px;background:${bg};text-align:right;font-style:italic;font-weight:700;font-size:13px;border-bottom:1px solid #b8cde0;border-left:1px solid #b8cde0">${info.price > 0 ? info.price : '—'}</td>
+          <td style="padding:9px 16px;background:${bg};text-align:right;font-weight:700;font-size:13px;border-bottom:1px solid #b8cde0;border-left:1px solid #b8cde0">${subtotal > 0 ? '$'+subtotal.toLocaleString('en-US',{minimumFractionDigits:0}) : '—'}</td>
+          <td style="padding:9px 16px;background:${bg};border-bottom:1px solid #b8cde0;border-left:1px solid #b8cde0"></td>
+        </tr>`;
+      }).join('');
+
+      return `<div style="margin-bottom:48px">
+        <div style="font-size:18px;font-weight:800;color:#1a1a2e;margin-bottom:16px;text-align:center">${title}</div>
+        <table style="width:100%;border-collapse:collapse;font-family:var(--font)">
+          <thead>
+            <tr>
+              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:left;min-width:260px"></th>
+              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080;min-width:90px">Cantidad</th>
+              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080;min-width:70px">$</th>
+              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080;min-width:110px">Subtotal</th>
+              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:left;border-left:1px solid #2d5080;min-width:120px">notas</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr>
+              <td style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right">${grandTotal}</td>
+              <td style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080"></td>
+              <td style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080">Total</td>
+              <td style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080">$${grandSubtotal.toLocaleString('en-US',{minimumFractionDigits:0})}</td>
+              <td style="background:#1e3a5f;border-left:1px solid #2d5080"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    body.innerHTML = `<div style="color:var(--red);font-size:13px">Error cargando reporte: ${e.message}</div>`;
+  }
 }
 
 function handleDrop(e) {
@@ -9986,6 +10279,45 @@ function _isZoomDev() {
   const s = getSession();
   return s?.email === 'gonzalezluis@grupoelitework.com';
 }
+
+async function pingConnections() {
+  const setDot = (id, msId, state, ms) => {
+    const dot = document.getElementById(id);
+    const msEl = document.getElementById(msId);
+    if (!dot) return;
+    dot.style.background = state === 'ok' ? '#22c55e' : state === 'checking' ? '#f59e0b' : '#ef4444';
+    if (msEl) msEl.textContent = ms != null ? ms + ' ms' : state === 'checking' ? '…' : 'error';
+  };
+
+  setDot('conn-dot-supa', 'conn-ms-supa', 'checking', null);
+  setDot('conn-dot-gh',   'conn-ms-gh',   'checking', null);
+
+  // Ping Supabase
+  try {
+    const t0 = Date.now();
+    const r = await fetch(`${SUPA_URL}/rest/v1/kv_store?limit=1`, {
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }
+    });
+    const ms = Date.now() - t0;
+    setDot('conn-dot-supa', 'conn-ms-supa', r.ok ? 'ok' : 'error', ms);
+  } catch { setDot('conn-dot-supa', 'conn-ms-supa', 'error', null); }
+
+  // Ping GitHub
+  try {
+    const t0 = Date.now();
+    const r = await fetch('https://api.github.com', { method: 'HEAD', mode: 'no-cors' });
+    const ms = Date.now() - t0;
+    // no-cors always "succeeds" if reachable — treat as ok
+    setDot('conn-dot-gh', 'conn-ms-gh', 'ok', ms);
+  } catch { setDot('conn-dot-gh', 'conn-ms-gh', 'error', null); }
+}
+
+let _connPingInterval = null;
+function startConnectionPing() {
+  pingConnections();
+  if (_connPingInterval) clearInterval(_connPingInterval);
+  _connPingInterval = setInterval(pingConnections, 60_000);
+}
 const ZOOM_CLIENT_ID  = 'XW9e43_3Ro2nY8dcHl_BUg';
 const ZOOM_REDIRECT   = 'https://lead.grupoelitework.com';
 const SUPA_FN_URL     = 'https://vpwbczzmonboirjckpmy.supabase.co/functions/v1';
@@ -10172,6 +10504,7 @@ function initApp(user) {
       document.getElementById('sidebar-master').style.display = 'block';
     }
     if (user.role === 'master') {
+      startConnectionPing();
       document.getElementById('sidebar-conversations').style.display = 'block';
       document.body.classList.add('show-emblems');
       // Facturación is admin-only — hide from master
@@ -10429,6 +10762,9 @@ function showBoardView() {
   document.getElementById('calendar-page').style.display  = 'none';
   document.getElementById('stats-page').style.display     = 'none';
   document.getElementById('reconcile-page').style.display = 'none';
+  document.getElementById('weekly-report-page').style.display = 'none';
+  const navWR = document.getElementById('nav-weekly-report');
+  if (navWR) navWR.classList.remove('active');
   const navAct = document.getElementById('nav-activity');
   if (navAct) navAct.classList.remove('active');
   const navCal = document.getElementById('nav-calendar');
