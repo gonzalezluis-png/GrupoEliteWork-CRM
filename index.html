@@ -2079,8 +2079,8 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-dev-users" onclick="showSettingsPage();switchSettingsTab('team')" style="display:none">👥 <span>Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-messaging" onclick="showSettingsPage();switchSettingsTab('messaging')" style="display:none">💬 <span>Panel de mensajería</span><span class="emblem-dev">🙈 Solo yo</span></div>
 
-      <!-- Connection status widget -->
-      <div id="conn-status-widget" style="margin:12px 10px 4px;padding:10px 12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.07);border-radius:10px">
+      <!-- Connection status widget (master only) -->
+      <div id="conn-status-widget" style="display:none;margin:12px 10px 4px;padding:10px 12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.07);border-radius:10px">
         <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
           Conexiones
           <button onclick="pingConnections()" title="Actualizar" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:11px;padding:0;line-height:1">↻</button>
@@ -11405,6 +11405,7 @@ function initApp(user) {
       document.getElementById('sidebar-master').style.display = 'block';
     }
     if (user.role === 'master') {
+      document.getElementById('conn-status-widget').style.display = 'block';
       startConnectionPing();
       document.getElementById('sidebar-conversations').style.display = 'block';
       document.body.classList.add('show-emblems');
