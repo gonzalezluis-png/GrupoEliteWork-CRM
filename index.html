@@ -3810,16 +3810,16 @@ setTimeout(function(){
       <!-- Cuenta -->
       <div class="reg-section-label">Información de cuenta</div>
       <div class="reg-field">
-        <label>Nombre completo</label>
+        <label>Nombre completo <span style="color:var(--red)">*</span></label>
         <input type="text" id="reg-name" placeholder="Tu nombre completo" />
       </div>
       <div class="reg-row">
         <div class="field">
-          <label>Email</label>
+          <label>Email <span style="color:var(--red)">*</span></label>
           <input type="email" id="reg-email" placeholder="correo@ejemplo.com" />
         </div>
         <div class="field" id="reg-pass-wrap">
-          <label>Contraseña <span id="reg-pass-note" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--gray)">(opc. con Google)</span></label>
+          <label>Contraseña <span id="reg-pass-note" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--gray)">(opc. con Google)</span> <span id="reg-pass-required" style="color:var(--red)">*</span></label>
           <input type="password" id="reg-pass" placeholder="Mín. 6 caracteres" />
         </div>
       </div>
@@ -3828,21 +3828,21 @@ setTimeout(function(){
       <div class="reg-section-label">Perfil del agente</div>
       <div class="reg-row">
         <div class="field">
-          <label>Número de agente</label>
+          <label>Número de agente <span style="font-size:10px;color:var(--text2);font-weight:400">(opcional)</span></label>
           <input type="text" id="reg-agent-num" placeholder="Ej: A-1042" />
         </div>
         <div class="field">
-          <label>Teléfono</label>
+          <label>Teléfono <span style="font-size:10px;color:var(--text2);font-weight:400">(opcional)</span></label>
           <input type="tel" id="reg-phone" placeholder="(555) 000-0000" />
         </div>
       </div>
       <div class="reg-row">
         <div class="field">
-          <label>Ciudad</label>
+          <label>Ciudad <span style="color:var(--red)">*</span></label>
           <input type="text" id="reg-city" placeholder="Tu ciudad" />
         </div>
         <div class="field">
-          <label>Estado</label>
+          <label>Estado <span style="color:var(--red)">*</span></label>
           <select id="reg-state">
             <option value="">— Selecciona —</option>
             <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
@@ -9463,6 +9463,7 @@ function _handleGoogleRegisterFill(response) {
     document.getElementById('reg-name').readOnly  = true;
     document.getElementById('reg-google-info').style.display = '';
     document.getElementById('reg-pass').placeholder = 'Opcional (ya usas Google)';
+    document.getElementById('reg-pass-required').style.display = 'none';
     document.getElementById('reg-error').textContent = '';
   } catch(e) {
     console.error('Google register error:', e);
@@ -10923,10 +10924,12 @@ async function submitRegisterRequest() {
 
   const hasGoogleAuth  = !!_googleRegisterPayload;
   const termsChecked   = document.getElementById('reg-terms-check')?.checked;
-  if (!name)  { err.textContent = 'El nombre es requerido.'; return; }
+  if (!name)  { err.textContent = 'El nombre completo es requerido.'; return; }
   if (!email) { err.textContent = 'El email es requerido.'; return; }
   if (!hasGoogleAuth && (!pass || pass.length < 6)) { err.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
   if (hasGoogleAuth && pass && pass.length > 0 && pass.length < 6) { err.textContent = 'Si pones contraseña, debe tener al menos 6 caracteres.'; return; }
+  if (!city)  { err.textContent = 'La ciudad es requerida.'; return; }
+  if (!state) { err.textContent = 'Debes seleccionar un estado.'; return; }
   if (!termsChecked) { err.textContent = 'Debes aceptar los Términos y Condiciones para continuar.'; return; }
 
   // Check not already a user
