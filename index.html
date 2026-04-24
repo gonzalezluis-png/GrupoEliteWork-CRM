@@ -1108,6 +1108,7 @@
   .role-manager           { background: rgba(0,200,117,.2); color: #00c875; }
   .role-supervisor_agent  { background: rgba(255,140,0,.2); color: #ff8c00; }
   .role-agent          { background: rgba(120,75,209,.2); color: #a97ff2; }
+  .role-caller         { background: rgba(236,72,153,.2); color: #f472b6; }
   .user-card-actions { display: flex; gap: 6px; }
   .user-card-actions button { background: var(--border); border: none; color: var(--text2); padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 12px; transition: background .15s, color .15s; }
   .user-card-actions button:hover { background: var(--accent); color: #fff; }
@@ -1157,6 +1158,7 @@
   .org-node-manager        { border-color:var(--green); }
   .org-node-supervisor_agent { border-color:#ff8c00; }
   .org-node-agent          { border-color:var(--border); }
+  .org-node-caller         { border-color:#f472b6; }
   .org-node-info { flex:1; min-width:0; }
   .org-node-name  { font-size:11px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .org-node-email { font-size:10px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
@@ -3819,6 +3821,7 @@ setTimeout(function(){
           <label>Rol</label>
           <select id="u-rol" onchange="onRolChange()">
             <option value="agent">Agente</option>
+            <option value="caller">Caller</option>
             <option value="supervisor_agent">SA - Supervisor Agent</option>
             <option value="manager">GA - General Agent</option>
             <option value="master_manager">MGA - Master General Agent</option>
@@ -4089,6 +4092,7 @@ setTimeout(function(){
         <label>Rol</label>
         <select id="approve-rol" onchange="onApproveRolChange()">
           <option value="agent">Agente</option>
+          <option value="caller">Caller</option>
           <option value="supervisor_agent">SA - Supervisor Agent</option>
           <option value="manager">GA - General Agent</option>
           <option value="master_manager">MGA - Master General Agent</option>
@@ -4323,6 +4327,8 @@ function getAgents() {
   let agents = users.filter(u => !u.inactive);
   if (session.role === 'admin') {
     agents = agents.filter(u => u.orgAdminId === session.id);
+  } else if (session.role === 'caller') {
+    agents = agents.filter(u => u.orgAdminId === session.orgAdminId);
   } else if (session.role === 'master_manager') {
     const names = getMasterManagerAgentNames(session.id);
     agents = agents.filter(u => names.includes(u.name));
@@ -4688,10 +4694,11 @@ function renderSidebar() {
   const isManager          = session && session.role === 'manager';
   const isMasterManager    = session && session.role === 'master_manager';
   const isSupervisorAgent  = session && session.role === 'supervisor_agent';
+  const isCaller           = session && session.role === 'caller';
   const list = document.getElementById('board-list');
   const defaultIds = new Set(DEFAULT_BOARDS.map(b => b.id));
 
-  const sideLineNames = (isManager || isMasterManager || isSupervisorAgent)
+  const sideLineNames = (isManager || isMasterManager || isSupervisorAgent || isCaller)
     ? new Set(_getLineUsers(session).map(u => u.name))
     : null;
   const visibleBoards = isAgent
@@ -4762,7 +4769,7 @@ function selectBoard(id) {
   });
   clearDateFilter(false);
   const _sb = getSession();
-  const _isLimitedRole = _sb && ['agent','supervisor_agent','manager','master_manager'].includes(_sb.role);
+  const _isLimitedRole = _sb && ['agent','supervisor_agent','manager','master_manager','caller'].includes(_sb.role);
   assignFilter = _isLimitedRole ? 'all' : 'unassigned';
   document.querySelectorAll('.assign-tab').forEach(t => t.classList.remove('active'));
   const _defaultTab = document.querySelector(`.assign-tab[data-assign="${assignFilter}"]`);
@@ -4902,7 +4909,7 @@ function applyFilters() {
     ? loadAgentLeads(session ? session.name : '')
     : loadLeads(currentBoardId);
 
-  const _lineRoles = ['manager','master_manager','supervisor_agent'];
+  const _lineRoles = ['manager','master_manager','supervisor_agent','caller'];
   const lineNames = (session && _lineRoles.includes(session.role))
     ? new Set(_getLineUsers(session).map(u => u.name))
     : null;
@@ -5752,7 +5759,7 @@ function renderReconcilePage() {
   }
 
   const validNames  = new Set(allUsers.map(u => u.name));
-  const roleLabel   = r => ({ master:'Master', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
+  const roleLabel   = r => ({ master:'Master', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente', caller:'Caller' }[r] || r);
 
   // --- MOVER LEADS DROPDOWNS ---
   // "De": all names that appear in leads (any name, including orphaned)
@@ -5815,7 +5822,7 @@ function renderReconcilePage() {
   if (asigCount) asigCount.textContent = entries.length + ' nombres';
 
   const candidates = allUsers
-    .filter(u => ['agent','supervisor_agent','manager','master_manager','admin'].includes(u.role))
+    .filter(u => ['agent','supervisor_agent','manager','master_manager','admin','caller'].includes(u.role))
     .sort((a,b) => a.name.localeCompare(b.name));
 
   if (tableBody) {
@@ -5944,7 +5951,7 @@ function showAgentSummary(userId) {
   if (!u) return;
 
   // --- Build work line (chain upward) ---
-  const roleLabel = r => ({ master:'Desarrollador', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
+  const roleLabel = r => ({ master:'Desarrollador', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente', caller:'Caller' }[r] || r);
   const chain = [];
   let sup = u.orgSupervisorId    ? allUsers.find(x => x.id === u.orgSupervisorId)    : null;
   let mgr = u.orgManagerId       ? allUsers.find(x => x.id === u.orgManagerId)       : null;
@@ -6444,7 +6451,7 @@ function renderActivityPage() {
     return;
   }
 
-  const ROLE_LABELS = { master:'Desarrollador', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente' };
+  const ROLE_LABELS = { master:'Desarrollador', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente', caller:'Caller' };
 
   let html = '';
   let lastDay = '';
@@ -8479,30 +8486,26 @@ function applyBulkEdit() {
 
   if (asignado) {
     const isTransfer = reassignSet.size > 0;
+    if (!isTransfer) { doApply('full'); return; }
     _reassignPending = {
       lead: { asignado: `${reassignSet.size} lead(s) con agente previo` },
       newAgent: asignado,
       onConfirm: doApply
     };
     const hdr = document.querySelector('#reassign-modal-overlay .modal-header h2');
-    if (hdr) hdr.textContent = isTransfer ? '⚠️ Reasignar Leads' : '👥 Asignar Leads';
+    if (hdr) hdr.textContent = '⚠️ Reasignar Leads';
     const wb = document.querySelector('#reassign-modal-overlay .modal-body > div');
     if (wb) {
-      wb.style.display = isTransfer ? '' : 'none';
-      if (isTransfer) {
-        document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
-        document.getElementById('reassign-new-name').textContent = asignado;
-      }
+      wb.style.display = '';
+      document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
+      document.getElementById('reassign-new-name').textContent = asignado;
     }
-    const n = snapshotIds.size;
     const cmsg = document.getElementById('reassign-confirm-msg');
-    if (cmsg) cmsg.textContent = isTransfer
-      ? `¿Cómo transferir los ${reassignSet.size} lead(s) ya asignados a ${asignado}?`
-      : `¿Asignar ${n} lead${n!==1?'s':''} a ${asignado}?`;
+    if (cmsg) cmsg.textContent = `¿Cómo transferir los ${reassignSet.size} lead(s) ya asignados a ${asignado}?`;
     const tOpts = document.getElementById('reassign-transfer-opts');
     const cSimp = document.getElementById('reassign-confirm-simple');
-    if (tOpts) tOpts.style.display = isTransfer ? 'flex' : 'none';
-    if (cSimp) cSimp.style.display = isTransfer ? 'none' : 'block';
+    if (tOpts) tOpts.style.display = 'flex';
+    if (cSimp) cSimp.style.display = 'none';
     document.getElementById('reassign-modal-overlay').classList.add('open');
   } else {
     doApply('full');
@@ -8522,8 +8525,8 @@ function bulkDelete() {
 // ════════════════════════════════════════════
 //  AGENT PICKER
 // ════════════════════════════════════════════
-const _AP_ROLE_LABELS = { master:'Desarrollador', admin:'Administrador', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' };
-const _AP_ROLE_COLOR  = { master:'#6366f1', admin:'#0073ea', master_manager:'#f59e0b', manager:'#3ecf8e', supervisor_agent:'#2dd4bf', agent:'#94a3b8' };
+const _AP_ROLE_LABELS = { master:'Desarrollador', admin:'Administrador', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente', caller:'Caller' };
+const _AP_ROLE_COLOR  = { master:'#6366f1', admin:'#0073ea', master_manager:'#f59e0b', manager:'#3ecf8e', supervisor_agent:'#2dd4bf', agent:'#94a3b8', caller:'#f472b6' };
 let _apLeadId = null, _apCloseHandler = null;
 
 function openAgentPicker(leadId, anchorEl) {
@@ -8638,7 +8641,7 @@ let _reassignPending = null;
 
 function checkReassign(lead, newAgent, onConfirm) {
   const oldAgent = lead.asignado || '';
-  if (!newAgent || oldAgent === newAgent) { onConfirm('full'); return; }
+  if (!newAgent || oldAgent === newAgent || !oldAgent) { onConfirm('full'); return; }
   _reassignPending = { lead, newAgent, onConfirm };
   const isTransfer = !!oldAgent;
   const header = document.querySelector('#reassign-modal-overlay .modal-header h2');
@@ -8799,25 +8802,22 @@ function saveInlineField(sel, leadId, field) {
       };
       {
         const isTransfer = reassignSet.size > 0;
+        if (!isTransfer) { doApply('full'); return; }
         _reassignPending = { lead: {}, newAgent: newValue, onConfirm: doApply };
         const hdr = document.querySelector('#reassign-modal-overlay .modal-header h2');
-        if (hdr) hdr.textContent = isTransfer ? '⚠️ Reasignar Leads' : '👥 Asignar Leads';
+        if (hdr) hdr.textContent = '⚠️ Reasignar Leads';
         const wb = document.querySelector('#reassign-modal-overlay .modal-body > div');
         if (wb) {
-          wb.style.display = isTransfer ? '' : 'none';
-          if (isTransfer) {
-            document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
-            document.getElementById('reassign-new-name').textContent = newValue;
-          }
+          wb.style.display = '';
+          document.getElementById('reassign-old-name').textContent = `${reassignSet.size} lead(s) ya asignados`;
+          document.getElementById('reassign-new-name').textContent = newValue;
         }
         const cmsg = document.getElementById('reassign-confirm-msg');
-        if (cmsg) cmsg.textContent = isTransfer
-          ? `¿Cómo transferir los ${reassignSet.size} lead(s) ya asignados a ${newValue}?`
-          : `¿Asignar ${snapshotIds.size} lead${snapshotIds.size!==1?'s':''} a ${newValue}?`;
+        if (cmsg) cmsg.textContent = `¿Cómo transferir los ${reassignSet.size} lead(s) ya asignados a ${newValue}?`;
         const tOpts = document.getElementById('reassign-transfer-opts');
         const cSimp = document.getElementById('reassign-confirm-simple');
-        if (tOpts) tOpts.style.display = isTransfer ? 'flex' : 'none';
-        if (cSimp) cSimp.style.display = isTransfer ? 'none' : 'block';
+        if (tOpts) tOpts.style.display = 'flex';
+        if (cSimp) cSimp.style.display = 'none';
         document.getElementById('reassign-modal-overlay').classList.add('open');
       }
       return;
@@ -9741,6 +9741,9 @@ function showSettingsPage() {
 function _getLineUsers(session) {
   const all = loadUsers();
   if (!session || session.role === 'master' || session.role === 'admin') return all;
+  if (session.role === 'caller') {
+    return all.filter(u => u.orgAdminId === session.orgAdminId);
+  }
   if (session.role === 'master_manager') {
     const mgrIds = all.filter(u => u.role === 'manager' && u.orgMasterManagerId === session.id).map(u => u.id);
     const supIds = all.filter(u => u.role === 'supervisor_agent' && (mgrIds.includes(u.orgManagerId) || u.orgMasterManagerId === session.id)).map(u => u.id);
@@ -9794,7 +9797,7 @@ function _populateSettingsStats() {
 function _renderSettingsProfileCards() {
   if (!session) return;
   const initials = getInitials(session.name || session.email);
-  const roleLabel = { master: 'Master', admin: 'Administrador', master_manager: 'MGA', manager: 'GA', supervisor_agent: 'SA', agent: 'Agente' }[session.role] || session.role;
+  const roleLabel = { master: 'Master', admin: 'Administrador', master_manager: 'MGA', manager: 'GA', supervisor_agent: 'SA', agent: 'Agente', caller: 'Caller' }[session.role] || session.role;
   const avatarHtml = `<div style="width:52px;height:52px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>`;
   const infoHtml   = `<div><div style="font-size:15px;font-weight:600;color:var(--text)">${esc(session.name || '—')}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(session.email || '')}</div><div style="margin-top:6px;display:inline-block;background:rgba(0,115,234,.15);color:var(--accent);font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px">${esc(roleLabel)}</div></div>`;
 
@@ -10244,7 +10247,7 @@ function runDuplicateScan() {
     return;
   }
 
-  const roleLabel = r => ({ master:'Master', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
+  const roleLabel = r => ({ master:'Master', admin:'Admin', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente', caller:'Caller' }[r] || r);
 
   const rows = pairs.map((p, idx) => {
     const cardStyle = (u, leads) => `
@@ -10551,7 +10554,7 @@ async function _initPreviewMode() {
   const user = users.find(u => u.id === previewId);
   if (!user) return false;
   sessionStorage.setItem('gew_preview_session', JSON.stringify(user));
-  const roleLabel = user.role === 'admin' ? 'Administrador' : user.role === 'master_manager' ? 'MGA' : user.role === 'manager' ? 'GA' : user.role === 'supervisor_agent' ? 'SA' : 'Agente';
+  const roleLabel = user.role === 'admin' ? 'Administrador' : user.role === 'master_manager' ? 'MGA' : user.role === 'manager' ? 'GA' : user.role === 'supervisor_agent' ? 'SA' : user.role === 'caller' ? 'Caller' : 'Agente';
   const banner = document.getElementById('preview-banner');
   document.getElementById('preview-banner-name').textContent = user.name;
   document.getElementById('preview-banner-role').textContent = '· ' + roleLabel;
@@ -11366,7 +11369,7 @@ function _renderCallsPane() {
 }
 
 function initApp(user) {
-  logActivity('login', 'Inicio de sesión', `Accedió como ${({ master:'Desarrollador', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente' }[user.role] || user.role)}`);
+  logActivity('login', 'Inicio de sesión', `Accedió como ${({ master:'Desarrollador', admin:'Administrador', manager:'GA', master_manager:'MGA', supervisor_agent:'SA', agent:'Agente', caller:'Caller' }[user.role] || user.role)}`);
   if (typeof showWelcomeSplash === 'function') showWelcomeSplash(user);
   renderTopbarUser(user);
   applyAppName();
@@ -11397,6 +11400,11 @@ function initApp(user) {
       ['nav-trash','nav-activity','nav-credits'].forEach(id => {
         const el = document.getElementById(id); if (el) el.style.display = 'none';
       });
+      document.getElementById('assign-strip').classList.add('hidden');
+    }
+    // Caller: sees boards but NO admin sidebar, NO assign strip, NO agent filter
+    if (user.role === 'caller') {
+      document.getElementById('f-asignado').style.display = 'none';
       document.getElementById('assign-strip').classList.add('hidden');
     }
     // All non-agent roles see Scripts de Llamada
@@ -11629,7 +11637,7 @@ function saveAppName() {
 function renderTopbarUser(user) {
   const initials  = getInitials(user.name);
   const isMasterAccount = user.role === 'master' || user._isMaster;
-  const roleLabel = _devMode && user.role === 'master' ? 'Desarrollador' : user.role === 'admin' || (!_devMode && isMasterAccount) ? 'Administrador' : user.role === 'master_manager' ? 'MGA' : user.role === 'manager' ? 'GA' : user.role === 'supervisor_agent' ? 'SA' : 'Agente';
+  const roleLabel = _devMode && user.role === 'master' ? 'Desarrollador' : user.role === 'admin' || (!_devMode && isMasterAccount) ? 'Administrador' : user.role === 'master_manager' ? 'MGA' : user.role === 'manager' ? 'GA' : user.role === 'supervisor_agent' ? 'SA' : user.role === 'caller' ? 'Caller' : 'Agente';
   const devToggle = isMasterAccount ? `
     <button onclick="toggleDevMode()" title="${_devMode ? 'Desactivar modo desarrollador' : 'Activar modo desarrollador'}"
       style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;transition:background .15s;
@@ -11705,8 +11713,8 @@ function showBoardView() {
 function userCard(u, session) {
   const initials  = getInitials(u.name);
   const avatarCls = u.role === 'admin' ? 'avatar-admin' : 'avatar-agent';
-  const roleCls   = u.role === 'admin' ? 'role-admin' : u.role === 'master_manager' ? 'role-master_manager' : u.role === 'manager' ? 'role-manager' : u.role === 'supervisor_agent' ? 'role-supervisor_agent' : 'role-agent';
-  const roleLabel = u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'MGA' : u.role === 'manager' ? 'GA' : u.role === 'supervisor_agent' ? 'SA' : 'Agente';
+  const roleCls   = u.role === 'admin' ? 'role-admin' : u.role === 'master_manager' ? 'role-master_manager' : u.role === 'manager' ? 'role-manager' : u.role === 'supervisor_agent' ? 'role-supervisor_agent' : u.role === 'caller' ? 'role-caller' : 'role-agent';
+  const roleLabel = u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'MGA' : u.role === 'manager' ? 'GA' : u.role === 'supervisor_agent' ? 'SA' : u.role === 'caller' ? 'Caller' : 'Agente';
   const isSelf    = session && session.id === u.id;
   const canEdit   = session && (session.role === 'master' ||
                     (session.role === 'admin' && (u.orgAdminId === session.id || u.id === session.id)));
@@ -11730,8 +11738,8 @@ function userCard(u, session) {
 }
 
 function orgNode(u, session) {
-  const roleCls   = u.role === 'master' ? 'role-master' : u.role === 'admin' ? 'role-admin' : u.role === 'master_manager' ? 'role-master_manager' : u.role === 'manager' ? 'role-manager' : u.role === 'supervisor_agent' ? 'role-supervisor_agent' : 'role-agent';
-  const roleLabel = u.role === 'master' ? 'Desarrollador' : u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'MGA' : u.role === 'manager' ? 'GA' : u.role === 'supervisor_agent' ? 'SA' : 'Agente';
+  const roleCls   = u.role === 'master' ? 'role-master' : u.role === 'admin' ? 'role-admin' : u.role === 'master_manager' ? 'role-master_manager' : u.role === 'manager' ? 'role-manager' : u.role === 'supervisor_agent' ? 'role-supervisor_agent' : u.role === 'caller' ? 'role-caller' : 'role-agent';
+  const roleLabel = u.role === 'master' ? 'Desarrollador' : u.role === 'admin' ? 'Administrador' : u.role === 'master_manager' ? 'MGA' : u.role === 'manager' ? 'GA' : u.role === 'supervisor_agent' ? 'SA' : u.role === 'caller' ? 'Caller' : 'Agente';
   const nodeClass = `org-node org-node-${u.role}`;
   const initials  = getInitials(u.name);
   const avatarBg  = u.role==='master'?'var(--yellow)':u.role==='admin'?'var(--accent)':u.role==='master_manager'?'#00b7c3':u.role==='manager'?'var(--green)':u.role==='supervisor_agent'?'#ff8c00':'var(--purple)';
@@ -11838,8 +11846,15 @@ function buildOrgBranch(admId, allUsers, session) {
   const managers    = allUsers.filter(u => u.role === 'manager'        && u.orgAdminId === admId);
   const supervisors = allUsers.filter(u => u.role === 'supervisor_agent' && u.orgAdminId === admId);
   const agents      = allUsers.filter(u => u.role === 'agent'          && u.orgAdminId === admId);
+  const callers     = allUsers.filter(u => u.role === 'caller'         && u.orgAdminId === admId);
   const renderedIds = new Set();
   let children = '';
+
+  // Callers appear as a flat group at the top of the org
+  callers.forEach(c => {
+    renderedIds.add(c.id);
+    children += hChild(hOrgWrap(orgNode(c, session), ''));
+  });
 
   masterMgrs.forEach(mm => {
     renderedIds.add(mm.id);
@@ -12116,7 +12131,7 @@ function _renderDeletedUsersHistory(grid, session) {
 
   if (visible.length === 0) return;
 
-  const roleLabel = r => ({ master:'Desarrollador', admin:'Administrador', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente' }[r] || r);
+  const roleLabel = r => ({ master:'Desarrollador', admin:'Administrador', master_manager:'MGA', manager:'GA', supervisor_agent:'SA', agent:'Agente', caller:'Caller' }[r] || r);
   const fmtDate  = iso => iso ? new Date(iso).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric' }) : '—';
 
   const cards = visible.map(u => {
@@ -12168,6 +12183,14 @@ function onRolChange() {
   const editingUser = editingUserId ? users.find(u => u.id === editingUserId) : null;
 
   const supWrap = document.getElementById('u-supervisor-wrap');
+
+  // Caller: only needs admin org, no hierarchy dropdowns
+  if (role === 'caller') {
+    mmWrap.style.display = 'none';
+    mgrWrap.style.display = 'none';
+    if (document.getElementById('u-supervisor-wrap')) document.getElementById('u-supervisor-wrap').style.display = 'none';
+    return;
+  }
 
   // "Asignar a MGA" — for manager, supervisor_agent and agent (optional)
   if (role === 'manager' || role === 'agent' || role === 'supervisor_agent') {
@@ -12291,7 +12314,7 @@ function openUserModal(userId, presetOrgId, presetRole) {
     // admin: can create agents, managers, and master_managers in their org
     rolWrap.style.display = '';
     const rolSel = document.getElementById('u-rol');
-    rolSel.innerHTML = `<option value="agent">Agente</option><option value="supervisor_agent">SA - Supervisor Agent</option><option value="manager">GA - General Agent</option><option value="master_manager">MGA - Master General Agent</option>`;
+    rolSel.innerHTML = `<option value="agent">Agente</option><option value="caller">Caller</option><option value="supervisor_agent">SA - Supervisor Agent</option><option value="manager">GA - General Agent</option><option value="master_manager">MGA - Master General Agent</option>`;
     rolSel.value = u ? u.role : (presetRole || 'agent');
     orgWrap.style.display = 'none';
   }
@@ -12333,6 +12356,7 @@ async function saveUser() {
     if (role === 'agent') {
       orgSupervisorId = document.getElementById('u-supervisor') ? (document.getElementById('u-supervisor').value || null) : null;
     }
+    // caller: uses orgAdminId set above, no hierarchy assignments needed
   } else if (session.role === 'admin') {
     role       = document.getElementById('u-rol') ? document.getElementById('u-rol').value : 'agent';
     orgAdminId = session.id;
@@ -12356,6 +12380,7 @@ async function saveUser() {
         ? (document.getElementById('u-supervisor')?.value || null)
         : (prevUser?.orgSupervisorId ?? null);
     }
+    // caller: belongs to admin org, no hierarchy
   }
 
   if (!name)  { showToast('El nombre es requerido', 'error'); return; }
@@ -13641,7 +13666,7 @@ async function sendConvMessage() {
 // ════════════════════════════════════════════
 function showCreditsPage() {
   const session = getSession();
-  if (!session || session.role !== 'admin') return;
+  if (!session || (session.role !== 'admin' && session.role !== 'master')) return;
   showBoardView();
   document.getElementById('assign-strip').classList.add('hidden');
   document.getElementById('table-wrap').style.display   = 'none';
