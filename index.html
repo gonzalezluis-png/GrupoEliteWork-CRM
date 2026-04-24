@@ -4583,18 +4583,33 @@ function formatDate(str) {
 // ════════════════════════════════════════════
 window._newLeadsBoards = new Set(); // populated on login and after import
 
+// _newLeadsMap: { boardId: { boardName, count } }
+window._newLeadsBoards = new Set();
+window._newLeadsMap   = {};
+
 async function loadNewLeadsFlags() {
   try {
     const { data } = await supa.from('kv_store').select('value').eq('key','gew_new_leads').maybeSingle();
-    const arr = JSON.parse(data?.value || '[]');
-    window._newLeadsBoards = new Set(arr);
+    const raw = JSON.parse(data?.value || '{}');
+    // Support old format (array of strings) → migrate
+    if (Array.isArray(raw)) {
+      window._newLeadsMap   = Object.fromEntries(raw.map(id => [id, { boardName: id, count: 0 }]));
+    } else {
+      window._newLeadsMap   = raw;
+    }
+    window._newLeadsBoards = new Set(Object.keys(window._newLeadsMap));
   } catch(_) {}
 }
 
-async function markNewLeads(boardIds) {
-  boardIds.forEach(id => window._newLeadsBoards.add(id));
+async function markNewLeads(distribution) {
+  // distribution: [{boardId, boardName, count}]
+  distribution.forEach(d => {
+    const prev = window._newLeadsMap[d.boardId] || { boardName: d.boardName, count: 0 };
+    window._newLeadsMap[d.boardId] = { boardName: d.boardName, count: prev.count + d.count };
+    window._newLeadsBoards.add(d.boardId);
+  });
   try {
-    await supa.from('kv_store').upsert({ key:'gew_new_leads', value: JSON.stringify([...window._newLeadsBoards]) });
+    await supa.from('kv_store').upsert({ key:'gew_new_leads', value: JSON.stringify(window._newLeadsMap) });
   } catch(_) {}
   renderSidebar();
 }
@@ -4602,12 +4617,66 @@ async function markNewLeads(boardIds) {
 async function clearNewLeads(boardId) {
   if (!window._newLeadsBoards.has(boardId)) return;
   window._newLeadsBoards.delete(boardId);
+  delete window._newLeadsMap[boardId];
   try {
-    await supa.from('kv_store').upsert({ key:'gew_new_leads', value: JSON.stringify([...window._newLeadsBoards]) });
+    await supa.from('kv_store').upsert({ key:'gew_new_leads', value: JSON.stringify(window._newLeadsMap) });
   } catch(_) {}
-  // Remove dot from this board item without full re-render
   const el = document.querySelector(`.board-item[data-id="${boardId}"] .board-new-dot`);
   if (el) el.remove();
+}
+
+function showNewLeadsNotification() {
+  const session = getSession();
+  if (!session || session.role === 'agent') return;
+  if (sessionStorage.getItem('gew_nl_notified')) return;
+  const entries = Object.entries(window._newLeadsMap);
+  if (!entries.length) return;
+  sessionStorage.setItem('gew_nl_notified', '1');
+
+  const existing = document.getElementById('nl-notification');
+  if (existing) existing.remove();
+
+  const total = entries.reduce((s, [, v]) => s + (v.count || 0), 0);
+  const rows = entries.map(([, v]) =>
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:7px;height:7px;border-radius:50%;background:#f97316;flex-shrink:0;box-shadow:0 0 0 2px rgba(249,115,22,.3)"></span>
+        <span style="font-size:12.5px;color:#e2e8f0">${v.boardName || 'Board'}</span>
+      </div>
+      <span style="font-size:12px;font-weight:700;background:rgba(249,115,22,.18);color:#fb923c;padding:2px 9px;border-radius:20px">${v.count || '+'}</span>
+    </div>`
+  ).join('');
+
+  const el = document.createElement('div');
+  el.id = 'nl-notification';
+  el.style.cssText = `
+    position:fixed;top:20px;right:20px;z-index:9999;
+    width:320px;background:#0f2044;border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.45);
+    animation:nlSlideIn .3s cubic-bezier(.22,1,.36,1);
+    font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;
+  `;
+  el.innerHTML = `
+    <style>@keyframes nlSlideIn{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}</style>
+    <div style="padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:34px;height:34px;background:rgba(249,115,22,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px">🔔</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff">Nuevos Leads</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:1px">${total} lead${total!==1?'s':''} sin revisar</div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('nl-notification').remove()" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:18px;line-height:1;padding:4px;border-radius:6px" title="Cerrar">×</button>
+    </div>
+    <div style="max-height:220px;overflow-y:auto">${rows}</div>
+    <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,.07);text-align:center">
+      <span style="font-size:10px;color:#475569">Abre el board para marcar como visto</span>
+    </div>
+  `;
+  document.body.appendChild(el);
+
+  // Auto-dismiss after 12 seconds
+  setTimeout(() => { if (el.isConnected) el.remove(); }, 12000);
 }
 
 //  SIDEBAR
@@ -7325,7 +7394,7 @@ async function confirmImport() {
 
   const boardNames = distribution.map(d=>d.boardName).join(', ');
   logActivity('lead_import', `${total} leads importados`, `Boards: ${boardNames}`);
-  markNewLeads(Object.keys(byBoard)); // notify admins of new leads
+  markNewLeads(distribution); // notify admins of new leads
   showToast(`✓ ${total} leads importados exitosamente`, 'success');
   clearPaste();
   renderImportHistory();
@@ -11315,7 +11384,7 @@ function initApp(user) {
     showAgentView();
   } else {
     document.getElementById('sidebar').style.display = '';
-    loadNewLeadsFlags().then(() => renderSidebar());
+    loadNewLeadsFlags().then(() => { renderSidebar(); showNewLeadsNotification(); });
     populateAgentFilter();
     populateLeadFilter();
     if (user.role === 'admin' || user.role === 'master') {
