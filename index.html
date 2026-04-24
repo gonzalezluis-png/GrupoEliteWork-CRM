@@ -1962,7 +1962,10 @@ setTimeout(function(){
       <span class="sidebar-logo-subtitle">Grupo Elite Development</span>
       <span class="sidebar-logo-bottom">CRM · Gestión de Leads</span>
     </div>
-    <div class="sidebar-label">Boards</div>
+    <div class="sidebar-label" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Boards</span>
+      <button id="boards-collapse-btn" onclick="toggleBoardsCollapse()" title="Contraer/expandir boards" style="display:none;background:none;border:none;cursor:pointer;color:var(--text2);font-size:13px;padding:0 2px;line-height:1;transition:transform .2s">▾</button>
+    </div>
     <div id="board-list"></div>
     <div id="sidebar-conversations" style="display:none">
       <div class="sidebar-item" id="nav-conversations" onclick="showConversationsPage()">💬 <span>Conversaciones</span><span class="emblem-dev">🙈 Solo yo</span></div>
@@ -4439,6 +4442,26 @@ function renderSidebar() {
     list.innerHTML += `<button class="add-board-btn" onclick="openBoardModal()">＋ Nuevo Board</button>`;
   }
   allBoards();
+
+  // Dev-only: show collapse toggle and apply saved state
+  const collapseBtn = document.getElementById('boards-collapse-btn');
+  if (collapseBtn) {
+    collapseBtn.style.display = _isZoomDev() ? '' : 'none';
+    const collapsed = localStorage.getItem('gew_boards_collapsed') === '1';
+    list.style.display = collapsed ? 'none' : '';
+    collapseBtn.style.transform = collapsed ? 'rotate(-90deg)' : '';
+    collapseBtn.title = collapsed ? 'Expandir boards' : 'Contraer boards';
+  }
+}
+
+function toggleBoardsCollapse() {
+  const list = document.getElementById('board-list');
+  const btn  = document.getElementById('boards-collapse-btn');
+  const collapsed = list.style.display === 'none';
+  list.style.display = collapsed ? '' : 'none';
+  btn.style.transform = collapsed ? '' : 'rotate(-90deg)';
+  btn.title = collapsed ? 'Contraer boards' : 'Expandir boards';
+  localStorage.setItem('gew_boards_collapsed', collapsed ? '0' : '1');
 }
 
 function selectBoard(id) {
