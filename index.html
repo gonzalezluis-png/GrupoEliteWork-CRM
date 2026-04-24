@@ -10941,13 +10941,16 @@ function confirmResultadoNote() {
   _notes.push({ text: `Resultado → ${resultLabel} — ${note}`, author: who, date: new Date().toISOString(), system: true });
   lead._notes = JSON.stringify(_notes);
   if (!isDelete) lead.resultado = value;
-  saveLeads(boardId, leads);
   if (isDelete || value === 'NO INTERESADO' || value === 'NÚMERO EQUIVOCADO') {
+    // Write notes to localStorage only so softDeleteLead can include them in the trash record,
+    // then let softDeleteLead do the single authoritative Supabase save (avoids race condition).
+    localStorage.setItem('gew_leads_' + boardId, JSON.stringify(leads));
     softDeleteLead(leadId, boardId);
     renderTable();
     showToast('Lead movido a papelera ✓', 'error');
     return;
   }
+  saveLeads(boardId, leads);
   if (value === 'CITA AGENDADA') {
     renderTable();
     openCitaModal(leadId, boardId, lead.nombre || lead.email || '');
