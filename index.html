@@ -3863,11 +3863,11 @@ setTimeout(function(){
       </div>
 
       <label class="terms-checkbox-row" style="margin-bottom:14px" id="reg-terms-row">
-        <input type="checkbox" id="reg-terms-check" />
-        <span style="font-size:11px;color:var(--text2)">He leído y acepto los <a href="#" onclick="showTermsPreview();return false;" style="color:var(--accent)">Términos y Condiciones</a> de uso.</span>
+        <input type="checkbox" id="reg-terms-check" onchange="document.getElementById('reg-submit-btn').disabled=!this.checked;document.getElementById('reg-submit-btn').style.opacity=this.checked?'1':'.45';document.getElementById('reg-submit-btn').style.cursor=this.checked?'pointer':'not-allowed';" />
+        <span style="font-size:11px;color:var(--text2)">He leído y acepto los <a href="#" onclick="showTermsPreview();return false;" style="color:var(--accent)">Términos y Condiciones</a> de uso. <span style="color:var(--red)">*</span></span>
       </label>
       <div class="reg-error" id="reg-error"></div>
-      <button class="reg-submit-btn" onclick="submitRegisterRequest()">Enviar Solicitud →</button>
+      <button class="reg-submit-btn" id="reg-submit-btn" onclick="submitRegisterRequest()" disabled style="opacity:.45;cursor:not-allowed">Enviar Solicitud →</button>
       <div class="reg-cancel-link" onclick="closeRegisterForm()">Cancelar</div>
     </div>
   </div>
@@ -10897,6 +10897,11 @@ function openRegisterForm() {
   document.getElementById('reg-email').readOnly    = false;
   document.getElementById('reg-google-info').style.display = 'none';
   document.getElementById('reg-pass').placeholder  = 'Mínimo 6 caracteres';
+  // Reset terms checkbox and submit button
+  const regTerms = document.getElementById('reg-terms-check');
+  const regBtn   = document.getElementById('reg-submit-btn');
+  if (regTerms) regTerms.checked = false;
+  if (regBtn)   { regBtn.disabled = true; regBtn.style.opacity = '.45'; regBtn.style.cursor = 'not-allowed'; }
   document.getElementById('register-overlay').classList.add('open');
   initGoogleRegisterButton();
 }
