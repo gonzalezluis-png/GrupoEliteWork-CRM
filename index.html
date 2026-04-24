@@ -3326,15 +3326,15 @@ setTimeout(function(){
     </div>
 
     <!-- WEEKLY REPORT PAGE -->
-    <div id="weekly-report-page" style="display:none;flex:1;flex-direction:column;overflow:hidden">
-      <div style="padding:24px 36px 0 36px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div id="weekly-report-page" style="display:none;flex:1;flex-direction:column;overflow:hidden;background:#f1f5f9">
+      <div style="padding:20px 36px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;background:var(--bg);border-bottom:1px solid var(--border)">
         <div>
-          <div style="font-size:20px;font-weight:800;color:var(--text)">📈 Reporte Semanal de Leads</div>
-          <div style="font-size:12px;color:var(--text2);margin-top:3px">Leads importados por semana y su distribución por board</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">📈 Reporte Semanal de Leads</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">Grupo Elite Work · CRM Development Services</div>
         </div>
-        <button onclick="loadWeeklyReportPage()" style="background:var(--card2);border:1px solid var(--border);color:var(--text2);padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer">↻ Actualizar</button>
+        <button onclick="loadWeeklyReportPage()" style="background:var(--accent);border:none;color:#fff;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">↻ Actualizar</button>
       </div>
-      <div id="weekly-report-page-body" style="flex:1;overflow-y:auto;padding:28px 36px 60px"></div>
+      <div id="weekly-report-page-body" style="flex:1;overflow-y:auto;padding:32px 40px 60px"></div>
     </div>
 
     <!-- CONNECTIONS PAGE -->
@@ -7564,7 +7564,6 @@ async function loadWeeklyReportPage() {
     const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
     const history = JSON.parse(data?.value || '[]');
 
-    // Group by weekStart
     const weeks = {};
     history.forEach(r => {
       const ws = r.weekStart;
@@ -7585,21 +7584,29 @@ async function loadWeeklyReportPage() {
 
     const sortedWeeks = Object.keys(weeks).sort((a,b) => b.localeCompare(a));
     if (!sortedWeeks.length) {
-      body.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:40px 0;text-align:center">No hay datos semanales aún.<br>Importa leads asignando una semana para que aparezcan aquí.</div>`;
+      body.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--text2)">
+        <div style="font-size:40px;margin-bottom:12px">📊</div>
+        <div style="font-size:14px;font-weight:600">No hay datos semanales aún</div>
+        <div style="font-size:12px;margin-top:6px">Importa leads asignando una semana para que aparezcan aquí</div>
+      </div>`;
       return;
     }
 
     const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    const fmtDate = s => {
-      const d = new Date(s + 'T00:00:00');
-      return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
-    };
+    const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const fmtDate = s => { const d = new Date(s+'T00:00:00'); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`; };
+    const fmtMoney = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
-    body.innerHTML = sortedWeeks.map(ws => {
+    // Grand totals across all weeks
+    let allLeads = 0, allRevenue = 0;
+    sortedWeeks.forEach(ws => {
+      Object.values(weeks[ws].boards).forEach(b => { allLeads += b.count; allRevenue += b.count * b.price; });
+    });
+
+    const invoiceCards = sortedWeeks.map((ws, wi) => {
       const w = weeks[ws];
       const mon = new Date(ws + 'T00:00:00');
-      const monthName = MONTHS_ES[mon.getMonth()];
-      const title = `${monthName}  ${fmtDate(ws)} a ${fmtDate(w.end)}`;
       const boards = Object.entries(w.boards);
       let grandTotal = 0, grandSubtotal = 0;
 
@@ -7607,41 +7614,111 @@ async function loadWeeklyReportPage() {
         const subtotal = info.count * info.price;
         grandTotal += info.count;
         grandSubtotal += subtotal;
-        const bg = idx % 2 === 0 ? '#dce6f1' : '#c5d9f0';
-        return `<tr>
-          <td style="padding:9px 16px;background:${bg};font-weight:700;font-size:13px;border-bottom:1px solid #b8cde0">Lead: ${esc(bName)}</td>
-          <td style="padding:9px 16px;background:${bg};text-align:right;font-style:italic;font-weight:700;font-size:13px;border-bottom:1px solid #b8cde0;border-left:1px solid #b8cde0">${info.count}</td>
-          <td style="padding:9px 16px;background:${bg};text-align:right;font-style:italic;font-weight:700;font-size:13px;border-bottom:1px solid #b8cde0;border-left:1px solid #b8cde0">${info.price > 0 ? info.price : '—'}</td>
-          <td style="padding:9px 16px;background:${bg};text-align:right;font-weight:700;font-size:13px;border-bottom:1px solid #b8cde0;border-left:1px solid #b8cde0">${subtotal > 0 ? '$'+subtotal.toLocaleString('en-US',{minimumFractionDigits:0}) : '—'}</td>
-          <td style="padding:9px 16px;background:${bg};border-bottom:1px solid #b8cde0;border-left:1px solid #b8cde0"></td>
+        const isEven = idx % 2 === 0;
+        return `<tr style="background:${isEven ? '#f8faff' : '#eef3fb'}">
+          <td style="padding:11px 20px;font-size:13px;color:#1e293b;border-bottom:1px solid #dde6f0">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:8px;vertical-align:middle"></span>
+            Lead · <strong>${esc(bName)}</strong>
+          </td>
+          <td style="padding:11px 20px;text-align:center;font-size:13px;font-weight:700;color:#1e293b;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0">${info.count}</td>
+          <td style="padding:11px 20px;text-align:right;font-size:13px;color:#475569;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0">${info.price > 0 ? fmtMoney(info.price) : '—'}</td>
+          <td style="padding:11px 20px;text-align:right;font-size:13px;font-weight:700;color:#0f172a;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0">${subtotal > 0 ? fmtMoney(subtotal) : '—'}</td>
+          <td style="padding:11px 20px;font-size:12px;color:#94a3b8;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0"></td>
         </tr>`;
       }).join('');
 
-      return `<div style="margin-bottom:48px">
-        <div style="font-size:18px;font-weight:800;color:#1a1a2e;margin-bottom:16px;text-align:center">${title}</div>
-        <table style="width:100%;border-collapse:collapse;font-family:var(--font)">
+      const invoiceNum = String(sortedWeeks.length - wi).padStart(4,'0');
+
+      return `<div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.10),0 1px 4px rgba(0,0,0,.06);margin-bottom:40px;overflow:hidden;border:1px solid #e2e8f0;font-family:'Segoe UI',system-ui,sans-serif">
+
+        <!-- Invoice header -->
+        <div style="background:linear-gradient(135deg,#0f2044 0%,#1e3a5f 60%,#1a4a7a 100%);padding:28px 32px 24px;position:relative;overflow:hidden">
+          <div style="position:absolute;right:-20px;top:-20px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.04)"></div>
+          <div style="position:absolute;right:40px;bottom:-40px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.03)"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#93c5fd;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Grupo Elite Work</div>
+              <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.3px">CRM Development Services</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:6px">lead.grupoelitework.com</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Reporte Semanal</div>
+              <div style="font-size:20px;font-weight:800;color:#fff;margin-top:2px"># ${invoiceNum}</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px">Generado: ${today}</div>
+            </div>
+          </div>
+          <!-- Week band -->
+          <div style="margin-top:20px;padding:10px 16px;background:rgba(255,255,255,.08);border-radius:8px;display:inline-flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.12)">
+            <span style="font-size:13px;color:#bfdbfe">📅</span>
+            <span style="font-size:13px;font-weight:700;color:#e2e8f0">Semana del ${fmtDate(ws)} al ${fmtDate(w.end)}</span>
+            <span style="font-size:11px;color:#93c5fd;background:rgba(147,197,253,.15);padding:2px 10px;border-radius:20px;margin-left:4px">${MONTHS_ES[mon.getMonth()]} ${mon.getFullYear()}</span>
+          </div>
+        </div>
+
+        <!-- Summary pills -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #e2e8f0">
+          <div style="padding:16px 24px;border-right:1px solid #e2e8f0">
+            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Boards</div>
+            <div style="font-size:22px;font-weight:800;color:#0f172a;margin-top:4px">${boards.length}</div>
+          </div>
+          <div style="padding:16px 24px;border-right:1px solid #e2e8f0">
+            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Total Leads</div>
+            <div style="font-size:22px;font-weight:800;color:#1d4ed8;margin-top:4px">${grandTotal}</div>
+          </div>
+          <div style="padding:16px 24px">
+            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Total Semana</div>
+            <div style="font-size:22px;font-weight:800;color:#059669;margin-top:4px">${grandSubtotal > 0 ? fmtMoney(grandSubtotal) : '—'}</div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <table style="width:100%;border-collapse:collapse">
           <thead>
-            <tr>
-              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:left;min-width:260px"></th>
-              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080;min-width:90px">Cantidad</th>
-              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080;min-width:70px">$</th>
-              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080;min-width:110px">Subtotal</th>
-              <th style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:left;border-left:1px solid #2d5080;min-width:120px">notas</th>
+            <tr style="background:#1e3a5f">
+              <th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:700;color:#bfdbfe;text-transform:uppercase;letter-spacing:.08em">Descripción</th>
+              <th style="padding:11px 20px;text-align:center;font-size:11px;font-weight:700;color:#bfdbfe;text-transform:uppercase;letter-spacing:.08em;border-left:1px solid #2d5080">Cantidad</th>
+              <th style="padding:11px 20px;text-align:right;font-size:11px;font-weight:700;color:#bfdbfe;text-transform:uppercase;letter-spacing:.08em;border-left:1px solid #2d5080">Precio/Lead</th>
+              <th style="padding:11px 20px;text-align:right;font-size:11px;font-weight:700;color:#bfdbfe;text-transform:uppercase;letter-spacing:.08em;border-left:1px solid #2d5080">Subtotal</th>
+              <th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:700;color:#bfdbfe;text-transform:uppercase;letter-spacing:.08em;border-left:1px solid #2d5080">Notas</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
           <tfoot>
-            <tr>
-              <td style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right">${grandTotal}</td>
-              <td style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080"></td>
-              <td style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080">Total</td>
-              <td style="padding:10px 16px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;text-align:right;border-left:1px solid #2d5080">$${grandSubtotal.toLocaleString('en-US',{minimumFractionDigits:0})}</td>
-              <td style="background:#1e3a5f;border-left:1px solid #2d5080"></td>
+            <tr style="background:#0f2044">
+              <td style="padding:14px 20px;font-size:13px;font-weight:800;color:#93c5fd;text-transform:uppercase;letter-spacing:.05em">Total General</td>
+              <td style="padding:14px 20px;text-align:center;font-size:15px;font-weight:800;color:#fff;border-left:1px solid #1e3a5f">${grandTotal}</td>
+              <td style="border-left:1px solid #1e3a5f"></td>
+              <td style="padding:14px 20px;text-align:right;font-size:16px;font-weight:800;color:#34d399;border-left:1px solid #1e3a5f">${grandSubtotal > 0 ? fmtMoney(grandSubtotal) : '—'}</td>
+              <td style="border-left:1px solid #1e3a5f"></td>
             </tr>
           </tfoot>
         </table>
+
+        <!-- Footer -->
+        <div style="padding:14px 24px;background:#f8faff;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:10px;color:#94a3b8">Grupo Elite Work · CRM Development Services</span>
+          <span style="font-size:10px;color:#cbd5e1;font-weight:600">SEMANA ${invoiceNum}</span>
+        </div>
       </div>`;
     }).join('');
+
+    // Grand summary banner at top
+    const summaryBanner = `<div style="background:linear-gradient(135deg,#1d4ed8,#1e3a5f);border-radius:14px;padding:20px 28px;margin-bottom:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:0;box-shadow:0 4px 20px rgba(29,78,216,.25)">
+      <div style="border-right:1px solid rgba(255,255,255,.15);padding-right:24px">
+        <div style="font-size:10px;font-weight:600;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em">Semanas registradas</div>
+        <div style="font-size:28px;font-weight:800;color:#fff;margin-top:4px">${sortedWeeks.length}</div>
+      </div>
+      <div style="border-right:1px solid rgba(255,255,255,.15);padding:0 24px">
+        <div style="font-size:10px;font-weight:600;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em">Total leads cargados</div>
+        <div style="font-size:28px;font-weight:800;color:#60a5fa;margin-top:4px">${allLeads.toLocaleString()}</div>
+      </div>
+      <div style="padding-left:24px">
+        <div style="font-size:10px;font-weight:600;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em">Valor total acumulado</div>
+        <div style="font-size:28px;font-weight:800;color:#34d399;margin-top:4px">${allRevenue > 0 ? fmtMoney(allRevenue) : '—'}</div>
+      </div>
+    </div>`;
+
+    body.innerHTML = summaryBanner + invoiceCards;
 
   } catch(e) {
     body.innerHTML = `<div style="color:var(--red);font-size:13px">Error cargando reporte: ${e.message}</div>`;
