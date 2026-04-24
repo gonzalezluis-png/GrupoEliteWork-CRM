@@ -2586,6 +2586,23 @@ setTimeout(function(){
               </div>
             </div>
 
+            <!-- Zoom Integration -->
+            <div class="st-card" id="zoom-account-card" style="margin-top:24px">
+              <div class="st-card-header">
+                <div class="st-card-header-left">
+                  <div class="st-card-icon" style="background:rgba(45,140,255,.12);font-size:20px">📹</div>
+                  <div class="st-card-text">
+                    <div class="st-card-title">Zoom Phone</div>
+                    <div class="st-card-desc">Conecta tu cuenta para hacer llamadas directamente desde el CRM y recibir registros automáticos.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="st-card-divider"></div>
+              <div class="st-card-body" id="zoom-card-body">
+                <div style="font-size:12px;color:var(--text2)">Cargando…</div>
+              </div>
+            </div>
+
             <!-- T&C read-only (all users) -->
             <div class="st-card" style="margin-top:24px">
               <div class="st-card-header">
@@ -3503,6 +3520,7 @@ setTimeout(function(){
     <div style="display:flex;gap:2px;padding:10px 20px 0;border-bottom:1px solid var(--border);flex-shrink:0">
       <button id="np-tab-notes" onclick="switchNotesPanelTab('notes')" style="padding:6px 16px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent);cursor:pointer;margin-bottom:-1px">📝 Notas</button>
       <button id="np-tab-messages" onclick="switchNotesPanelTab('messages')" style="padding:6px 16px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px">💬 Mensajes</button>
+      <button id="np-tab-calls" onclick="switchNotesPanelTab('calls')" style="padding:6px 16px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px">📞 Llamadas</button>
     </div>
 
     <!-- Notas tab -->
@@ -3519,6 +3537,15 @@ setTimeout(function(){
         <div style="display:flex;justify-content:flex-end;margin-top:8px">
           <button class="btn btn-primary" onclick="submitNote()">Agregar nota</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Llamadas tab -->
+    <div id="np-pane-calls" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+      <div id="calls-journal" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px;min-height:120px"></div>
+      <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div id="zoom-call-status" style="font-size:11px;color:var(--text2)"></div>
+        <button id="np-call-btn" onclick="zoomCallFromPanel()" style="background:#2D8CFF;border:none;color:#fff;border-radius:8px;padding:8px 18px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px">📞 Llamar por Zoom</button>
       </div>
     </div>
 
@@ -4779,6 +4806,11 @@ function renderRows(board, leads) {
         return inlineText(c.key, def.type === 'number' ? 'number' : 'text', def.label, l, id);
       }
       if (c.key === 'hijos') return `<td class="td-hijos">${esc(l.hijos||'')}</td>`;
+      if (c.key === 'telefono') {
+        const ph = l.telefono || '';
+        const callBtn = ph ? `<button onclick="event.stopPropagation();zoomCall('${l.id}','${esc(ph)}','${board?.id||currentBoardId}')" title="Llamar por Zoom" style="background:#2D8CFF;border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;line-height:1.6">📞</button>` : '';
+        return `<td><div style="display:flex;align-items:center;gap:5px;white-space:nowrap">${esc(ph)}${callBtn}</div></td>`;
+      }
       return `<td>${esc(l[c.key]||'')}</td>`;
     }).join('');
     return `<tr class="${rowClass}" onclick="openNotesPanel('${l.id}')" style="cursor:pointer">${cells}</tr>`;
@@ -8300,6 +8332,9 @@ function switchSettingsTab(tab) {
   if (tab === 'requests') {
     loadFromSupabase().then(() => renderPendingList()).catch(() => renderPendingList());
   }
+  if (tab === 'account') {
+    _loadZoomStatus().then(() => _renderZoomCard());
+  }
 }
 
 function showSettingsPage() {
@@ -9639,6 +9674,155 @@ function initToolbarGapHandle() {
     supaSync(_GAP_KEY, String(gap));
     showToast('Espacio guardado ✓', 'success');
   });
+}
+
+// ════════════════════════════════════════════
+//  ZOOM INTEGRATION
+// ════════════════════════════════════════════
+const ZOOM_CLIENT_ID  = 'XW9e43_3Ro2nY8dcHl_BUg';
+const ZOOM_REDIRECT   = 'https://lead.grupoelitework.com';
+const SUPA_FN_URL     = 'https://vpwbczzmonboirjckpmy.supabase.co/functions/v1';
+let _zoomStatus = null; // { connected, email, name, phone }
+
+async function _loadZoomStatus() {
+  const session = getSession();
+  if (!session || session.role === 'master') { _zoomStatus = { connected: false }; return; }
+  try {
+    const { data } = await supa.from('kv_store').select('value')
+      .eq('key', `gew_zoom_token_${session.id}`).maybeSingle();
+    if (data?.value) {
+      const t = JSON.parse(data.value);
+      _zoomStatus = { connected: true, email: t.zoom_email, name: t.zoom_name, phone: t.zoom_phone };
+    } else {
+      _zoomStatus = { connected: false };
+    }
+  } catch(_) { _zoomStatus = { connected: false }; }
+}
+
+function connectZoom() {
+  const session = getSession();
+  if (!session) return;
+  const url = `https://zoom.us/oauth/authorize?response_type=code&client_id=${ZOOM_CLIENT_ID}&redirect_uri=${encodeURIComponent(ZOOM_REDIRECT)}&state=${session.id}`;
+  window.location.href = url;
+}
+
+async function disconnectZoom() {
+  const session = getSession();
+  if (!session) return;
+  try {
+    await fetch(`${SUPA_FN_URL}/zoom-oauth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'disconnect', userId: session.id }),
+    });
+    _zoomStatus = { connected: false };
+    _renderZoomCard();
+    showToast('Zoom desconectado', 'success');
+  } catch(e) { showToast('Error al desconectar', 'error'); }
+}
+
+async function _handleZoomOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code   = params.get('code');
+  if (!code) return;
+  history.replaceState(null, '', window.location.pathname + window.location.hash);
+  const session = getSession();
+  if (!session) { showToast('Inicia sesión primero para conectar Zoom', 'error'); return; }
+  showToast('Conectando con Zoom…', 'success');
+  try {
+    const res  = await fetch(`${SUPA_FN_URL}/zoom-oauth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, userId: session.id }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Error');
+    _zoomStatus = { connected: true, email: data.zoom_email, name: data.zoom_name, phone: data.zoom_phone };
+    showToast(`✅ Zoom conectado: ${data.zoom_email}`, 'success');
+    _renderZoomCard();
+  } catch(e) { showToast('Error conectando Zoom: ' + e.message, 'error'); }
+}
+
+function _renderZoomCard() {
+  const el = document.getElementById('zoom-card-body');
+  if (!el) return;
+  if (_zoomStatus?.connected) {
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="width:42px;height:42px;border-radius:10px;background:#2D8CFF;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📹</div>
+        <div style="min-width:0">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${esc(_zoomStatus.name || _zoomStatus.email)}</div>
+          <div style="font-size:11px;color:var(--text2)">${esc(_zoomStatus.email)}</div>
+          <div style="font-size:11px;color:${_zoomStatus.phone ? 'var(--green)' : 'var(--yellow)'}">${_zoomStatus.phone ? esc(_zoomStatus.phone) : 'Sin número Zoom Phone asignado'}</div>
+        </div>
+        <span style="margin-left:auto;background:rgba(0,200,117,.1);color:var(--green);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap">● Conectado</span>
+      </div>
+      <button onclick="disconnectZoom()" style="background:transparent;border:1px solid var(--border);color:var(--red);border-radius:8px;padding:6px 14px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">Desconectar Zoom</button>`;
+  } else {
+    el.innerHTML = `
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+        Conecta tu cuenta Zoom para hacer llamadas directamente desde el CRM y recibir logs automáticos (duración, resultado, hora).
+      </div>
+      <button onclick="connectZoom()" style="background:#2D8CFF;border:none;color:#fff;border-radius:8px;padding:8px 18px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px">
+        <span>📹</span> Conectar mi cuenta Zoom
+      </button>`;
+  }
+}
+
+async function zoomCall(leadId, phoneNumber, boardId) {
+  const session = getSession();
+  if (!session) return;
+  if (!_zoomStatus?.connected) {
+    showToast('Ve a Configuración → Mi Cuenta → Conectar Zoom primero', 'error'); return;
+  }
+  showToast(`📞 Iniciando llamada a ${phoneNumber}…`, 'success');
+  try {
+    const lead = loadLeads(boardId).find(l => l.id === leadId);
+    const res  = await fetch(`${SUPA_FN_URL}/zoom-call`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: session.id, phoneNumber, leadId, leadName: lead?.nombre || '', boardId }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Error');
+    showToast(`📞 Zoom está marcando a ${phoneNumber}`, 'success');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+function zoomCallFromPanel() {
+  const lead = _notesBoardId ? loadLeads(_notesBoardId).find(l => l.id === _notesLeadId) : null;
+  if (!lead) return;
+  zoomCall(lead.id, lead.telefono || '', _notesBoardId);
+}
+
+function _renderCallsPane() {
+  const lead = _notesBoardId ? loadLeads(_notesBoardId).find(l => l.id === _notesLeadId) : null;
+  const calls = lead ? JSON.parse(lead._calls || '[]') : [];
+  const journal = document.getElementById('calls-journal');
+  const status  = document.getElementById('zoom-call-status');
+  if (status) status.textContent = _zoomStatus?.connected ? `Conectado: ${_zoomStatus.email}` : '⚠ Zoom no conectado — ve a Mi Cuenta';
+  if (!journal) return;
+  if (calls.length === 0) {
+    journal.innerHTML = `<div style="text-align:center;color:var(--text2);font-size:12px;padding:32px 20px">Sin llamadas registradas aún</div>`;
+    return;
+  }
+  const COLORS = { 'Conectó':'var(--green)', 'No contestó':'var(--yellow)', 'Buzón de voz':'#a78bfa', 'Ocupado':'var(--red)', 'Cancelado':'var(--text2)' };
+  journal.innerHTML = calls.map(c => {
+    const date  = c.date ? new Date(c.date).toLocaleString('es', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    const dur   = c.duration != null ? (Math.floor(c.duration/60) + 'm ' + (c.duration%60) + 's') : '—';
+    const color = COLORS[c.result] || 'var(--text2)';
+    return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:700;color:${color}">📞 ${esc(c.result || '—')}</span>
+        <span style="font-size:11px;color:var(--text2)">${date}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);display:flex;flex-wrap:wrap;gap:10px">
+        <span>⏱ ${dur}</span>
+        <span>${c.direction === 'outbound' ? '↗ Saliente' : '↙ Entrante'}</span>
+        ${c.autoLogged ? '<span style="color:var(--green)">✓ Auto-registrado</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function initApp(user) {
@@ -11302,17 +11486,18 @@ function _renderNotesJournal(lead) {
 let _msgChannel = 'sms';
 
 function switchNotesPanelTab(tab) {
-  const isNotes = tab === 'notes';
-  document.getElementById('np-pane-notes').style.display    = isNotes ? 'flex' : 'none';
-  document.getElementById('np-pane-messages').style.display = isNotes ? 'none' : 'flex';
-  const tN = document.getElementById('np-tab-notes');
-  const tM = document.getElementById('np-tab-messages');
-  tN.style.color = isNotes ? 'var(--accent)' : 'var(--text2)';
-  tN.style.borderBottomColor = isNotes ? 'var(--accent)' : 'transparent';
-  tN.style.fontWeight = isNotes ? '600' : '500';
-  tM.style.color = !isNotes ? 'var(--accent)' : 'var(--text2)';
-  tM.style.borderBottomColor = !isNotes ? 'var(--accent)' : 'transparent';
-  tM.style.fontWeight = !isNotes ? '600' : '500';
+  document.getElementById('np-pane-notes').style.display    = tab === 'notes'    ? 'flex' : 'none';
+  document.getElementById('np-pane-messages').style.display = tab === 'messages' ? 'flex' : 'none';
+  document.getElementById('np-pane-calls').style.display    = tab === 'calls'    ? 'flex' : 'none';
+  ['notes','messages','calls'].forEach(t => {
+    const el = document.getElementById('np-tab-' + t);
+    if (!el) return;
+    const active = t === tab;
+    el.style.color            = active ? 'var(--accent)' : 'var(--text2)';
+    el.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
+    el.style.fontWeight       = active ? '600' : '500';
+  });
+  if (tab === 'calls') _renderCallsPane();
 }
 
 const WA_TEMPLATE_SID  = 'HX872c8dfe2ba6f8d9833284769872f0bb';
@@ -12791,7 +12976,15 @@ async function loadFromSupabase() {
     document.getElementById('login-screen').classList.add('hidden');
     initApp(_session);
     updatePendingBadge();
+    // Handle Zoom OAuth callback if redirected back from Zoom
+    if (window.location.search.includes('code=')) _handleZoomOAuthCallback();
+    // Pre-load Zoom status for call buttons
+    _loadZoomStatus();
   } else {
+    // Handle Zoom OAuth callback before login — unlikely but safe
+    if (window.location.search.includes('code=')) {
+      history.replaceState(null, '', window.location.pathname + window.location.hash);
+    }
     populateAgentFilter();
     populateLeadFilter();
   }
