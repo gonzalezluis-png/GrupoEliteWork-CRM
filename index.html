@@ -11401,7 +11401,7 @@ function initApp(user) {
     }
     // All non-agent roles see Scripts de Llamada
     document.getElementById('sidebar-scripts').style.display = 'block';
-    if (user.role === 'master' || user.role === 'admin') {
+    if (user.role === 'master') {
       document.getElementById('sidebar-master').style.display = 'block';
     }
     if (user.role === 'master') {
