@@ -4991,23 +4991,25 @@ async function saveLeads(boardId, leads, opts = {}) {
     let toWrite = leads;
 
     if (data?.value) {
-      const serverLeads = JSON.parse(data.value);
-      const localMap = new Map(leads.map(l => [l.id, l]));
-      const merged = new Map(localMap);
-
-      for (const sl of serverLeads) {
-        if (_deletedLeadIds.has(sl.id)) continue; // this client deleted it — don't resurrect
-        if (!merged.has(sl.id)) {
-          merged.set(sl.id, sl); // added by another user — keep it
-        } else {
-          // Both have it — newer _updatedAt wins
-          const ll = merged.get(sl.id);
-          if (sl._updatedAt && ll._updatedAt && sl._updatedAt > ll._updatedAt) {
+      let serverLeads;
+      try { serverLeads = JSON.parse(data.value); } catch(_) { serverLeads = null; }
+      if (!serverLeads || !Array.isArray(serverLeads)) serverLeads = null;
+      if (serverLeads) {
+        const localMap = new Map(leads.map(l => [l.id, l]));
+        const merged = new Map(localMap);
+        for (const sl of serverLeads) {
+          if (_deletedLeadIds.has(sl.id)) continue;
+          if (!merged.has(sl.id)) {
             merged.set(sl.id, sl);
+          } else {
+            const ll = merged.get(sl.id);
+            if (sl._updatedAt && ll._updatedAt && sl._updatedAt > ll._updatedAt) {
+              merged.set(sl.id, sl);
+            }
           }
         }
+        toWrite = [...merged.values()];
       }
-      toWrite = [...merged.values()];
     }
 
     _ownWrites.set(key, Date.now());
@@ -5326,8 +5328,8 @@ function updateTabCounts() {
     ? loadAgentLeads(getSession()?.name || '', getSession()?.id)
     : loadLeads(currentBoardId);
   const total    = leads.length;
-  const unassign = leads.filter(l => !l.asignado || l.asignado === 'Sin asignar').length;
-  const assigned = leads.filter(l => l.asignado && l.asignado !== 'Sin asignar').length;
+  const unassign = leads.filter(l => !l.asignadoId && (!l.asignado || l.asignado === 'Sin asignar')).length;
+  const assigned = leads.filter(l => l.asignadoId || (l.asignado && l.asignado !== 'Sin asignar')).length;
   const _sess2    = getSession();
   const _lineNms2 = (_sess2 && _sess2.role !== 'master' && _sess2.role !== 'admin')
     ? new Set(_getLineUsers(_sess2).map(u => u.name)) : null;
@@ -5427,9 +5429,9 @@ function applyFilters() {
     : loadLeads(currentBoardId);
 
   const _lineRoles = ['manager','master_manager','supervisor_agent','caller'];
-  const lineNames = (session && _lineRoles.includes(session.role))
-    ? new Set(_getLineUsers(session).map(u => u.name))
-    : null;
+  const _lineUsers2 = (session && _lineRoles.includes(session.role)) ? _getLineUsers(session) : null;
+  const lineNames = _lineUsers2 ? new Set(_lineUsers2.map(u => u.name)) : null;
+  const lineIds   = _lineUsers2 ? new Set(_lineUsers2.map(u => u.id))   : null;
   const q       = document.getElementById('search-input').value.trim().toLowerCase();
   const fAsig   = document.getElementById('f-asignado').value.trim();
   const fLead   = document.getElementById('f-lead').value.trim();
@@ -5442,7 +5444,10 @@ function applyFilters() {
   selectedIds.clear();
   updateBulkBar();
   filteredLeads = leads.filter(l => {
-    if (lineNames && !lineNames.has(l.asignado)) return false;
+    if (lineNames) {
+      const byId = l.asignadoId && lineIds ? lineIds.has(l.asignadoId) : false;
+      if (!byId && !lineNames.has(l.asignado)) return false;
+    }
     if (q && ![ l.nombre, l.email, l.telefono, l.asignado ].some(v => (v||'').toLowerCase().includes(q))) return false;
     if (fAsig && (l.asignado||'').trim() !== fAsig) return false;
     if (fLead && (l.lead||'').trim()     !== fLead) return false;
@@ -6626,11 +6631,20 @@ function _populateStatsFilters() {
   const aSel = document.getElementById('stats-filter-agent');
   const curA = aSel.value;
   const isFullOrg = !session || session.role === 'master' || session.role === 'admin';
-  const lineNames = isFullOrg ? null : new Set(_getLineUsers(session).map(u => u.name));
+  const _lineUsersStats = isFullOrg ? null : _getLineUsers(session);
+  const lineNamesStats  = _lineUsersStats ? new Set(_lineUsersStats.map(u => u.name)) : null;
+  const lineIdsStats    = _lineUsersStats ? new Set(_lineUsersStats.map(u => u.id))   : null;
   const allLeads = BOARDS.flatMap(b => loadLeads(b.id));
   const agents = [...new Set(
-    allLeads.map(l => l.asignado)
-      .filter(a => a && a !== 'Sin asignar' && (isFullOrg || lineNames.has(a)))
+    allLeads
+      .filter(l => {
+        if (!l.asignado && !l.asignadoId) return false;
+        if (isFullOrg) return l.asignado && l.asignado !== 'Sin asignar';
+        const byId = l.asignadoId && lineIdsStats ? lineIdsStats.has(l.asignadoId) : false;
+        return byId || (lineNamesStats && lineNamesStats.has(l.asignado));
+      })
+      .map(l => l.asignado)
+      .filter(a => a && a !== 'Sin asignar')
   )].sort();
   aSel.innerHTML = '<option value="">Todos los agentes</option>' +
     agents.map(a => `<option value="${esc(a)}"${a===curA?' selected':''}>${esc(a)}</option>`).join('');
@@ -10989,9 +11003,15 @@ function _nextUserCode(users) {
 }
 
 async function _backfillAsignadoId() {
+  const session = getSession();
   const users = loadUsers();
+  // Build name→id map scoped to the same org to avoid cross-org collisions
+  const orgAdminId = session?.role === 'admin' ? session.id : null;
+  const scopedUsers = orgAdminId
+    ? users.filter(u => u.orgAdminId === orgAdminId || u.id === orgAdminId)
+    : users;
   const nameToId = {};
-  users.forEach(u => { nameToId[u.name.trim().toLowerCase()] = u.id; });
+  scopedUsers.forEach(u => { nameToId[u.name.trim().toLowerCase()] = u.id; });
   for (const board of BOARDS) {
     const leads = loadLeads(board.id);
     let changed = false;
