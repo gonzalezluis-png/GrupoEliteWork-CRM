@@ -4111,6 +4111,40 @@ setTimeout(function(){
   </div>
 </div>
 
+<!-- UNDO IMPORT MODAL -->
+<div class="overlay" id="undo-import-overlay" style="display:none">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <h2>↩ Deshacer Importación</h2>
+      <button class="modal-close" onclick="closeUndoImportModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="undo-import-info" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.6;margin-bottom:16px"></div>
+      <div id="undo-import-step1">
+        <div class="field">
+          <label>1ª confirmación — Ingresa tu contraseña</label>
+          <input type="password" id="undo-pass1" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')undoStep2()" />
+        </div>
+        <div class="modal-footer" style="padding:0;margin-top:16px">
+          <button class="btn btn-secondary" onclick="closeUndoImportModal()">Cancelar</button>
+          <button class="btn" style="background:var(--red);color:#fff" onclick="undoStep2()">Continuar →</button>
+        </div>
+      </div>
+      <div id="undo-import-step2" style="display:none">
+        <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:#f59e0b;margin-bottom:14px">⚠️ Esta acción eliminará permanentemente los leads importados. No se puede revertir.</div>
+        <div class="field">
+          <label>2ª confirmación — Ingresa tu contraseña nuevamente</label>
+          <input type="password" id="undo-pass2" placeholder="Confirma tu contraseña" onkeydown="if(event.key==='Enter')undoStep3()" />
+        </div>
+        <div class="modal-footer" style="padding:0;margin-top:16px">
+          <button class="btn btn-secondary" onclick="closeUndoImportModal()">Cancelar</button>
+          <button class="btn" style="background:var(--red);color:#fff" onclick="undoStep3()">✓ Deshacer importación</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIRM DELETE -->
 <div class="overlay" id="confirm-overlay" onclick="confirmOverlayClick(event)">
   <div class="confirm-box">
@@ -7174,7 +7208,12 @@ async function confirmImport() {
     const existing = loadLeads(boardId);
     saveLeads(boardId, [...existing, ...leads]);
     total += leads.length;
-    distribution.push({ boardId, boardName: getBoard(boardId)?.name || boardId, count: leads.length });
+    distribution.push({
+      boardId,
+      boardName: getBoard(boardId)?.name || boardId,
+      count: leads.length,
+      leadIds: leads.map(l => l.id),
+    });
   });
 
   const weekStart = document.getElementById('imp-week-sel')?.value || new Date().toISOString().slice(0,10);
@@ -7267,21 +7306,116 @@ async function renderImportHistory() {
     const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
     const history = JSON.parse(data?.value || '[]');
     if (!history.length) { el.innerHTML = `<div class="imp-history-empty">No hay importaciones registradas aún.</div>`; return; }
+    const now = Date.now();
+    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
     el.innerHTML = history.map(r => {
       const d = new Date(r.date);
+      const ageMs = now - d.getTime();
+      const canUndo = !r.undone && ageMs < ONE_WEEK && (r.distribution||[]).some(dist => dist.leadIds?.length);
       const dateStr = d.toLocaleDateString('es-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' + d.toLocaleTimeString('es-US',{hour:'2-digit',minute:'2-digit'});
       const chips = (r.distribution||[]).map(d=>`<span class="imp-history-chip">${esc(d.boardName)}: ${d.count}</span>`).join('');
-      return `<div class="imp-history-row">
+      const undoBtn = r.undone
+        ? `<span style="font-size:10px;color:var(--green)">✓ Deshecho</span>`
+        : canUndo
+          ? `<button onclick="promptUndoImport('${r.id}')" style="background:transparent;border:1px solid var(--red);color:var(--red);border-radius:7px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;margin-top:4px">↩ Deshacer</button>`
+          : ageMs >= ONE_WEEK ? `<span style="font-size:10px;color:var(--text2)">Expirado</span>` : '';
+      return `<div class="imp-history-row" id="imp-history-row-${r.id}">
         <div class="imp-history-date">${dateStr}</div>
         <div class="imp-history-info">
           <div class="imp-history-who">👤 ${esc(r.importedBy)} <span style="font-weight:400;color:var(--text2);font-size:11px">${esc(r.importedByEmail)}</span></div>
           <div class="imp-history-dist">${chips}</div>
         </div>
-        <div class="imp-history-total">${r.total}<span>leads</span></div>
+        <div class="imp-history-total" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <div>${r.total}<span>leads</span></div>
+          ${undoBtn}
+        </div>
       </div>`;
     }).join('');
     if (_isZoomDev()) renderWeeklyReport(history);
   } catch(_) { el.innerHTML = `<div class="imp-history-empty">Error cargando historial.</div>`; }
+}
+
+let _undoImportId = null;
+
+function promptUndoImport(recordId) {
+  _undoImportId = recordId;
+  // Load record details from DOM (re-read history is better)
+  const overlay = document.getElementById('undo-import-overlay');
+  const info    = document.getElementById('undo-import-info');
+  const step1   = document.getElementById('undo-import-step1');
+  const step2   = document.getElementById('undo-import-step2');
+  // Find record info from rendered chips
+  const row = document.getElementById(`imp-history-row-${recordId}`);
+  const who  = row?.querySelector('.imp-history-who')?.textContent?.trim() || '';
+  const date = row?.querySelector('.imp-history-date')?.textContent?.trim() || '';
+  const dist = row?.querySelector('.imp-history-dist')?.textContent?.trim() || '';
+  info.innerHTML = `<strong>Importación a deshacer:</strong><br>📅 ${date}<br>👤 ${who}<br>📦 ${dist}<br><br>Se eliminarán todos los leads de esta importación de sus respectivos boards.`;
+  step1.style.display = '';
+  step2.style.display = 'none';
+  document.getElementById('undo-pass1').value = '';
+  document.getElementById('undo-pass2').value = '';
+  overlay.style.display = 'flex';
+  setTimeout(() => document.getElementById('undo-pass1').focus(), 120);
+}
+
+function closeUndoImportModal() {
+  document.getElementById('undo-import-overlay').style.display = 'none';
+  _undoImportId = null;
+}
+
+async function undoStep2() {
+  const pass = document.getElementById('undo-pass1').value;
+  if (!pass) { showToast('Ingresa tu contraseña', 'error'); return; }
+  const session = getSession();
+  const valid = session?.role === 'master'
+    ? await sha256(pass) === MASTER_USER.passwordHash
+    : false;
+  if (!valid) { showToast('Contraseña incorrecta', 'error'); document.getElementById('undo-pass1').value = ''; document.getElementById('undo-pass1').focus(); return; }
+  document.getElementById('undo-import-step1').style.display = 'none';
+  document.getElementById('undo-import-step2').style.display = '';
+  setTimeout(() => document.getElementById('undo-pass2').focus(), 120);
+}
+
+async function undoStep3() {
+  const pass = document.getElementById('undo-pass2').value;
+  if (!pass) { showToast('Ingresa tu contraseña nuevamente', 'error'); return; }
+  const session = getSession();
+  const valid = session?.role === 'master'
+    ? await sha256(pass) === MASTER_USER.passwordHash
+    : false;
+  if (!valid) { showToast('Contraseña incorrecta', 'error'); document.getElementById('undo-pass2').value = ''; document.getElementById('undo-pass2').focus(); return; }
+
+  closeUndoImportModal();
+  await executeUndoImport(_undoImportId);
+}
+
+async function executeUndoImport(recordId) {
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
+    const history = JSON.parse(data?.value || '[]');
+    const record  = history.find(r => r.id === recordId);
+    if (!record) { showToast('Registro no encontrado', 'error'); return; }
+
+    let removedTotal = 0;
+    for (const dist of (record.distribution || [])) {
+      if (!dist.leadIds?.length) continue;
+      const idSet    = new Set(dist.leadIds);
+      const existing = loadLeads(dist.boardId);
+      const filtered = existing.filter(l => !idSet.has(l.id));
+      removedTotal  += existing.length - filtered.length;
+      saveLeads(dist.boardId, filtered);
+    }
+
+    // Mark record as undone in history
+    const updated = history.map(r => r.id === recordId ? { ...r, undone: true, undoneAt: new Date().toISOString() } : r);
+    await supa.from('kv_store').upsert({ key:'gew_import_history', value: JSON.stringify(updated) });
+
+    showToast(`↩ ${removedTotal} leads eliminados correctamente`, 'success');
+    renderImportHistory();
+    if (currentBoardId) renderTable();
+  } catch(e) {
+    showToast('Error al deshacer: ' + e.message, 'error');
+  }
 }
 
 function renderWeeklyReport(history) {
