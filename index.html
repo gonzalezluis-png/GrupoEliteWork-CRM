@@ -4870,7 +4870,10 @@ function renderTableKeepSelection() {
 function renderTable() {
   if (!currentBoardId) return;
   const board = getBoard(currentBoardId) || BOARDS[0];
-  const cols  = getColumns(board);
+  const _rtSess = getSession();
+  const _canSelect = _rtSess && (_rtSess.role === 'master' || _rtSess.role === 'admin');
+  const cols  = getColumns(board).filter(c => c.key !== '_check' || _canSelect);
+  if (!_canSelect) { selectedIds.clear(); document.getElementById('bulk-bar').classList.remove('visible'); }
   const leads = currentBoardId === '__agent__'
     ? loadAgentLeads(getSession()?.name || '')
     : loadLeads(currentBoardId);
