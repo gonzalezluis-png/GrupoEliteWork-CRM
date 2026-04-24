@@ -6802,7 +6802,9 @@ function showImportPanel() {
           </div>
           <div class="imp-dest-field">
             <label>Ubicación para todos</label>
-            <input type="text" id="global-ubicacion" placeholder="Ej: Houston, TX" oninput="applyGlobalUbicacion()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-family:var(--font);font-size:12px;outline:none;width:140px"/>
+            <select id="global-ubicacion" onchange="applyGlobalUbicacion()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-family:var(--font);font-size:12px;outline:none;min-width:140px">
+              <option value="">— Elegir —</option>
+            </select>
           </div>
           <div class="imp-dest-field">
             <label>Tipo de lead para todos</label>
@@ -7095,13 +7097,15 @@ function applyGlobalDest() {
   if (!dest) return;
   pastedRows.forEach(r => r.dest = dest);
   document.querySelectorAll('#imp-edit-table tbody td.imp-dest-td select').forEach(s => s.value = dest);
-  // Auto-suggest board name as ubicacion if ubicacion field is empty
-  const board = getBoard(dest);
-  const ubInput = document.getElementById('global-ubicacion');
-  if (board && ubInput && !ubInput.value) {
-    ubInput.value = board.name;
-    applyGlobalUbicacion();
-  }
+  // Populate ubicacion select with unique values from this board's leads
+  const ubSel = document.getElementById('global-ubicacion');
+  if (!ubSel) return;
+  const leads = loadLeads(dest);
+  const unique = [...new Set(leads.map(l => (l.ubicacion || '').trim()).filter(Boolean))].sort();
+  ubSel.innerHTML = `<option value="">— Elegir —</option>`
+    + unique.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+  // Auto-select if only one option
+  if (unique.length === 1) { ubSel.value = unique[0]; applyGlobalUbicacion(); }
 }
 
 function applyGlobalUbicacion() {
@@ -7158,8 +7162,8 @@ function clearPaste() {
   window._pastedMappings = [];
   window._globalLeadType  = '';
   window._globalLeadPrice = 0;
-  const ubInp = document.getElementById('global-ubicacion');
-  if (ubInp) ubInp.value = '';
+  const ubSel = document.getElementById('global-ubicacion');
+  if (ubSel) { ubSel.innerHTML = '<option value="">— Elegir —</option>'; ubSel.value = ''; }
   goImportStep(1);
   const area = document.getElementById('paste-area');
   if (area) { area.value = ''; area.classList.remove('has-data'); }
