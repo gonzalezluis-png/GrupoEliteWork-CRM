@@ -2587,7 +2587,7 @@ setTimeout(function(){
             </div>
 
             <!-- Zoom Integration -->
-            <div class="st-card" id="zoom-account-card" style="margin-top:24px">
+            <div class="st-card" id="zoom-account-card" style="margin-top:24px;display:none">
               <div class="st-card-header">
                 <div class="st-card-header-left">
                   <div class="st-card-icon" style="background:rgba(45,140,255,.12);font-size:20px">📹</div>
@@ -3520,7 +3520,7 @@ setTimeout(function(){
     <div style="display:flex;gap:2px;padding:10px 20px 0;border-bottom:1px solid var(--border);flex-shrink:0">
       <button id="np-tab-notes" onclick="switchNotesPanelTab('notes')" style="padding:6px 16px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent);cursor:pointer;margin-bottom:-1px">📝 Notas</button>
       <button id="np-tab-messages" onclick="switchNotesPanelTab('messages')" style="padding:6px 16px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px">💬 Mensajes</button>
-      <button id="np-tab-calls" onclick="switchNotesPanelTab('calls')" style="padding:6px 16px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px">📞 Llamadas</button>
+      <button id="np-tab-calls" onclick="switchNotesPanelTab('calls')" style="display:none;padding:6px 16px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px">📞 Llamadas</button>
     </div>
 
     <!-- Notas tab -->
@@ -4808,7 +4808,7 @@ function renderRows(board, leads) {
       if (c.key === 'hijos') return `<td class="td-hijos">${esc(l.hijos||'')}</td>`;
       if (c.key === 'telefono') {
         const ph = l.telefono || '';
-        const callBtn = ph ? `<button onclick="event.stopPropagation();zoomCall('${l.id}','${esc(ph)}','${board?.id||currentBoardId}')" title="Llamar por Zoom" style="background:#2D8CFF;border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;line-height:1.6">📞</button>` : '';
+        const callBtn = (ph && _isZoomDev()) ? `<button onclick="event.stopPropagation();zoomCall('${l.id}','${esc(ph)}','${board?.id||currentBoardId}')" title="Llamar por Zoom" style="background:#2D8CFF;border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;line-height:1.6">📞</button>` : '';
         return `<td><div style="display:flex;align-items:center;gap:5px;white-space:nowrap">${esc(ph)}${callBtn}</div></td>`;
       }
       return `<td>${esc(l[c.key]||'')}</td>`;
@@ -8333,7 +8333,9 @@ function switchSettingsTab(tab) {
     loadFromSupabase().then(() => renderPendingList()).catch(() => renderPendingList());
   }
   if (tab === 'account') {
-    _loadZoomStatus().then(() => _renderZoomCard());
+    const zoomCard = document.getElementById('zoom-account-card');
+    if (zoomCard) zoomCard.style.display = _isZoomDev() ? 'block' : 'none';
+    if (_isZoomDev()) _loadZoomStatus().then(() => _renderZoomCard());
   }
 }
 
@@ -9679,6 +9681,10 @@ function initToolbarGapHandle() {
 // ════════════════════════════════════════════
 //  ZOOM INTEGRATION
 // ════════════════════════════════════════════
+function _isZoomDev() {
+  const s = getSession();
+  return s?.email === 'gonzalezluis@grupoelitework.com';
+}
 const ZOOM_CLIENT_ID  = 'XW9e43_3Ro2nY8dcHl_BUg';
 const ZOOM_REDIRECT   = 'https://lead.grupoelitework.com';
 const SUPA_FN_URL     = 'https://vpwbczzmonboirjckpmy.supabase.co/functions/v1';
@@ -11345,6 +11351,7 @@ function openNotesPanel(leadId, navList) {
   _renderMsgJournal(lead);
   const _s = getSession();
   document.getElementById('np-tab-messages').style.display = (_s && _s.role === 'master') ? '' : 'none';
+  document.getElementById('np-tab-calls').style.display = _isZoomDev() ? '' : 'none';
   loadMsgCredits(boardId);
   switchNotesPanelTab('notes');
   document.getElementById('notes-panel-overlay').classList.add('open');
