@@ -929,6 +929,27 @@
   .imp-history-total { font-size:22px; font-weight:800; color:var(--text); text-align:right; white-space:nowrap; }
   .imp-history-total span { display:block; font-size:10px; font-weight:400; color:var(--text2); }
 
+  /* Column mapping section */
+  .imp-map-section { background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:12px; }
+  .imp-map-label   { font-size:10px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
+  .imp-map-row     { display:flex; flex-wrap:wrap; gap:8px; }
+  .imp-map-item    { display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:5px 10px; }
+  .imp-map-col     { font-size:11px; font-weight:600; color:var(--text); white-space:nowrap; max-width:100px; overflow:hidden; text-overflow:ellipsis; }
+  .imp-map-arrow   { font-size:12px; color:var(--text2); }
+  .imp-map-sel     { background:transparent; border:none; color:var(--accent); font-family:var(--font); font-size:11px; font-weight:600; outline:none; cursor:pointer; padding:0; }
+
+  /* Column resize handle */
+  .imp-rz-th { position:relative; user-select:none; }
+  .imp-col-resizer { position:absolute; right:0; top:0; width:5px; height:100%; cursor:col-resize; z-index:1; }
+  .imp-col-resizer:hover, .imp-col-resizer:active { background:var(--accent); opacity:.4; }
+
+  /* AI address cell */
+  .imp-ai-cell { min-width:180px; vertical-align:middle; }
+  .imp-ai-suggestion { font-size:11px; color:var(--text); margin-bottom:5px; line-height:1.4; }
+  .imp-ai-toggle { display:flex; gap:3px; }
+  .imp-ai-toggle button { border:1px solid var(--border); background:var(--card2); color:var(--text2); border-radius:5px; padding:2px 8px; font-size:10px; font-weight:600; cursor:pointer; font-family:var(--font); transition:all .1s; }
+  .imp-ai-toggle .imp-ai-btn-active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
   /* legacy kept for compat */
   .import-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:24px; }
   .import-row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
@@ -6715,8 +6736,23 @@ function showImportPanel() {
   renderImportHistory();
 }
 
-let pastedRows = []; // { checked, dest, cells[] }
+let pastedRows = []; // { checked, dest, cells[], extra:{}, aiAddress:null, useAiAddress:false }
 let pastedHeaders = [];
+
+// Fixed columns always shown in the edit table
+const IMP_FIXED_FIELDS = ['nombre','hijos','telefono','email','direccion'];
+
+function getRowField(row, field) {
+  if (row.extra && field in row.extra) return row.extra[field];
+  const idx = (window._pastedMappings || []).indexOf(field);
+  return idx !== -1 ? (row.cells[idx] || '') : '';
+}
+function setRowField(ri, field, value) {
+  const row = pastedRows[ri];
+  const idx = (window._pastedMappings || []).indexOf(field);
+  if (idx !== -1) row.cells[idx] = value;
+  else { row.extra = row.extra || {}; row.extra[field] = value; }
+}
 
 function handlePaste(e) {
   e.preventDefault();
@@ -6732,8 +6768,7 @@ function parsePastedData(text) {
   if (lines.length < 2) { showToast('Necesitas al menos encabezados y una fila de datos','error'); return; }
   pastedHeaders = lines[0].split('\t').map(h => h.trim());
   pastedRows = lines.slice(1).map(line => ({
-    checked: true,
-    dest: '',
+    checked: true, dest: '', aiAddress: null, useAiAddress: false, extra: {},
     cells: line.split('\t').map(c => c.trim()),
   }));
   goImportStep(2);
@@ -6774,33 +6809,126 @@ function goImportStep(n) {
 }
 
 function renderImportEditTable() {
-  const mappings = pastedHeaders.map(h => guessField(h));
-  window._pastedMappings = mappings;
+  if (!window._pastedMappings || window._pastedMappings.length !== pastedHeaders.length) {
+    window._pastedMappings = pastedHeaders.map(h => guessField(h));
+  }
+  const mappings = window._pastedMappings;
   const boardOpts = `<option value="">— Elegir —</option>` + BOARDS.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
   const fieldOpts = window._impFieldOpts || '';
+  const hasAI = pastedRows.some(r => r.aiAddress);
 
-  const thead = `<thead><tr>
-    <th class="imp-chk-td"><input type="checkbox" checked onchange="toggleAllPasteRows(this)"/></th>
-    ${pastedHeaders.map((h,i)=>`<th><div style="margin-bottom:3px">${esc(h)}</div>
-      <select onchange="window._pastedMappings[${i}]=this.value">
-        ${fieldOpts.replace(`value="${mappings[i]}"`,`value="${mappings[i]}" selected`)}
-      </select></th>`).join('')}
-    <th>BOARD DESTINO</th>
-    <th></th>
-  </tr></thead>`;
+  // Mapping section above table
+  const mapSection = `<div class="imp-map-section">
+    <div class="imp-map-label">📋 Mapeo de columnas de tu Excel:</div>
+    <div class="imp-map-row">${pastedHeaders.map((h,i)=>`
+      <div class="imp-map-item">
+        <span class="imp-map-col">${esc(h)}</span>
+        <span class="imp-map-arrow">→</span>
+        <select class="imp-map-sel" onchange="window._pastedMappings[${i}]=this.value;renderImportEditTable()">
+          ${fieldOpts.replace(`value="${mappings[i]}"`,`value="${mappings[i]}" selected`)}
+        </select>
+      </div>`).join('')}
+    </div>
+  </div>`;
 
-  const tbody = `<tbody>${pastedRows.map((row,ri)=>`
-    <tr id="imp-row-${ri}">
+  // Fixed column headers with resize handles
+  const fixedCols = IMP_FIXED_FIELDS.map(f => `
+    <th class="imp-rz-th" data-field="${f}">
+      ${f.charAt(0).toUpperCase()+f.slice(1)}
+      <div class="imp-col-resizer" onmousedown="impStartResize(event,this)"></div>
+    </th>`).join('');
+
+  const aiCol = hasAI ? `<th class="imp-rz-th" id="th-ai-addr">
+    Dirección IA <span style="font-size:9px;background:#7c3aed;color:#fff;border-radius:8px;padding:1px 6px;font-weight:600">✨</span>
+    <div class="imp-col-resizer" onmousedown="impStartResize(event,this)"></div>
+  </th>` : '';
+
+  const thead = `<thead>
+    <tr>
+      <th class="imp-chk-td" style="width:32px"><input type="checkbox" checked onchange="toggleAllPasteRows(this)"/></th>
+      ${fixedCols}
+      ${aiCol}
+      <th class="imp-rz-th" style="min-width:160px">Board destino<div class="imp-col-resizer" onmousedown="impStartResize(event,this)"></div></th>
+      <th style="width:30px"></th>
+    </tr>
+  </thead>`;
+
+  const tbody = `<tbody>${pastedRows.map((row,ri)=>{
+    const fixedCells = IMP_FIXED_FIELDS.map(f => {
+      const v = getRowField(row, f);
+      return `<td><input type="text" value="${esc(v)}" oninput="setRowField(${ri},'${f}',this.value)"/></td>`;
+    }).join('');
+
+    let aiCell = '';
+    if (hasAI) {
+      if (row.aiAddress) {
+        const using = row.useAiAddress;
+        aiCell = `<td class="imp-ai-cell">
+          <div class="imp-ai-suggestion">${esc(row.aiAddress)}</div>
+          <div class="imp-ai-toggle">
+            <button class="${!using?'imp-ai-btn-active':''}" onclick="impToggleAI(${ri},false)" title="Usar dirección original">Original</button>
+            <button class="${using?'imp-ai-btn-active':''}" onclick="impToggleAI(${ri},true)" title="Usar dirección IA">✨ IA</button>
+          </div>
+        </td>`;
+      } else {
+        aiCell = `<td style="color:var(--text2);font-size:11px;padding:8px">—</td>`;
+      }
+    }
+
+    const destSel = `<td class="imp-dest-td"><select onchange="pastedRows[${ri}].dest=this.value">
+      ${BOARDS.map(b=>`<option value="${b.id}"${row.dest===b.id?' selected':''}>${b.name}</option>`).join('')}
+      ${!row.dest?`<option value="" selected disabled>— Elegir —</option>`:''}
+    </select></td>`;
+
+    return `<tr id="imp-row-${ri}" ${!row.checked?'style="opacity:.45"':''}>
       <td class="imp-chk-td"><input type="checkbox" ${row.checked?'checked':''} onchange="togglePasteRow(${ri},this.checked)"/></td>
-      ${row.cells.map((c,ci)=>`<td><input type="text" value="${esc(c)}" oninput="pastedRows[${ri}].cells[${ci}]=this.value"/></td>`).join('')}
-      <td class="imp-dest-td"><select onchange="pastedRows[${ri}].dest=this.value">
-        ${boardOpts}${row.dest ? boardOpts.replace(`value="${row.dest}"`,`value="${row.dest}" selected`):''}
-      </select></td>
+      ${fixedCells}${aiCell}${destSel}
       <td class="imp-del-td"><button onclick="deleteImportRow(${ri})" title="Eliminar fila">✕</button></td>
-    </tr>`).join('')}</tbody>`;
+    </tr>`;
+  }).join('')}</tbody>`;
 
-  document.getElementById('imp-edit-table').innerHTML = thead + tbody;
+  const tableEl = document.getElementById('imp-edit-table');
+  tableEl.innerHTML = thead + tbody;
+
+  // Prepend mapping section before the table scroll
+  let mapEl = document.getElementById('imp-map-section');
+  if (!mapEl) {
+    mapEl = document.createElement('div');
+    mapEl.id = 'imp-map-section';
+    tableEl.closest('.imp-table-scroll').before(mapEl);
+  }
+  mapEl.innerHTML = mapSection;
+
   updatePasteStats();
+}
+
+function impToggleAI(ri, useAI) {
+  const row = pastedRows[ri];
+  row.useAiAddress = useAI;
+  if (useAI && row.aiAddress) {
+    // Apply AI address to direccion field
+    setRowField(ri, 'direccion', row.aiAddress);
+    // Also try to extract ubicacion if present (city, state after comma)
+    const parts = row.aiAddress.split(',');
+    if (parts.length >= 2) {
+      const cityState = parts.slice(1).join(',').trim();
+      if (cityState) setRowField(ri, 'ubicacion', cityState);
+    }
+  }
+  renderImportEditTable();
+}
+
+// Column resize
+function impStartResize(e, handle) {
+  e.preventDefault();
+  e.stopPropagation();
+  const th = handle.closest('th');
+  const startX = e.pageX;
+  const startW = th.offsetWidth;
+  function onMove(ev) { th.style.minWidth = Math.max(60, startW + ev.pageX - startX) + 'px'; th.style.width = th.style.minWidth; }
+  function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 }
 
 function deleteImportRow(ri) {
@@ -6858,11 +6986,15 @@ function goImportPreview() {
   if (noDest.length) { showToast(`${noDest.length} fila(s) sin board destino — elige un board para todas o individualmente`,'error'); return; }
 
   const globalLeadType = window._globalLeadType || document.getElementById('global-lead-type')?.value || '';
-  // Build preview by board
   const byBoard = {};
   toImport.forEach(row => {
     const lead = { id: uid(), creacion: today() };
-    mappings.forEach((field, ci) => { if (field && row.cells[ci] !== undefined) lead[field] = row.cells[ci]; });
+    // Fixed fields
+    IMP_FIXED_FIELDS.forEach(f => { const v = getRowField(row, f); if (v) lead[f] = v; });
+    // Extra mapped fields (lead type, asignado, etc.)
+    (window._pastedMappings || []).forEach((field, ci) => {
+      if (field && !IMP_FIXED_FIELDS.includes(field) && row.cells[ci]) lead[field] = row.cells[ci];
+    });
     if (!lead.nombre) lead.nombre = row.cells[0] || '';
     if (globalLeadType) lead.lead = globalLeadType;
     if (!byBoard[row.dest]) byBoard[row.dest] = [];
@@ -6935,30 +7067,26 @@ async function confirmImport() {
 }
 
 async function aiCompleteAddresses() {
-  const mappings = window._pastedMappings || [];
-  const dirIdx = mappings.indexOf('direccion');
-  const ubxIdx = mappings.indexOf('ubicacion');
+  const rows = pastedRows.filter(r => r.checked);
+  if (!rows.length) { showToast('No hay filas seleccionadas', 'error'); return; }
 
-  if (dirIdx === -1 && ubxIdx === -1) {
+  const payload = rows.map((row, i) => ({
+    idx:       pastedRows.indexOf(row),
+    direccion: getRowField(row, 'direccion'),
+    ubicacion: getRowField(row, 'ubicacion'),
+  })).filter(r => r.direccion || r.ubicacion);
+
+  if (!payload.length) {
     showToast('Mapea al menos una columna como "direccion" o "ubicacion" primero', 'error');
     return;
   }
 
-  const rows = pastedRows.filter(r => r.checked);
-  if (!rows.length) { showToast('No hay filas seleccionadas', 'error'); return; }
-
   const btn = document.getElementById('imp-ai-btn');
   const status = document.getElementById('imp-ai-status');
   btn.disabled = true;
-  btn.textContent = '✨ Analizando…';
-  status.textContent = `Enviando ${rows.length} direcciones a Claude…`;
-
-  // Build payload — only rows that have something in address columns
-  const payload = rows.map((row, i) => ({
-    idx:       pastedRows.indexOf(row),
-    direccion: dirIdx !== -1 ? (row.cells[dirIdx] || '') : '',
-    ubicacion: ubxIdx !== -1 ? (row.cells[ubxIdx] || '') : '',
-  })).filter(r => r.direccion || r.ubicacion);
+  btn.innerHTML = '✨ Analizando…';
+  status.textContent = `Enviando ${payload.length} direcciones a Claude…`;
+  status.style.color = 'var(--text2)';
 
   try {
     const res = await fetch(`${SUPA_FN_URL}/claude-enrich`, {
@@ -6969,22 +7097,19 @@ async function aiCompleteAddresses() {
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Error de IA');
 
-    let changed = 0;
+    let count = 0;
     data.result.forEach(r => {
       const row = pastedRows[r.idx];
-      if (!row) return;
-      if (dirIdx !== -1 && r.direccion && r.direccion !== row.cells[dirIdx]) {
-        row.cells[dirIdx] = r.direccion; changed++;
-      }
-      if (ubxIdx !== -1 && r.ubicacion && r.ubicacion !== row.cells[ubxIdx]) {
-        row.cells[ubxIdx] = r.ubicacion; changed++;
-      }
+      if (!row || !r.direccion_completa) return;
+      row.aiAddress     = r.direccion_completa;
+      row.useAiAddress  = false;
+      count++;
     });
 
     renderImportEditTable();
-    status.textContent = `✓ ${changed} campo(s) completados/corregidos`;
+    status.textContent = `✓ ${count} sugerencia(s) generadas — elige cuáles aplicar`;
     status.style.color = 'var(--green)';
-    showToast(`✨ IA completó ${changed} campos de dirección`, 'success');
+    showToast(`✨ IA generó ${count} sugerencias de dirección`, 'success');
   } catch(e) {
     status.textContent = 'Error: ' + e.message;
     status.style.color = 'var(--red)';

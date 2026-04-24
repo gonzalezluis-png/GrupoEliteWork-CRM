@@ -17,18 +17,20 @@ serve(async (req) => {
 
     if (task === 'complete_addresses') {
       // data: array of { idx, direccion, ubicacion }
-      systemPrompt = `Eres un asistente experto en normalización de datos de direcciones de Estados Unidos.
-Tu tarea es analizar direcciones parciales o incompletas y completarlas lo mejor posible.
-Para cada entrada, devuelve el mismo JSON con los campos completados o corregidos.
-Reglas:
-- Si la dirección ya está completa, devuélvela tal cual
-- Completa ciudad (ubicacion) y estado si puedes deducirlos de la dirección
-- Normaliza el formato de la dirección (capitalización, abreviaciones estándar: St, Ave, Blvd, etc.)
-- Si no puedes determinar un campo con certeza, déjalo igual que el original
-- No inventes información que no puedas deducir de los datos
-- Responde SOLO con el array JSON, sin explicaciones ni texto adicional`
+      systemPrompt = `Eres un experto en normalización de direcciones postales de Estados Unidos.
+Para cada entrada devuelve un objeto JSON con los campos originales MÁS un campo "direccion_completa" con la dirección completa y normalizada.
 
-      userPrompt = `Analiza y completa estas direcciones:\n${JSON.stringify(data, null, 2)}\n\nResponde con el mismo array JSON con los campos completados.`
+Reglas estrictas:
+1. Si "direccion" contiene SOLO 5 dígitos (ej: "77001") → es un ZIP code. Busca la ciudad y estado correspondientes y devuelve "Ciudad, Estado ZIPCODE" en "direccion_completa"
+2. Si "direccion" es una dirección parcial (sin ciudad, estado o ZIP) → intenta completarla con ciudad, estado y ZIP. Formato: "Número Calle, Ciudad, Estado ZIPCODE"
+3. Si ya está completa → normaliza formato (capitalización, abreviaciones: St, Ave, Blvd, Dr, Ln, Rd, etc.)
+4. Usa "ubicacion" como contexto adicional si ayuda a determinar la ciudad/estado
+5. Si absolutamente no puedes determinar algún dato, usa lo que tienes sin inventar
+6. Responde ÚNICAMENTE con el array JSON, sin texto adicional ni markdown
+
+Formato de respuesta: [{"idx":0,"direccion_completa":"123 Main St, Houston, TX 77001"}, ...]`
+
+      userPrompt = `Completa estas direcciones:\n${JSON.stringify(data, null, 2)}`
     } else {
       return new Response(JSON.stringify({ error: 'Tarea no reconocida' }), {
         status: 400, headers: { ...CORS, 'Content-Type': 'application/json' }
