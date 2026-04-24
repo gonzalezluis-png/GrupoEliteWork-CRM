@@ -10060,11 +10060,19 @@ function buildOrgBranch(admId, allUsers, session) {
   masterMgrs.forEach(mm => {
     renderedIds.add(mm.id);
     const mmManagers     = managers.filter(u => u.orgMasterManagerId === mm.id);
+    const mmDirectSups   = supervisors.filter(u => u.orgMasterManagerId === mm.id && !u.orgManagerId);
     const mmDirectAgents = agents.filter(u => u.orgMasterManagerId === mm.id && !u.orgManagerId && !u.orgSupervisorId);
     let mmChildren = mmManagers.map(mgr => {
       renderedIds.add(mgr.id);
       return hChild(buildManagerBranch(mgr, allUsers, admId, session, renderedIds));
     }).join('');
+    mmDirectSups.forEach(sup => {
+      renderedIds.add(sup.id);
+      const supAgents = agents.filter(ag => ag.orgSupervisorId === sup.id);
+      let supChildren = supAgents.map(ag => { renderedIds.add(ag.id); return hChild(hOrgWrap(orgNode(ag, session), '')); }).join('');
+      supChildren += hAddBtn(admId, '＋ Agente');
+      mmChildren += hChild(hOrgWrap(orgNode(sup, session), supChildren));
+    });
     mmDirectAgents.forEach(ag => { renderedIds.add(ag.id); mmChildren += hChild(hOrgWrap(orgNode(ag, session), '')); });
     mmChildren += hAddBtn(admId, '＋ Agregar');
     children += hChild(hOrgWrap(orgNode(mm, session), mmChildren));
@@ -10195,12 +10203,13 @@ function orgDragEnd(e) {
 }
 
 function _orgIsValidDrop(dragged, target) {
-  // Forbidden destinations: master, admin, MGA
-  if (['master','admin','master_manager'].includes(target.role)) return false;
-  // Same role cannot go under same role
-  if (dragged.role === target.role) return false;
-  // Agents are not drop targets
+  if (['master','admin'].includes(target.role)) return false;
   if (target.role === 'agent') return false;
+  if (dragged.role === target.role) return false;
+  // MGA can only receive supervisor_agent or agent directly
+  if (target.role === 'master_manager' && !['supervisor_agent','agent'].includes(dragged.role)) return false;
+  // supervisor_agent can receive only agents
+  if (target.role === 'supervisor_agent' && dragged.role !== 'agent') return false;
   return true;
 }
 
@@ -10244,13 +10253,19 @@ async function orgDrop(e, targetId) {
   // Clear existing org assignments
   delete u.orgSupervisorId; delete u.orgManagerId; delete u.orgMasterManagerId;
 
-  if (target.role === 'supervisor_agent') {
-    u.orgSupervisorId    = target.id;
-    u.orgManagerId       = target.orgManagerId       || null;
-    u.orgMasterManagerId = target.orgMasterManagerId || null;
-    u.orgAdminId         = target.orgAdminId         || null;
+  if (target.role === 'master_manager') {
+    u.orgMasterManagerId = target.id;
+    u.orgManagerId       = null;
+    u.orgSupervisorId    = null;
+    u.orgAdminId         = target.orgAdminId || null;
   } else if (target.role === 'manager') {
     u.orgManagerId       = target.id;
+    u.orgMasterManagerId = target.orgMasterManagerId || null;
+    u.orgSupervisorId    = null;
+    u.orgAdminId         = target.orgAdminId || null;
+  } else if (target.role === 'supervisor_agent') {
+    u.orgSupervisorId    = target.id;
+    u.orgManagerId       = target.orgManagerId       || null;
     u.orgMasterManagerId = target.orgMasterManagerId || null;
     u.orgAdminId         = target.orgAdminId         || null;
   }
