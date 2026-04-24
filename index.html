@@ -9056,6 +9056,32 @@ async function saveUsers(users) {
   const ok = await supaSync(USERS_KEY, JSON.stringify(users));
   if (!ok) showToast('Advertencia: no se pudo sincronizar con la nube', 'error');
 }
+// ── CÓDIGOS ADMINISTRATIVOS DE USUARIO ───────────────────────
+function _nextUserCode(users) {
+  const nums = users
+    .map(u => u.userCode)
+    .filter(Boolean)
+    .map(c => parseInt((c || '').replace(/\D/g, ''), 10))
+    .filter(n => !isNaN(n));
+  const next = nums.length ? Math.max(...nums) + 1 : 1;
+  return 'GEW-' + String(next).padStart(3, '0');
+}
+
+async function assignUserCodes() {
+  const users = loadUsers();
+  let changed = false;
+  users.forEach(u => {
+    if (!u.userCode) {
+      u.userCode = _nextUserCode(users.filter(x => x.userCode));
+      changed = true;
+    }
+  });
+  if (changed) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    await supaSync(USERS_KEY, JSON.stringify(users));
+  }
+}
+
 function loadVirtualUsers() {
   try { return JSON.parse(localStorage.getItem(VIRTUAL_USERS_KEY)) || []; } catch { return []; }
 }
@@ -9636,6 +9662,8 @@ function initApp(user) {
   initRealtimeSync();
   // Pre-load auto-recharge settings so trigger works in send
   loadAutoRechargeSettings().catch(() => {});
+  // Assign GEW-XXX codes to users that don't have one yet
+  if (user.role === 'master') assignUserCodes().catch(() => {});
 }
 
 function showAgentView() {
@@ -9949,6 +9977,9 @@ function orgNode(u, session) {
   const inactiveCls  = u.inactive ? ' org-node-inactive' : '';
   const inactiveBadge = u.inactive ? `<span class="badge-inactive">INACTIVO</span>` : '';
   const isMasterSelf = session.role === 'master' || session._isMaster;
+  const userCodeBadge = isMasterSelf && u.userCode
+    ? `<span style="font-size:9px;font-weight:700;color:var(--text2);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:5px;padding:1px 6px;letter-spacing:.5px;margin-left:4px">${u.userCode}</span>`
+    : '';
   const inactiveInfo = u.inactive && isMasterSelf && u._inactivatedBy
     ? (() => {
         const d = u._inactivatedAt ? new Date(u._inactivatedAt).toLocaleDateString('es-US',{month:'short',day:'numeric',year:'numeric'}) : '';
@@ -9972,7 +10003,7 @@ function orgNode(u, session) {
   return `<div class="${nodeClass}${inactiveCls}" data-uid="${u.id}" ${dragAttrs} ${dropAttrs}>
     <div style="width:37px;height:37px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.3)">${initials}</div>
     <div class="org-node-info">
-      <div class="org-node-name">${esc(u.name)}${inactiveBadge}</div>
+      <div class="org-node-name">${esc(u.name)}${inactiveBadge}${userCodeBadge}</div>
       <div class="org-node-email">${esc(u.email)}</div>
       <div style="display:flex;align-items:center;gap:5px;margin-top:3px">
         <span class="role-badge ${roleCls}">${roleLabel}</span>
@@ -10595,7 +10626,7 @@ async function saveUser() {
     if (users.find(u => u.name.toLowerCase() === name.toLowerCase()) || name.toLowerCase() === MASTER_USER.name.toLowerCase()) {
       showToast('Ya existe un usuario con ese nombre. Los nombres deben ser únicos.', 'error'); return;
     }
-    users.push({ id: uid(), name, email, password: pass, role, orgAdminId, orgMasterManagerId, orgManagerId, orgSupervisorId, createdAt: today() });
+    users.push({ id: uid(), name, email, password: pass, role, orgAdminId, orgMasterManagerId, orgManagerId, orgSupervisorId, createdAt: today(), userCode: _nextUserCode(users) });
     await saveUsers(users);
     logActivity('user_created', `Usuario creado: ${name}`, `Email: ${email} · Rol: ${role}`);
     closeUserModal();
