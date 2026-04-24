@@ -4878,6 +4878,8 @@ let deleteLeadId    = null;
 let filteredLeads   = [];
 let assignFilter    = 'all';
 let selectedIds     = new Set();
+// Lead IDs deleted in this session — prevents server resurrection during merge
+const _deletedLeadIds = new Set();
 let COL_WIDTHS      = {
   nombre: 160, lead: 185, creacion: 120, hijos: 80,
   email: 160, telefono: 120, direccion: 160, ubicacion: 155,
@@ -4930,14 +4932,7 @@ function _updateUndoRedoBtns() {
   if (r) { r.disabled = _redoStack.length === 0; r.style.opacity = _redoStack.length ? '1' : '.4'; }
 }
 async function _applyHistory(boardId, leadsSnapshot) {
-  const key = 'gew_leads_' + boardId;
-  localStorage.setItem(key, JSON.stringify(leadsSnapshot));
-  updateSidebarCount(boardId);
-  renderSidebar();
-  if (currentBoardId === boardId) renderTable();
-  setSyncStatus('saving');
-  const ok = await supaSync(key, JSON.stringify(leadsSnapshot));
-  setSyncStatus(ok ? 'saved' : 'error');
+  await saveLeads(boardId, leadsSnapshot);
 }
 async function undoAction() {
   if (_undoStack.length === 0) return;
@@ -4960,21 +4955,76 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redoAction(); }
 });
 
+// Fast hash of the fields that matter for conflict detection
+function _leadHash(l) {
+  return `${l.asignado}|${l.asignadoId}|${l.resultado}|${l.notas}|${l.nombre}|${l.telefono}|${l.email}|${l.direccion}`;
+}
+
 async function saveLeads(boardId, leads, opts = {}) {
   const session = getSession();
   const isMaster = session && session.role === 'master';
-  // Track history for all saves except notes (non-master notes are fixed)
-  if (!opts.isNote || isMaster) {
-    const before = loadLeads(boardId);
-    _pushHistory(boardId, before, leads);
-  }
   const key = 'gew_leads_' + boardId;
+
+  // Stamp changed/new leads with _updatedAt before anything else
+  const prevRaw = localStorage.getItem(key);
+  const prev = prevRaw ? JSON.parse(prevRaw) : [];
+  const prevMap = new Map(prev.map(l => [l.id, l]));
+  const now = new Date().toISOString();
+  leads.forEach(l => {
+    const p = prevMap.get(l.id);
+    if (!p || !l._updatedAt || _leadHash(l) !== _leadHash(p)) {
+      l._updatedAt = now;
+    }
+  });
+
+  if (!opts.isNote || isMaster) _pushHistory(boardId, prev, leads);
+
+  // Update local state immediately so UI is responsive
   localStorage.setItem(key, JSON.stringify(leads));
   updateSidebarCount(boardId);
   renderSidebar();
   setSyncStatus('saving');
-  const ok = await supaSync(key, JSON.stringify(leads));
-  setSyncStatus(ok ? 'saved' : 'error');
+
+  // ── Merge-on-write ──────────────────────────────────────────
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key', key).maybeSingle();
+    let toWrite = leads;
+
+    if (data?.value) {
+      const serverLeads = JSON.parse(data.value);
+      const localMap = new Map(leads.map(l => [l.id, l]));
+      const merged = new Map(localMap);
+
+      for (const sl of serverLeads) {
+        if (_deletedLeadIds.has(sl.id)) continue; // this client deleted it — don't resurrect
+        if (!merged.has(sl.id)) {
+          merged.set(sl.id, sl); // added by another user — keep it
+        } else {
+          // Both have it — newer _updatedAt wins
+          const ll = merged.get(sl.id);
+          if (sl._updatedAt && ll._updatedAt && sl._updatedAt > ll._updatedAt) {
+            merged.set(sl.id, sl);
+          }
+        }
+      }
+      toWrite = [...merged.values()];
+    }
+
+    _ownWrites.set(key, Date.now());
+    const { error } = await supa.from('kv_store').upsert({ key, value: JSON.stringify(toWrite) }, { onConflict: 'key' });
+    if (!error) {
+      localStorage.setItem(key, JSON.stringify(toWrite));
+      if (currentBoardId === boardId) renderTableKeepSelection();
+      setSyncStatus('saved');
+    } else {
+      setSyncStatus('error');
+    }
+  } catch(e) {
+    console.error('saveLeads merge error:', e);
+    // Fallback to direct write so data is never lost
+    const ok = await supaSync(key, JSON.stringify(leads));
+    setSyncStatus(ok ? 'saved' : 'error');
+  }
 }
 function allBoards() {
   BOARDS.forEach(b => updateSidebarCount(b.id));
@@ -5812,6 +5862,7 @@ function softDeleteLead(leadId, boardId) {
   const leads   = loadLeads(boardId);
   const lead    = leads.find(l => l.id === leadId);
   if (!lead) return;
+  _deletedLeadIds.add(leadId); // prevent resurrection during merge
   const board = getBoard(boardId);
   const trash = loadDeletedLeads();
   trash.unshift({
