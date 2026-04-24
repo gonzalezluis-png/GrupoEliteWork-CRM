@@ -4955,9 +4955,9 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redoAction(); }
 });
 
-// Fast hash of the fields that matter for conflict detection
+// Hash of all meaningful fields for change detection (excludes _updatedAt itself)
 function _leadHash(l) {
-  return `${l.asignado}|${l.asignadoId}|${l.resultado}|${l.notas}|${l.nombre}|${l.telefono}|${l.email}|${l.direccion}`;
+  return `${l.asignado}|${l.asignadoId}|${l.resultado}|${l.notas}|${l.nombre}|${l.telefono}|${l.email}|${l.direccion}|${l.ubicacion}|${l.estado}|${l.lead}|${l.hijos}`;
 }
 
 async function saveLeads(boardId, leads, opts = {}) {
@@ -5201,9 +5201,10 @@ function renderSidebar() {
   const list = document.getElementById('board-list');
   const defaultIds = new Set(DEFAULT_BOARDS.map(b => b.id));
 
-  const sideLineNames = (isManager || isMasterManager || isSupervisorAgent || isCaller)
-    ? new Set(_getLineUsers(session).map(u => u.name))
-    : null;
+  const _lineUsers = (isManager || isMasterManager || isSupervisorAgent || isCaller)
+    ? _getLineUsers(session) : null;
+  const sideLineNames = _lineUsers ? new Set(_lineUsers.map(u => u.name)) : null;
+  const sideLineIds   = _lineUsers ? new Set(_lineUsers.map(u => u.id))   : null;
   const _sessNameNorm = (session?.name || '').trim().toLowerCase();
   const _sessId = session?.id || null;
   const visibleBoards = isAgent
@@ -5211,7 +5212,9 @@ function renderSidebar() {
         (_sessId && l.asignadoId) ? l.asignadoId === _sessId : (l.asignado || '').trim().toLowerCase() === _sessNameNorm
       ))
     : sideLineNames
-      ? BOARDS.filter(b => loadLeads(b.id).some(l => sideLineNames.has(l.asignado)))
+      ? BOARDS.filter(b => loadLeads(b.id).some(l =>
+          (l.asignadoId && sideLineIds) ? sideLineIds.has(l.asignadoId) : sideLineNames.has(l.asignado)
+        ))
       : BOARDS;
 
   list.innerHTML = visibleBoards.map(b => {
@@ -9137,9 +9140,10 @@ function pickAgent(name, userId) {
   const prevAsignado   = lead.asignado   || '';
   const prevAsignadoId = lead.asignadoId || null;
   const newAgent = normalizeAsignado(name);
+  const validUserId = userId && loadUsers().some(u => u.id === userId) ? userId : null;
   checkReassign(lead, newAgent, (mode) => {
     applyReassignMode(lead, newAgent, mode);
-    if (userId) lead.asignadoId = userId;
+    if (validUserId) lead.asignadoId = validUserId;
     else delete lead.asignadoId;
     saveLeads(boardId, leads);
     renderTableKeepSelection();
