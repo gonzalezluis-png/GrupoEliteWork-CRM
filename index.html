@@ -1050,25 +1050,20 @@
   .org-group-header .org-group-name { color: #4da8ff; }
   .org-group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 
-  /* ── ORG TREE — top-down layout ── */
-  .org-h-scroll { overflow-x:auto; overflow-y:visible; padding:24px 16px 36px; min-width:min-content; }
-  /* Group: node above, children row below */
-  .org-h-group { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
-  /* Vertical line from parent down to children row */
-  .org-h-hline { width:2px; height:22px; background:var(--border); flex-shrink:0; }
-  /* Row of sibling subtrees */
-  .org-h-children { display:flex; flex-direction:row; align-items:flex-start; gap:0; }
-  /* Each child column: horizontal bar segment + short vline + subtree */
-  .org-h-child { display:flex; flex-direction:column; align-items:center; padding:0 10px; position:relative; }
-  /* Horizontal bar segments that together form the connecting bar across siblings */
-  .org-h-child::before { content:''; display:block; width:100%; height:2px; background:var(--border); }
-  .org-h-child:first-child::before { margin-left:50%; width:50%; }
-  .org-h-child:last-child::before  { width:50%; }
-  .org-h-child:only-child::before  { display:none; }
-  /* Short vline from horizontal bar down to child node */
-  .org-h-child-hline { width:2px; height:16px; background:var(--border); }
-  /* Keep vbar unused but defined to avoid layout errors */
-  .org-h-vbar { display:none; }
+  /* ── ORG TREE ── */
+  /* ── HORIZONTAL ORG CHART ── */
+  .org-h-scroll { overflow-x:auto; overflow-y:visible; padding:20px 8px 28px; }
+  /* Each "group" = node card + connector + children column */
+  .org-h-group { display:flex; flex-direction:row; align-items:center; }
+  /* Horizontal connector line from parent to vertical bar */
+  .org-h-hline { width:28px; height:2px; background:var(--border); flex-shrink:0; }
+  /* Vertical bar that spans all siblings */
+  .org-h-vbar  { width:2px; background:var(--border); align-self:stretch; flex-shrink:0; }
+  /* Column of children */
+  .org-h-children { display:flex; flex-direction:column; gap:14px; padding:10px 0; }
+  /* Each child row: short hline + subtree */
+  .org-h-child { display:flex; flex-direction:row; align-items:center; }
+  .org-h-child-hline { width:28px; height:2px; background:var(--border); flex-shrink:0; }
   /* Node card */
   .org-node {
     display:inline-flex; align-items:flex-start; gap:10px;
@@ -10049,12 +10044,13 @@ function orgNode(u, session) {
   </div>`;
 }
 
-// ── Top-down org chart helpers ──────────────────────────────
+// ── Horizontal org chart helpers ──────────────────────────────
 function hOrgWrap(nodeHtml, childrenHtml) {
   if (!childrenHtml) return `<div class="org-h-group">${nodeHtml}</div>`;
   return `<div class="org-h-group">
     ${nodeHtml}
     <div class="org-h-hline"></div>
+    <div class="org-h-vbar"></div>
     <div class="org-h-children">${childrenHtml}</div>
   </div>`;
 }
@@ -10155,10 +10151,12 @@ function buildOrgBranch(admId, allUsers, session) {
       return `<div style="margin-bottom:8px">${hOrgWrap(orgNode(u, session), '')}${assignBtn}</div>`;
     }).join('');
 
-    children += hChild(`<div style="background:rgba(253,171,61,.08);border:1px dashed rgba(253,171,61,.3);border-radius:8px;padding:8px 12px;min-width:200px">
+    children += `<div class="org-h-child"><div class="org-h-child-hline"></div>
+      <div style="background:rgba(253,171,61,.08);border:1px dashed rgba(253,171,61,.3);border-radius:8px;padding:8px 12px;min-width:200px">
         <div style="font-size:10px;color:var(--yellow);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">⚠ Sin asignar</div>
         ${orphanHtml}
-      </div>`);
+      </div>
+    </div>`;
   }
 
   children += hAddBtn(admId, '＋ Agregar usuario');
@@ -10191,7 +10189,7 @@ function renderUsersGrid() {
       const branch = buildOrgBranch(adm.id, allUsers, session);
       return hChild(hOrgWrap(orgNode(adm, session), branch));
     }).join('');
-    adminChildren += hChild(`<button class="org-tree-add" onclick="openUserModal(null,null,'admin')">＋ Agregar administrador</button>`);
+    adminChildren += `<div class="org-h-child"><div class="org-h-child-hline"></div><button class="org-tree-add" onclick="openUserModal(null,null,'admin')">＋ Agregar administrador</button></div>`;
 
     const ungrouped = allUsers.filter(u => u.role === 'agent' && !u.orgAdminId);
     ungrouped.forEach(u => { adminChildren += hChild(hOrgWrap(orgNode(u, session), '')); });
