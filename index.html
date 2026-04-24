@@ -7587,14 +7587,127 @@ function wrpRefresh() {
   else loadDetailedReport();
 }
 
+// ── Weekly report helpers ────────────────────────────────────────────
+let _wrpSaveTimer = null;
+function wrpScheduleSave() {
+  clearTimeout(_wrpSaveTimer);
+  _wrpSaveTimer = setTimeout(async () => {
+    await supa.from('kv_store').upsert({ key:'gew_week_overrides', value: JSON.stringify(window._wrpOverrides||{}) });
+  }, 800);
+}
+
+function wrpSetPrice(ws, board, val) {
+  const v = parseFloat(val);
+  if (!window._wrpOverrides[ws]) window._wrpOverrides[ws] = { discounts:[] };
+  if (!window._wrpOverrides[ws].boardPrices) window._wrpOverrides[ws].boardPrices = {};
+  window._wrpOverrides[ws].boardPrices[board] = isNaN(v) ? 0 : v;
+  wrpUpdateInvoiceTotals(ws);
+  wrpScheduleSave();
+}
+
+function wrpAddDiscount(ws) {
+  if (!window._wrpOverrides[ws]) window._wrpOverrides[ws] = { discounts:[] };
+  if (!window._wrpOverrides[ws].discounts) window._wrpOverrides[ws].discounts = [];
+  const id = Date.now().toString(36);
+  window._wrpOverrides[ws].discounts.push({ id, leads:0, price:0, desc:'' });
+  // Re-render just the discount section
+  renderWrpDiscounts(ws);
+  wrpScheduleSave();
+}
+
+function wrpRemoveDiscount(ws, id) {
+  if (!window._wrpOverrides[ws]?.discounts) return;
+  window._wrpOverrides[ws].discounts = window._wrpOverrides[ws].discounts.filter(d => d.id !== id);
+  renderWrpDiscounts(ws);
+  wrpScheduleSave();
+}
+
+function wrpEditDiscount(ws, id, field, val) {
+  const disc = window._wrpOverrides[ws]?.discounts?.find(d => d.id === id);
+  if (!disc) return;
+  disc[field] = field === 'desc' ? val : (parseFloat(val)||0);
+  wrpUpdateInvoiceTotals(ws);
+  wrpScheduleSave();
+}
+
+function wrpUpdateInvoiceTotals(ws) {
+  const ovr     = window._wrpOverrides[ws] || {};
+  const boards  = window._wrpWeeks?.[ws]?.boards || {};
+  let subtotal  = 0;
+  Object.entries(boards).forEach(([bName, info]) => {
+    const price = ovr.boardPrices?.[bName] ?? info.price;
+    subtotal += info.count * price;
+  });
+  const discountTotal = (ovr.discounts||[]).reduce((s,d) => s + d.leads * d.price, 0);
+  const total = subtotal - discountTotal;
+  const fmt = n => n > 0 ? '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '$0.00';
+  const subEl = document.getElementById(`wrp-sub-${ws}`);
+  const dscEl = document.getElementById(`wrp-dsc-${ws}`);
+  const totEl = document.getElementById(`wrp-tot-${ws}`);
+  if (subEl) subEl.textContent = fmt(subtotal);
+  if (dscEl) dscEl.textContent = discountTotal > 0 ? '-'+fmt(discountTotal) : '—';
+  if (totEl) { totEl.textContent = fmt(total); totEl.style.color = total >= 0 ? '#34d399' : '#f87171'; }
+  const pillEl = document.getElementById(`wrp-pill-${ws}`);
+  if (pillEl) pillEl.textContent = fmt(total);
+}
+
+function renderWrpDiscounts(ws) {
+  const el = document.getElementById(`wrp-discounts-${ws}`);
+  if (!el) return;
+  const discs   = window._wrpOverrides[ws]?.discounts || [];
+  const editable = window._wrpEditableWeeks?.has(ws);
+  if (!discs.length && !editable) { el.innerHTML = ''; return; }
+  const rows = discs.map(d => editable
+    ? `<tr id="wrp-drow-${d.id}">
+        <td style="padding:8px 14px;border-bottom:1px solid #fecaca">
+          <input value="${esc(d.desc)}" placeholder="Motivo de reclamación…" oninput="wrpEditDiscount('${ws}','${d.id}','desc',this.value)"
+            style="width:100%;background:#fff5f5;border:1px solid #fca5a5;border-radius:5px;padding:5px 8px;font-size:12px;color:#1f2937;outline:none"/>
+        </td>
+        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:center">
+          <input type="number" min="0" value="${d.leads}" oninput="wrpEditDiscount('${ws}','${d.id}','leads',this.value)"
+            style="width:70px;background:#fff5f5;border:1px solid #fca5a5;border-radius:5px;padding:5px 8px;font-size:12px;text-align:right;outline:none"/>
+        </td>
+        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:right">
+          <input type="number" min="0" step="0.01" value="${d.price}" oninput="wrpEditDiscount('${ws}','${d.id}','price',this.value)"
+            style="width:80px;background:#fff5f5;border:1px solid #fca5a5;border-radius:5px;padding:5px 8px;font-size:12px;text-align:right;outline:none"/>
+        </td>
+        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:right;font-weight:700;color:#dc2626;font-size:12px">
+          ${d.leads && d.price ? '-$'+(d.leads*d.price).toFixed(2) : '—'}
+        </td>
+        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:center">
+          <button onclick="wrpRemoveDiscount('${ws}','${d.id}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;padding:0">✕</button>
+        </td>
+      </tr>`
+    : `<tr style="background:#fff5f5">
+        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;font-size:12px;color:#7f1d1d">${esc(d.desc)||'Reclamación'}</td>
+        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:center;font-size:12px;color:#7f1d1d">${d.leads}</td>
+        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:right;font-size:12px;color:#7f1d1d">${d.price?'$'+d.price.toFixed(2):'—'}</td>
+        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:right;font-weight:700;color:#dc2626;font-size:12px">-$${(d.leads*d.price).toFixed(2)}</td>
+        <td style="border-left:1px solid #fecaca"></td>
+      </tr>`
+  ).join('');
+
+  el.innerHTML = `
+    <tr><td colspan="5" style="padding:6px 14px 2px;background:#fef2f2;border-top:2px dashed #fca5a5">
+      <span style="font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.08em">Descuentos por Reclamación</span>
+      ${editable ? `<button onclick="wrpAddDiscount('${ws}')" style="float:right;background:none;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 10px;font-size:11px;cursor:pointer;font-weight:600">+ Agregar</button>` : ''}
+    </td></tr>
+    ${rows}`;
+  wrpUpdateInvoiceTotals(ws);
+}
+
 async function loadWeeklyReportPage() {
   const body = document.getElementById('wrp-pane-weekly');
   if (!body) return;
   body.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:20px 0">Cargando…</div>`;
 
   try {
-    const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
-    const history = JSON.parse(data?.value || '[]');
+    const [histRes, ovrRes] = await Promise.all([
+      supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle(),
+      supa.from('kv_store').select('value').eq('key','gew_week_overrides').maybeSingle(),
+    ]);
+    const history   = JSON.parse(histRes.data?.value || '[]');
+    let   overrides = JSON.parse(ovrRes.data?.value  || '{}');
 
     const weeks = {};
     history.forEach(r => {
@@ -7614,6 +7727,35 @@ async function loadWeeklyReportPage() {
       });
     });
 
+    // Determine editable weeks (current + previous)
+    const today = new Date();
+    const dow   = today.getDay();
+    const thisMon = new Date(today); thisMon.setDate(today.getDate() + (dow===0?-6:1-dow)); thisMon.setHours(0,0,0,0);
+    const prevMon = new Date(thisMon); prevMon.setDate(thisMon.getDate()-7);
+    const currentWS = thisMon.toISOString().slice(0,10);
+    const prevWS    = prevMon.toISOString().slice(0,10);
+    window._wrpEditableWeeks = new Set([currentWS, prevWS]);
+
+    // Assign invoice numbers (oldest→newest, starting at 187, +2–4 each)
+    const sortedAsc = Object.keys(weeks).sort((a,b)=>a.localeCompare(b));
+    let ovrChanged  = false;
+    // Find max existing invoice number
+    let lastNum = 186;
+    sortedAsc.forEach(ws => { const n = overrides[ws]?.invoiceNumber||0; if(n>lastNum) lastNum=n; });
+    // For weeks without a number, assign in order
+    sortedAsc.forEach(ws => {
+      if (!overrides[ws]) { overrides[ws]={discounts:[]}; ovrChanged=true; }
+      if (!overrides[ws].invoiceNumber) {
+        lastNum += Math.floor(Math.random()*3)+2;
+        overrides[ws].invoiceNumber = lastNum;
+        ovrChanged = true;
+      }
+    });
+    if (ovrChanged) await supa.from('kv_store').upsert({key:'gew_week_overrides',value:JSON.stringify(overrides)});
+
+    window._wrpOverrides = overrides;
+    window._wrpWeeks     = weeks;
+
     const sortedWeeks = Object.keys(weeks).sort((a,b) => b.localeCompare(a));
     if (!sortedWeeks.length) {
       body.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--text2)">
@@ -7625,45 +7767,58 @@ async function loadWeeklyReportPage() {
     }
 
     const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const fmtDate = s => { const d = new Date(s+'T00:00:00'); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`; };
-    const fmtMoney = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-    const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+    const fmtDate  = s => { const d = new Date(s+'T00:00:00'); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`; };
+    const fmtMoney = n => '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const todayStr = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
-    // Grand totals across all weeks
     let allLeads = 0, allRevenue = 0;
     sortedWeeks.forEach(ws => {
-      Object.values(weeks[ws].boards).forEach(b => { allLeads += b.count; allRevenue += b.count * b.price; });
+      const ovr = overrides[ws] || {};
+      Object.entries(weeks[ws].boards).forEach(([bName, b]) => {
+        const p = ovr.boardPrices?.[bName] ?? b.price;
+        allLeads += b.count; allRevenue += b.count * p;
+      });
     });
 
-    const invoiceCards = sortedWeeks.map((ws, wi) => {
-      const w = weeks[ws];
-      const mon = new Date(ws + 'T00:00:00');
-      const boards = Object.entries(w.boards);
+    const invoiceCards = sortedWeeks.map((ws) => {
+      const w       = weeks[ws];
+      const ovr     = overrides[ws] || {};
+      const mon     = new Date(ws + 'T00:00:00');
+      const boards  = Object.entries(w.boards);
+      const editable = window._wrpEditableWeeks.has(ws);
+      const invNum  = String(ovr.invoiceNumber || '').padStart(5,'0');
       let grandTotal = 0, grandSubtotal = 0;
 
       const rows = boards.map(([bName, info], idx) => {
-        const subtotal = info.count * info.price;
-        grandTotal += info.count;
-        grandSubtotal += subtotal;
-        const isEven = idx % 2 === 0;
-        return `<tr style="background:${isEven ? '#f8faff' : '#eef3fb'}">
+        const price   = ovr.boardPrices?.[bName] ?? info.price;
+        const subtotal = info.count * price;
+        grandTotal += info.count; grandSubtotal += subtotal;
+        const bg = idx % 2 === 0 ? '#f8faff' : '#eef3fb';
+        const priceCell = editable
+          ? `<td style="padding:8px 14px;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0;text-align:right">
+               <input type="number" min="0" step="0.01" value="${price||''}" placeholder="0.00"
+                 oninput="wrpSetPrice('${ws}','${esc(bName)}',this.value);this.closest('tr').querySelector('.wrp-row-sub').textContent=this.value*${info.count}>0?'$'+(this.value*${info.count}).toFixed(2):'—'"
+                 style="width:80px;border:1px solid #bfdbfe;border-radius:6px;padding:5px 8px;font-size:12px;text-align:right;background:#f0f7ff;outline:none;font-family:inherit"/>
+             </td>`
+          : `<td style="padding:11px 20px;text-align:right;font-size:13px;color:#475569;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0">${price>0?fmtMoney(price):'—'}</td>`;
+        return `<tr style="background:${bg}">
           <td style="padding:11px 20px;font-size:13px;color:#1e293b;border-bottom:1px solid #dde6f0">
             <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:8px;vertical-align:middle"></span>
             Lead · <strong>${esc(bName)}</strong>
           </td>
           <td style="padding:11px 20px;text-align:center;font-size:13px;font-weight:700;color:#1e293b;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0">${info.count}</td>
-          <td style="padding:11px 20px;text-align:right;font-size:13px;color:#475569;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0">${info.price > 0 ? fmtMoney(info.price) : '—'}</td>
-          <td style="padding:11px 20px;text-align:right;font-size:13px;font-weight:700;color:#0f172a;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0">${subtotal > 0 ? fmtMoney(subtotal) : '—'}</td>
+          ${priceCell}
+          <td class="wrp-row-sub" style="padding:11px 20px;text-align:right;font-size:13px;font-weight:700;color:#0f172a;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0">${subtotal>0?fmtMoney(subtotal):'—'}</td>
           <td style="padding:11px 20px;font-size:12px;color:#94a3b8;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0"></td>
         </tr>`;
       }).join('');
 
-      const invoiceNum = String(sortedWeeks.length - wi).padStart(4,'0');
+      const discountTotal = (ovr.discounts||[]).reduce((s,d)=>s+d.leads*d.price,0);
+      const total = grandSubtotal - discountTotal;
 
       return `<div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.10),0 1px 4px rgba(0,0,0,.06);margin-bottom:40px;overflow:hidden;border:1px solid #e2e8f0;font-family:'Segoe UI',system-ui,sans-serif">
 
-        <!-- Invoice header -->
+        <!-- Header -->
         <div style="background:linear-gradient(135deg,#0f2044 0%,#1e3a5f 60%,#1a4a7a 100%);padding:28px 32px 24px;position:relative;overflow:hidden">
           <div style="position:absolute;right:-20px;top:-20px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.04)"></div>
           <div style="position:absolute;right:40px;bottom:-40px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.03)"></div>
@@ -7675,11 +7830,11 @@ async function loadWeeklyReportPage() {
             </div>
             <div style="text-align:right">
               <div style="font-size:11px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Reporte Semanal</div>
-              <div style="font-size:20px;font-weight:800;color:#fff;margin-top:2px"># ${invoiceNum}</div>
-              <div style="font-size:11px;color:#94a3b8;margin-top:4px">Generado: ${today}</div>
+              <div style="font-size:24px;font-weight:800;color:#fff;margin-top:2px;letter-spacing:1px"># ${invNum}</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px">Generado: ${todayStr}</div>
+              ${editable ? '<div style="margin-top:6px;background:rgba(34,197,94,.2);color:#86efac;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block">✏️ Editable</div>' : ''}
             </div>
           </div>
-          <!-- Week band -->
           <div style="margin-top:20px;padding:10px 16px;background:rgba(255,255,255,.08);border-radius:8px;display:inline-flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.12)">
             <span style="font-size:13px;color:#bfdbfe">📅</span>
             <span style="font-size:13px;font-weight:700;color:#e2e8f0">Semana del ${fmtDate(ws)} al ${fmtDate(w.end)}</span>
@@ -7687,7 +7842,7 @@ async function loadWeeklyReportPage() {
           </div>
         </div>
 
-        <!-- Summary pills -->
+        <!-- Pills -->
         <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #e2e8f0">
           <div style="padding:16px 24px;border-right:1px solid #e2e8f0">
             <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Boards</div>
@@ -7698,8 +7853,8 @@ async function loadWeeklyReportPage() {
             <div style="font-size:22px;font-weight:800;color:#1d4ed8;margin-top:4px">${grandTotal}</div>
           </div>
           <div style="padding:16px 24px">
-            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Total Semana</div>
-            <div style="font-size:22px;font-weight:800;color:#059669;margin-top:4px">${grandSubtotal > 0 ? fmtMoney(grandSubtotal) : '—'}</div>
+            <div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Total Neto</div>
+            <div style="font-size:22px;font-weight:800;color:#059669;margin-top:4px" id="wrp-pill-${ws}">${total>0?fmtMoney(total):'—'}</div>
           </div>
         </div>
 
@@ -7714,27 +7869,38 @@ async function loadWeeklyReportPage() {
               <th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:700;color:#bfdbfe;text-transform:uppercase;letter-spacing:.08em;border-left:1px solid #2d5080">Notas</th>
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
-          <tfoot>
-            <tr style="background:#0f2044">
-              <td style="padding:14px 20px;font-size:13px;font-weight:800;color:#93c5fd;text-transform:uppercase;letter-spacing:.05em">Total General</td>
-              <td style="padding:14px 20px;text-align:center;font-size:15px;font-weight:800;color:#fff;border-left:1px solid #1e3a5f">${grandTotal}</td>
-              <td style="border-left:1px solid #1e3a5f"></td>
-              <td style="padding:14px 20px;text-align:right;font-size:16px;font-weight:800;color:#34d399;border-left:1px solid #1e3a5f">${grandSubtotal > 0 ? fmtMoney(grandSubtotal) : '—'}</td>
-              <td style="border-left:1px solid #1e3a5f"></td>
-            </tr>
-          </tfoot>
+          <tbody>
+            ${rows}
+            <tbody id="wrp-discounts-${ws}"></tbody>
+          </tbody>
         </table>
 
-        <!-- Footer -->
-        <div style="padding:14px 24px;background:#f8faff;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
+        <!-- Totals footer -->
+        <div style="background:#f8faff;border-top:2px solid #e2e8f0;padding:0">
+          <table style="width:100%;border-collapse:collapse;font-family:'Segoe UI',system-ui,sans-serif">
+            <tr>
+              <td style="padding:10px 20px;font-size:12px;color:#64748b;font-weight:600;width:60%">Subtotal leads</td>
+              <td style="padding:10px 20px;text-align:right;font-size:13px;font-weight:700;color:#0f172a" id="wrp-sub-${ws}">${fmtMoney(grandSubtotal)}</td>
+            </tr>
+            <tr style="background:#fff5f5">
+              <td style="padding:10px 20px;font-size:12px;color:#dc2626;font-weight:600">Descuento por reclamación</td>
+              <td style="padding:10px 20px;text-align:right;font-size:13px;font-weight:700;color:#dc2626" id="wrp-dsc-${ws}">${discountTotal>0?'-'+fmtMoney(discountTotal):'—'}</td>
+            </tr>
+            <tr style="background:#0f2044">
+              <td style="padding:14px 20px;font-size:13px;font-weight:800;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em">TOTAL</td>
+              <td style="padding:14px 20px;text-align:right;font-size:18px;font-weight:800;color:#34d399" id="wrp-tot-${ws}">${fmtMoney(total)}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Card footer -->
+        <div style="padding:12px 24px;background:#f1f5f9;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
           <span style="font-size:10px;color:#94a3b8">Grupo Elite Work · CRM Development Services</span>
-          <span style="font-size:10px;color:#cbd5e1;font-weight:600">SEMANA ${invoiceNum}</span>
+          <span style="font-size:10px;color:#cbd5e1;font-weight:700">REPORTE # ${invNum}</span>
         </div>
       </div>`;
     }).join('');
 
-    // Grand summary banner at top
     const summaryBanner = `<div style="background:linear-gradient(135deg,#1d4ed8,#1e3a5f);border-radius:14px;padding:20px 28px;margin-bottom:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:0;box-shadow:0 4px 20px rgba(29,78,216,.25)">
       <div style="border-right:1px solid rgba(255,255,255,.15);padding-right:24px">
         <div style="font-size:10px;font-weight:600;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em">Semanas registradas</div>
@@ -7746,11 +7912,17 @@ async function loadWeeklyReportPage() {
       </div>
       <div style="padding-left:24px">
         <div style="font-size:10px;font-weight:600;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em">Valor total acumulado</div>
-        <div style="font-size:28px;font-weight:800;color:#34d399;margin-top:4px">${allRevenue > 0 ? fmtMoney(allRevenue) : '—'}</div>
+        <div style="font-size:28px;font-weight:800;color:#34d399;margin-top:4px">${allRevenue>0?fmtMoney(allRevenue):'—'}</div>
       </div>
     </div>`;
 
     body.innerHTML = summaryBanner + invoiceCards;
+
+    // Render discount sections after DOM is ready
+    sortedWeeks.forEach(ws => {
+      renderWrpDiscounts(ws);
+      wrpUpdateInvoiceTotals(ws);
+    });
 
   } catch(e) {
     body.innerHTML = `<div style="color:var(--red);font-size:13px">Error cargando reporte: ${e.message}</div>`;
