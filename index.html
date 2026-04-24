@@ -2072,7 +2072,7 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
     </div>
     <div id="sidebar-master" style="display:none">
-      <div class="sidebar-item" id="nav-reconcile" onclick="showReconcilePage()">🔗 <span>Reconciliar Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
+      <div class="sidebar-item" id="nav-reconcile" onclick="showReconcilePage()" style="display:none">🔗 <span>Reconciliar Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-weekly-report" onclick="showWeeklyReportPage()">📈 <span>Reporte Semanal</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-connections" onclick="showConnectionsPage()">🔌 <span>Conexiones</span><span class="emblem-dev">🙈 Solo yo</span></div>
@@ -11411,6 +11411,8 @@ function initApp(user) {
       document.body.classList.add('show-emblems');
       const navCrd = document.getElementById('nav-credits');
       if (navCrd) navCrd.style.display = '';
+      const navRec = document.getElementById('nav-reconcile');
+      if (navRec) navRec.style.display = '';
       // Dev-only sidebar shortcuts (also show for admin)
       if (_isZoomDev() || user.role === 'admin') {
         const devUsers = document.getElementById('nav-dev-users');
