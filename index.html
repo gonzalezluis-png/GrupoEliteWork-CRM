@@ -3339,7 +3339,10 @@ setTimeout(function(){
             <div style="font-size:18px;font-weight:800;color:var(--text)">📈 Reportes de Leads</div>
             <div style="font-size:11px;color:var(--text2);margin-top:2px">Grupo Elite Work · CRM Development Services</div>
           </div>
-          <button id="wrp-refresh-btn" onclick="wrpRefresh()" style="background:var(--accent);border:none;color:#fff;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">↻ Actualizar</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="wrp-view-toggle" onclick="wrpToggleAdminView()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">👁 Vista Administrador</button>
+            <button id="wrp-refresh-btn" onclick="wrpRefresh()" style="background:var(--accent);border:none;color:#fff;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">↻ Actualizar</button>
+          </div>
         </div>
         <!-- Tabs -->
         <div style="display:flex;gap:0">
@@ -7588,6 +7591,20 @@ function wrpRefresh() {
 }
 
 // ── Weekly report helpers ────────────────────────────────────────────
+let _wrpAdminView = false;
+
+function wrpToggleAdminView() {
+  _wrpAdminView = !_wrpAdminView;
+  const btn = document.getElementById('wrp-view-toggle');
+  if (btn) {
+    btn.textContent = _wrpAdminView ? '✏️ Vista Edición' : '👁 Vista Administrador';
+    btn.style.background = _wrpAdminView ? 'rgba(99,102,241,.15)' : 'var(--card2)';
+    btn.style.color       = _wrpAdminView ? 'var(--accent)' : 'var(--text)';
+    btn.style.borderColor = _wrpAdminView ? 'var(--accent)' : 'var(--border)';
+  }
+  loadWeeklyReportPage();
+}
+
 let _wrpSaveTimer = null;
 function wrpScheduleSave() {
   clearTimeout(_wrpSaveTimer);
@@ -7654,45 +7671,50 @@ function wrpUpdateInvoiceTotals(ws) {
 function renderWrpDiscounts(ws) {
   const el = document.getElementById(`wrp-discounts-${ws}`);
   if (!el) return;
-  const discs   = window._wrpOverrides[ws]?.discounts || [];
+  const discs    = window._wrpOverrides[ws]?.discounts || [];
   const editable = window._wrpEditableWeeks?.has(ws);
-  if (!discs.length && !editable) { el.innerHTML = ''; return; }
-  const rows = discs.map(d => editable
-    ? `<tr id="wrp-drow-${d.id}">
-        <td style="padding:8px 14px;border-bottom:1px solid #fecaca">
-          <input value="${esc(d.desc)}" placeholder="Motivo de reclamación…" oninput="wrpEditDiscount('${ws}','${d.id}','desc',this.value)"
-            style="width:100%;background:#fff5f5;border:1px solid #fca5a5;border-radius:5px;padding:5px 8px;font-size:12px;color:#1f2937;outline:none"/>
-        </td>
-        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:center">
-          <input type="number" min="0" value="${d.leads}" oninput="wrpEditDiscount('${ws}','${d.id}','leads',this.value)"
-            style="width:70px;background:#fff5f5;border:1px solid #fca5a5;border-radius:5px;padding:5px 8px;font-size:12px;text-align:right;outline:none"/>
-        </td>
-        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:right">
-          <input type="number" min="0" step="0.01" value="${d.price}" oninput="wrpEditDiscount('${ws}','${d.id}','price',this.value)"
-            style="width:80px;background:#fff5f5;border:1px solid #fca5a5;border-radius:5px;padding:5px 8px;font-size:12px;text-align:right;outline:none"/>
-        </td>
-        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:right;font-weight:700;color:#dc2626;font-size:12px">
-          ${d.leads && d.price ? '-$'+(d.leads*d.price).toFixed(2) : '—'}
-        </td>
-        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:center">
-          <button onclick="wrpRemoveDiscount('${ws}','${d.id}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;padding:0">✕</button>
-        </td>
-      </tr>`
-    : `<tr style="background:#fff5f5">
-        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;font-size:12px;color:#7f1d1d">${esc(d.desc)||'Reclamación'}</td>
-        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:center;font-size:12px;color:#7f1d1d">${d.leads}</td>
-        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:right;font-size:12px;color:#7f1d1d">${d.price?'$'+d.price.toFixed(2):'—'}</td>
-        <td style="padding:8px 14px;border-bottom:1px solid #fecaca;border-left:1px solid #fecaca;text-align:right;font-weight:700;color:#dc2626;font-size:12px">-$${(d.leads*d.price).toFixed(2)}</td>
-        <td style="border-left:1px solid #fecaca"></td>
-      </tr>`
-  ).join('');
+  if (!discs.length && !editable) { el.innerHTML = ''; wrpUpdateInvoiceTotals(ws); return; }
 
-  el.innerHTML = `
-    <tr><td colspan="5" style="padding:6px 14px 2px;background:#fef2f2;border-top:2px dashed #fca5a5">
-      <span style="font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.08em">Descuentos por Reclamación</span>
-      ${editable ? `<button onclick="wrpAddDiscount('${ws}')" style="float:right;background:none;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 10px;font-size:11px;cursor:pointer;font-weight:600">+ Agregar</button>` : ''}
-    </td></tr>
-    ${rows}`;
+  // Count existing lead rows to continue alternation
+  const leadRowCount = Object.keys(window._wrpWeeks?.[ws]?.boards || {}).length;
+
+  const rows = discs.map((d, i) => {
+    const bg    = (leadRowCount + i) % 2 === 0 ? '#f8faff' : '#eef3fb';
+    const total = d.leads * d.price;
+    const descCell = editable
+      ? `<input value="${esc(d.desc)}" placeholder="Motivo de reclamación…" oninput="wrpEditDiscount('${ws}','${d.id}','desc',this.value)"
+           style="width:100%;background:transparent;border:none;border-bottom:1px dashed #fca5a5;padding:3px 0;font-size:13px;color:#1f2937;outline:none;font-family:inherit"/>`
+      : (esc(d.desc) || 'Reclamación');
+    const leadsCell = editable
+      ? `<input type="number" min="0" value="${d.leads}" oninput="wrpEditDiscount('${ws}','${d.id}','leads',this.value)"
+           style="width:65px;background:transparent;border:none;border-bottom:1px dashed #fca5a5;padding:3px 0;font-size:13px;font-weight:700;text-align:center;outline:none;font-family:inherit"/>`
+      : d.leads;
+    const priceCell = editable
+      ? `<input type="number" min="0" step="0.01" value="${d.price}" oninput="wrpEditDiscount('${ws}','${d.id}','price',this.value)"
+           style="width:75px;background:transparent;border:none;border-bottom:1px dashed #fca5a5;padding:3px 0;font-size:13px;text-align:right;outline:none;font-family:inherit"/>`
+      : (d.price ? '$'+d.price.toFixed(2) : '—');
+    const deleteBtn = editable
+      ? `<button onclick="wrpRemoveDiscount('${ws}','${d.id}')" title="Eliminar" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px;opacity:.7">✕</button>`
+      : '';
+    return `<tr style="background:${bg}">
+      <td style="padding:11px 20px;font-size:13px;color:#1e293b;border-bottom:1px solid #dde6f0">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:8px;vertical-align:middle"></span>
+        Descuento · ${descCell}
+      </td>
+      <td style="padding:11px 20px;text-align:center;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0;font-weight:700;color:#dc2626">${leadsCell}</td>
+      <td style="padding:11px 20px;text-align:right;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0;color:#475569">${priceCell}</td>
+      <td style="padding:11px 20px;text-align:right;font-weight:700;color:#dc2626;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0">${total>0?'-$'+total.toFixed(2):'—'}</td>
+      <td style="padding:11px 20px;border-bottom:1px solid #dde6f0;border-left:1px solid #dde6f0;text-align:center">${deleteBtn}</td>
+    </tr>`;
+  }).join('');
+
+  const addBtn = editable
+    ? `<tr style="background:#f8faff"><td colspan="5" style="padding:8px 20px;border-bottom:1px solid #dde6f0">
+        <button onclick="wrpAddDiscount('${ws}')" style="background:none;border:1px dashed #fca5a5;color:#dc2626;border-radius:6px;padding:4px 14px;font-size:11px;cursor:pointer;font-weight:700">＋ Descuento por reclamación</button>
+       </td></tr>`
+    : '';
+
+  el.innerHTML = addBtn + rows;
   wrpUpdateInvoiceTotals(ws);
 }
 
@@ -7734,7 +7756,7 @@ async function loadWeeklyReportPage() {
     const prevMon = new Date(thisMon); prevMon.setDate(thisMon.getDate()-7);
     const currentWS = thisMon.toISOString().slice(0,10);
     const prevWS    = prevMon.toISOString().slice(0,10);
-    window._wrpEditableWeeks = new Set([currentWS, prevWS]);
+    window._wrpEditableWeeks = _wrpAdminView ? new Set() : new Set([currentWS, prevWS]);
 
     // Assign invoice numbers (oldest→newest, starting at 187, +2–4 each)
     const sortedAsc = Object.keys(weeks).sort((a,b)=>a.localeCompare(b));
