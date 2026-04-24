@@ -5155,8 +5155,11 @@ function renderSidebar() {
     ? new Set(_getLineUsers(session).map(u => u.name))
     : null;
   const _sessNameNorm = (session?.name || '').trim().toLowerCase();
+  const _sessId = session?.id || null;
   const visibleBoards = isAgent
-    ? BOARDS.filter(b => loadLeads(b.id).some(l => (l.asignado || '').trim().toLowerCase() === _sessNameNorm))
+    ? BOARDS.filter(b => loadLeads(b.id).some(l =>
+        (_sessId && l.asignadoId) ? l.asignadoId === _sessId : (l.asignado || '').trim().toLowerCase() === _sessNameNorm
+      ))
     : sideLineNames
       ? BOARDS.filter(b => loadLeads(b.id).some(l => sideLineNames.has(l.asignado)))
       : BOARDS;
@@ -5267,7 +5270,7 @@ function selectBoard(id) {
 function updateTabCounts() {
   if (!currentBoardId) return;
   const leads = currentBoardId === '__agent__'
-    ? loadAgentLeads(getSession()?.name || '')
+    ? loadAgentLeads(getSession()?.name || '', getSession()?.id)
     : loadLeads(currentBoardId);
   const total    = leads.length;
   const unassign = leads.filter(l => !l.asignado || l.asignado === 'Sin asignar').length;
@@ -5295,11 +5298,14 @@ function getColumns(board) {
   return getActiveColumns(board).filter(c => c.key !== '_check' || _canSelect);
 }
 
-function loadAgentLeads(agentName) {
+function loadAgentLeads(agentName, agentId) {
   const all = [];
   const norm = (agentName || '').trim().toLowerCase();
   BOARDS.forEach(b => loadLeads(b.id).forEach(l => {
-    if ((l.asignado || '').trim().toLowerCase() === norm) all.push({ ...l, _boardId: b.id });
+    const match = (agentId && l.asignadoId)
+      ? l.asignadoId === agentId
+      : (l.asignado || '').trim().toLowerCase() === norm;
+    if (match) all.push({ ...l, _boardId: b.id });
   }));
   return all;
 }
@@ -5329,7 +5335,7 @@ function renderTable() {
   const board = getBoard(currentBoardId) || BOARDS[0];
   const cols  = getColumns(board);
   const leads = currentBoardId === '__agent__'
-    ? loadAgentLeads(getSession()?.name || '')
+    ? loadAgentLeads(getSession()?.name || '', getSession()?.id)
     : loadLeads(currentBoardId);
 
   // header
@@ -5363,7 +5369,7 @@ function applyFilters() {
   const session = getSession();
   const board   = getBoard(currentBoardId) || BOARDS[0];
   const leads   = currentBoardId === '__agent__'
-    ? loadAgentLeads(session ? session.name : '')
+    ? loadAgentLeads(session ? session.name : '', session ? session.id : null)
     : loadLeads(currentBoardId);
 
   const _lineRoles = ['manager','master_manager','supervisor_agent','caller'];
@@ -9026,7 +9032,7 @@ function _renderAgentPickerList(pool, q) {
     const color = strToTableColor(u.name) || '#2e7d6b';
     const roleLabel = _AP_ROLE_LABELS[u.role] || u.role;
     const roleColor = _AP_ROLE_COLOR[u.role] || '#94a3b8';
-    html += `<div class="_ap-item" onmousedown="pickAgent('${esc(u.name)}')"
+    html += `<div class="_ap-item" onmousedown="pickAgent('${esc(u.name)}','${esc(u.id)}')"
       style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;cursor:pointer"
       onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">
       <span style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${initials}</span>
@@ -9051,7 +9057,7 @@ function filterAgentPicker(q) {
   _renderAgentPickerList(pool, q);
 }
 
-function pickAgent(name) {
+function pickAgent(name, userId) {
   const leadId = _apLeadId;
   closeAgentPicker();
   if (!leadId) return;
@@ -9064,6 +9070,8 @@ function pickAgent(name) {
   const newAgent = normalizeAsignado(name);
   checkReassign(lead, newAgent, (mode) => {
     applyReassignMode(lead, newAgent, mode);
+    if (userId) lead.asignadoId = userId;
+    else delete lead.asignadoId;
     saveLeads(boardId, leads);
     renderTableKeepSelection();
     showAssignUndoBar(leadId, boardId, prevAsignado, newAgent);
@@ -10905,6 +10913,22 @@ function _nextUserCode(users) {
   return 'GEW-' + String(next).padStart(3, '0');
 }
 
+async function _backfillAsignadoId() {
+  const users = loadUsers();
+  const nameToId = {};
+  users.forEach(u => { nameToId[u.name.trim().toLowerCase()] = u.id; });
+  for (const board of BOARDS) {
+    const leads = loadLeads(board.id);
+    let changed = false;
+    leads.forEach(l => {
+      if (l.asignadoId || !l.asignado) return;
+      const id = nameToId[(l.asignado || '').trim().toLowerCase()];
+      if (id) { l.asignadoId = id; changed = true; }
+    });
+    if (changed) await saveLeads(board.id, leads);
+  }
+}
+
 async function assignUserCodes() {
   const users = loadUsers();
   let changed = false;
@@ -11902,6 +11926,8 @@ function initApp(user) {
   loadAutoRechargeSettings().catch(() => {});
   // Assign GEW-XXX codes to users that don't have one yet
   if (user.role === 'master') assignUserCodes().catch(() => {});
+  // Backfill asignadoId on existing leads that only have asignado (name)
+  if (user.role === 'master' || user.role === 'admin') _backfillAsignadoId().catch(() => {});
 }
 
 function showAgentView() {
