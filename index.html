@@ -8796,6 +8796,10 @@ function parseAndImport(text) {
 
       notas:       row.notas || row.notes || '',
     };
+    if (lead.asignado) {
+      const _csvUser = loadUsers().find(u => u.name === lead.asignado);
+      if (_csvUser) lead.asignadoId = _csvUser.id;
+    }
     leads.push(lead);
     imported++;
   }
@@ -9344,15 +9348,19 @@ function saveInlineField(sel, leadId, field) {
       const reassignSet = new Set(
         leads.filter(l => snapshotIds.has(l.id) && l.asignado && l.asignado !== newValue).map(l => l.id)
       );
+      const _inlineAsigUser = newValue ? loadUsers().find(u => u.name === newValue) : null;
+      const _inlineAsigId   = _inlineAsigUser ? _inlineAsigUser.id : null;
       const doApply = (mode) => {
         leads.forEach(l => {
           if (!snapshotIds.has(l.id)) return;
           applyReassignMode(l, newValue, reassignSet.has(l.id) ? mode : 'full');
+          if (_inlineAsigId) l.asignadoId = _inlineAsigId;
+          else delete l.asignadoId;
         });
         saveLeads(boardId, leads);
         renderTableKeepSelection();
         showToast(`${snapshotIds.size} lead${snapshotIds.size !== 1 ? 's' : ''} transferidos ✓`, 'success');
-        showAssignUndoBar(leadId, boardId, '', newValue);
+        showAssignUndoBar(leadId, boardId, '', null, newValue);
       };
       {
         const isTransfer = reassignSet.size > 0;
@@ -9380,14 +9388,18 @@ function saveInlineField(sel, leadId, field) {
     const leads = loadLeads(boardId);
     const lead  = leads.find(l => l.id === leadId);
     if (!lead) return;
-    const prevAsignado = lead.asignado || '';
+    const prevAsignado   = lead.asignado   || '';
+    const prevAsignadoId = lead.asignadoId || null;
     checkReassign(lead, newValue, (mode) => {
       applyReassignMode(lead, newValue, mode);
+      const asigUser = newValue ? loadUsers().find(u => u.name === newValue) : null;
+      if (asigUser) lead.asignadoId = asigUser.id;
+      else delete lead.asignadoId;
       saveLeads(boardId, leads);
       if (spanEl) { spanEl.className = 'inline-display' + (!newValue ? ' empty-val' : ''); spanEl.innerHTML = esc(newValue || 'Sin asignar') + ' <span class="caret">▾</span>'; }
       const row = sel.closest('tr');
       if (row) row.classList.toggle('unassigned-row', !newValue);
-      showAssignUndoBar(leadId, boardId, prevAsignado, newValue);
+      showAssignUndoBar(leadId, boardId, prevAsignado, prevAsignadoId, newValue);
     });
     return;
   }
