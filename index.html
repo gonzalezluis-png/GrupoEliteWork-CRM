@@ -1066,10 +1066,10 @@
   .org-h-child-hline { width:28px; height:2px; background:var(--border); flex-shrink:0; }
   /* Node card */
   .org-node {
-    display:inline-flex; align-items:center; gap:10px;
+    display:inline-flex; align-items:flex-start; gap:10px;
     background:var(--card); border:1.5px solid var(--border);
-    border-radius:12px; padding:10px 14px;
-    width:260px; flex-shrink:0;
+    border-radius:12px; padding:6px 10px;
+    width:210px; flex-shrink:0;
     transition:border-color .15s, box-shadow .15s;
     box-shadow:0 1px 4px rgba(0,0,0,.18);
   }
@@ -1081,12 +1081,20 @@
   .org-node-supervisor_agent { border-color:#ff8c00; }
   .org-node-agent          { border-color:var(--border); }
   .org-node-info { flex:1; min-width:0; }
-  .org-node-name  { font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .org-node-name  { font-size:11px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .org-node-email { font-size:10px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-  .org-node-actions { display:flex; gap:1px; flex-shrink:0; }
-  .org-node-actions button { background:transparent; border:none; color:var(--text2); cursor:pointer; font-size:13px; padding:3px 5px; border-radius:6px; transition:background .12s,color .12s; }
-  .org-node-actions button:hover { background:rgba(255,255,255,.08); color:#fff; }
-  .org-node-actions button.del:hover { color:var(--red); }
+  /* menú desplegable nodo */
+  .org-node-actions { display:none; }
+  .node-menu-wrap { position:relative; display:inline-block; }
+  .node-menu-btn { background:rgba(255,255,255,.06); border:1px solid var(--border); color:var(--text2); cursor:pointer; font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px; letter-spacing:2px; line-height:1; transition:background .12s,color .12s; }
+  .node-menu-btn:hover { background:rgba(255,255,255,.12); color:var(--text); }
+  .node-menu { display:none; position:absolute; top:calc(100% + 5px); left:0; background:var(--card2); border:1px solid var(--border); border-radius:10px; min-width:180px; z-index:999; box-shadow:0 8px 24px rgba(0,0,0,.5); overflow:hidden; }
+  .node-menu.open { display:block; }
+  .node-menu button { display:flex; align-items:center; gap:10px; width:100%; background:transparent; border:none; color:var(--text); cursor:pointer; font-size:12px; padding:9px 14px; text-align:left; transition:background .1s; }
+  .node-menu button:hover { background:rgba(255,255,255,.07); }
+  .node-menu .mi { font-size:14px; width:18px; text-align:center; }
+  .node-menu-sep { height:1px; background:var(--border); margin:3px 0; }
+  .node-menu button.danger { color:var(--red); }
   .org-tree-add { display:inline-flex; align-items:center; gap:5px; background:transparent; border:1px dashed var(--border); border-radius:8px; padding:5px 12px; color:var(--text2); font-size:10px; font-weight:600; cursor:pointer; transition:border-color .15s,color .15s; white-space:nowrap; }
   .org-tree-add:hover { border-color:var(--accent); color:var(--accent); }
   .org-node[draggable="true"] { cursor:grab; }
@@ -9947,15 +9955,31 @@ function orgNode(u, session) {
         return `<div style="font-size:9px;color:#f59e0b;margin-top:2px">⏸ por ${esc(u._inactivatedBy)}${d?' · '+d:''}</div>`;
       })()
     : '';
+  const hasMenu = summaryBtn || viewAsBtn || editBtn || inactiveBtn || delBtn;
+  const menuItems = [
+    summaryBtn   ? `<button onclick="showAgentSummary('${u.id}')"><span class="mi">📊</span> Ver resumen</button>` : '',
+    viewAsBtn    ? `<button onclick="openPreviewAs('${u.id}')"><span class="mi">👁</span> Ver como este usuario</button>` : '',
+    editBtn      ? `<button onclick="openUserModal('${u.id}')"><span class="mi">✏️</span> Editar usuario</button>` : '',
+    inactiveBtn  ? (u.inactive
+        ? `<button onclick="toggleUserInactive('${u.id}')"><span class="mi">▶️</span> Reactivar usuario</button>`
+        : `<button onclick="toggleUserInactive('${u.id}')"><span class="mi">⏸</span> Pausar usuario</button>`) : '',
+    delBtn       ? `<div class="node-menu-sep"></div><button class="danger" onclick="deleteUser('${u.id}')"><span class="mi">🗑</span> Eliminar usuario</button>` : '',
+  ].filter(Boolean).join('');
+  const menuHtml = hasMenu ? `<div class="node-menu-wrap">
+    <button class="node-menu-btn" onclick="toggleOrgMenu(event,this)">···</button>
+    <div class="node-menu">${menuItems}</div>
+  </div>` : '';
   return `<div class="${nodeClass}${inactiveCls}" data-uid="${u.id}" ${dragAttrs} ${dropAttrs}>
-    <div style="width:36px;height:36px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.3)">${initials}</div>
+    <div style="width:37px;height:37px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.3)">${initials}</div>
     <div class="org-node-info">
       <div class="org-node-name">${esc(u.name)}${inactiveBadge}</div>
       <div class="org-node-email">${esc(u.email)}</div>
-      <span class="role-badge ${roleCls}" style="margin-top:3px;display:inline-block">${roleLabel}</span>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:3px">
+        <span class="role-badge ${roleCls}">${roleLabel}</span>
+        ${menuHtml}
+      </div>
       ${inactiveInfo}
     </div>
-    <div class="org-node-actions">${summaryBtn}${viewAsBtn}${editBtn}${inactiveBtn}${delBtn}</div>
   </div>`;
 }
 
@@ -10115,6 +10139,17 @@ function renderUsersGrid() {
 
 // ── Org chart drag & drop ─────────────────────────────────
 let _orgDragId = null;
+
+function toggleOrgMenu(e, btn) {
+  e.stopPropagation();
+  const menu = btn.nextElementSibling;
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.node-menu.open').forEach(m => m.classList.remove('open'));
+  if (!isOpen) menu.classList.add('open');
+}
+document.addEventListener('click', () => {
+  document.querySelectorAll('.node-menu.open').forEach(m => m.classList.remove('open'));
+});
 
 function orgDragStart(e, userId) {
   _orgDragId = userId;
