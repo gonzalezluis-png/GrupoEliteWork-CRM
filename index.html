@@ -1989,6 +1989,8 @@ setTimeout(function(){
     <div id="sidebar-master" style="display:none">
       <div class="sidebar-item" id="nav-reconcile" onclick="showReconcilePage()">🔗 <span>Reconciliar Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-import" onclick="showImportPage()">📥 <span>Importar Leads</span><span class="emblem-dev">🙈 Solo yo</span></div>
+      <div class="sidebar-item" id="nav-dev-users" onclick="showSettingsPage();switchSettingsTab('team')" style="display:none">👥 <span>Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
+      <div class="sidebar-item" id="nav-dev-messaging" onclick="showSettingsPage();switchSettingsTab('messaging')" style="display:none">💬 <span>Panel de mensajería</span><span class="emblem-dev">🙈 Solo yo</span></div>
     </div>
   </nav>
 
@@ -9898,6 +9900,13 @@ function initApp(user) {
       // Facturación is admin-only — hide from master
       const navCrd = document.getElementById('nav-credits');
       if (navCrd) navCrd.style.display = 'none';
+      // Dev-only sidebar shortcuts
+      if (_isZoomDev()) {
+        const devUsers = document.getElementById('nav-dev-users');
+        const devMsg   = document.getElementById('nav-dev-messaging');
+        if (devUsers) devUsers.style.display = '';
+        if (devMsg)   devMsg.style.display   = '';
+      }
     }
     selectBoard('dallas');
   }
