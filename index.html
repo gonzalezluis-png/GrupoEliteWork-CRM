@@ -843,84 +843,98 @@
     display: none;
   }
   #import-panel.visible { display: block; }
-  .import-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 10px; padding: 24px; max-width: 600px;
-  }
-  .import-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-  .import-card p { color: var(--text2); font-size: 12px; margin-bottom: 16px; }
-  .import-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
-  .drop-zone {
-    border: 2px dashed var(--border); border-radius: 8px;
-    padding: 30px 20px; text-align: center; color: var(--text2);
-    cursor: pointer; transition: border-color .15s, background .15s;
-    margin-bottom: 14px;
-  }
-  .drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: rgba(0,115,234,.06); }
-  .drop-zone .icon { font-size: 28px; margin-bottom: 6px; }
-  #csv-file-input { display: none; }
+  /* ══ IMPORT PAGE — redesign ══ */
+  .imp-page { max-width: 1100px; margin: 0 auto; padding: 4px 0 40px; }
 
-  /* ── PASTE IMPORT ── */
-  .import-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
-  .import-tab {
-    padding: 8px 18px; font-family: var(--font); font-size: 12px; font-weight: 600;
-    color: var(--text2); background: none; border: none; cursor: pointer;
-    border-bottom: 2px solid transparent; margin-bottom: -2px;
-    transition: color .15s;
-  }
-  .import-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .import-tab:hover { color: var(--text); }
+  /* Steps indicator */
+  .imp-steps { display:flex; align-items:center; gap:0; margin-bottom:32px; }
+  .imp-step  { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:var(--text2); white-space:nowrap; }
+  .imp-step.active { color:var(--accent); }
+  .imp-step.done   { color:var(--green); }
+  .imp-step-n { width:26px; height:26px; border-radius:50%; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; transition:all .2s; }
+  .imp-step.active .imp-step-n { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .imp-step.done   .imp-step-n { border-color:var(--green);  background:var(--green);  color:#fff; }
+  .imp-step-line { flex:1; height:2px; background:var(--border); margin:0 10px; min-width:30px; }
 
-  .paste-area-wrap { position: relative; margin-bottom: 14px; }
-  .paste-area {
-    width: 100%; min-height: 120px; max-height: 180px;
-    background: var(--card2); border: 2px dashed var(--border);
-    border-radius: 8px; padding: 14px;
-    color: var(--text2); font-family: var(--font); font-size: 12px;
-    resize: none; outline: none; transition: border-color .15s;
-    overflow-y: auto;
-  }
-  .paste-area:focus { border-color: var(--accent); color: var(--text); }
-  .paste-area.has-data { border-style: solid; border-color: var(--green); color: var(--text); }
+  /* Step panes */
+  .imp-step-pane { animation: fadeInUp .25s ease; }
 
-  /* preview grid */
-  .paste-preview { overflow-x: auto; margin-bottom: 14px; border-radius: 8px; border: 1px solid var(--border); }
-  .paste-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 800px; }
-  .paste-table th {
-    background: var(--card2); padding: 7px 10px;
-    text-align: left; font-size: 10px; font-weight: 700;
-    color: var(--text2); text-transform: uppercase; letter-spacing: .4px;
-    border-bottom: 1px solid var(--border); white-space: nowrap;
+  /* Step 1 — paste */
+  .imp-paste-card {
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:36px 40px; text-align:center; max-width:680px; margin:0 auto;
   }
-  .paste-table th select {
-    background: var(--card); border: 1px solid var(--border);
-    color: var(--text); border-radius: 5px; padding: 3px 6px;
-    font-family: var(--font); font-size: 10px; margin-top: 4px;
-    outline: none; width: 100%;
+  .imp-paste-icon { font-size:42px; margin-bottom:14px; }
+  .imp-paste-card h3 { font-size:18px; font-weight:700; color:var(--text); margin-bottom:8px; }
+  .imp-paste-card p  { font-size:12px; color:var(--text2); line-height:1.7; margin-bottom:20px; }
+  .imp-paste-card kbd { background:var(--card2); border:1px solid var(--border); border-radius:5px; padding:2px 7px; font-size:11px; font-family:monospace; color:var(--text); }
+  .imp-paste-area {
+    width:100%; min-height:140px; background:var(--card2);
+    border:2px dashed var(--border); border-radius:10px; padding:16px;
+    color:var(--text2); font-family:var(--font); font-size:12px;
+    resize:vertical; outline:none; transition:border-color .15s, color .15s;
+    text-align:left;
   }
-  .paste-table td {
-    padding: 6px 10px; border-bottom: 1px solid var(--border);
-    color: var(--text); white-space: nowrap; max-width: 160px;
-    overflow: hidden; text-overflow: ellipsis;
-  }
-  .paste-table tr:last-child td { border-bottom: none; }
-  .paste-table tr:hover td { background: rgba(255,255,255,.03); }
-  .paste-table td.dest-cell { min-width: 160px; }
-  .paste-table td.dest-cell select {
-    background: var(--card); border: 1px solid var(--border);
-    color: var(--text); border-radius: 5px; padding: 4px 6px;
-    font-family: var(--font); font-size: 11px; width: 100%; outline: none;
-  }
-  .paste-row-check { width: 32px; text-align: center; }
-  .paste-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .paste-dest-global { display: flex; align-items: center; gap: 8px; }
-  .paste-dest-global label { font-size: 11px; color: var(--text2); font-weight: 600; white-space: nowrap; }
-  .paste-dest-global select {
-    background: var(--card); border: 1px solid var(--border);
-    color: var(--text); border-radius: 6px; padding: 6px 10px;
-    font-family: var(--font); font-size: 12px; outline: none; min-width: 200px;
-  }
-  .paste-stats { font-size: 11px; color: var(--text2); margin-left: auto; }
+  .imp-paste-area:focus { border-color:var(--accent); color:var(--text); }
+  .imp-paste-area.has-data { border-style:solid; border-color:var(--green); color:var(--text); }
+
+  /* Step 2 — edit table */
+  .imp-s2-toolbar { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 20px; margin-bottom:16px; }
+  .imp-dest-row   { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .imp-dest-field { display:flex; flex-direction:column; gap:5px; }
+  .imp-dest-field label { font-size:10px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; }
+  .imp-dest-field select { background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 12px; font-family:var(--font); font-size:12px; outline:none; min-width:200px; }
+  .imp-stats-badge { margin-left:auto; background:rgba(0,115,234,.1); border:1px solid rgba(0,115,234,.3); color:var(--accent); border-radius:20px; padding:5px 14px; font-size:11px; font-weight:700; white-space:nowrap; }
+  .imp-table-scroll { overflow-x:auto; border:1px solid var(--border); border-radius:12px; margin-bottom:16px; max-height:420px; overflow-y:auto; }
+  .imp-edit-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .imp-edit-table thead th { position:sticky; top:0; z-index:2; background:var(--card2); padding:8px 10px; text-align:left; font-size:10px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid var(--border); white-space:nowrap; }
+  .imp-edit-table thead th select { background:var(--card); border:1px solid var(--border); color:var(--accent); border-radius:5px; padding:3px 6px; font-family:var(--font); font-size:10px; margin-top:4px; outline:none; width:100%; min-width:90px; }
+  .imp-edit-table tbody td { padding:4px 6px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .imp-edit-table tbody tr:last-child td { border-bottom:none; }
+  .imp-edit-table tbody tr:hover td { background:rgba(255,255,255,.02); }
+  .imp-edit-table tbody td input[type=text] { width:100%; min-width:90px; background:transparent; border:none; color:var(--text); font-family:var(--font); font-size:12px; padding:3px 4px; border-radius:4px; outline:none; transition:background .1s; }
+  .imp-edit-table tbody td input[type=text]:focus { background:rgba(255,255,255,.06); }
+  .imp-edit-table tbody td.imp-dest-td { min-width:150px; }
+  .imp-edit-table tbody td.imp-dest-td select { background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 6px; font-family:var(--font); font-size:11px; width:100%; outline:none; }
+  .imp-edit-table tbody td.imp-chk-td { width:32px; text-align:center; }
+  .imp-edit-table tbody td.imp-del-td { width:30px; text-align:center; }
+  .imp-edit-table tbody td.imp-del-td button { background:none; border:none; color:var(--text2); cursor:pointer; font-size:14px; padding:2px 4px; border-radius:4px; }
+  .imp-edit-table tbody td.imp-del-td button:hover { color:var(--red); background:rgba(239,68,68,.1); }
+  .imp-s2-actions { display:flex; gap:10px; align-items:center; }
+
+  /* Step 3 — preview */
+  .imp-preview-header { font-size:14px; font-weight:700; color:var(--text); margin-bottom:18px; }
+  .imp-preview-boards { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+  .imp-preview-board-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 20px; min-width:180px; flex:1; }
+  .imp-preview-board-name { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+  .imp-preview-board-count { font-size:32px; font-weight:800; color:var(--accent); line-height:1; }
+  .imp-preview-board-sub  { font-size:11px; color:var(--text2); margin-top:3px; }
+  .imp-preview-sample { background:var(--card2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .imp-preview-sample-title { padding:8px 14px; font-size:11px; font-weight:700; color:var(--text2); border-bottom:1px solid var(--border); }
+  .imp-preview-sample table { width:100%; border-collapse:collapse; font-size:11px; }
+  .imp-preview-sample th { padding:6px 10px; background:var(--card); color:var(--text2); font-weight:600; text-align:left; border-bottom:1px solid var(--border); }
+  .imp-preview-sample td { padding:6px 10px; color:var(--text); border-bottom:1px solid var(--border); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .imp-preview-sample tr:last-child td { border-bottom:none; }
+
+  /* History */
+  .imp-history-section { margin-top:40px; border-top:1px solid var(--border); padding-top:28px; }
+  .imp-history-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .imp-history-empty { color:var(--text2); font-size:12px; padding:20px 0; }
+  .imp-history-row { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin-bottom:10px; display:flex; align-items:flex-start; gap:16px; }
+  .imp-history-date { font-size:10px; color:var(--text2); white-space:nowrap; min-width:100px; }
+  .imp-history-info { flex:1; min-width:0; }
+  .imp-history-who  { font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; }
+  .imp-history-dist { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .imp-history-chip { background:rgba(0,115,234,.1); border:1px solid rgba(0,115,234,.2); color:var(--accent); border-radius:20px; padding:2px 10px; font-size:11px; font-weight:600; }
+  .imp-history-total { font-size:22px; font-weight:800; color:var(--text); text-align:right; white-space:nowrap; }
+  .imp-history-total span { display:block; font-size:10px; font-weight:400; color:var(--text2); }
+
+  /* legacy kept for compat */
+  .import-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:24px; }
+  .import-row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  #csv-file-input { display:none; }
+  .paste-row-check { width:32px; text-align:center; }
+  .paste-stats { font-size:11px; color:var(--text2); margin-left:auto; }
 
   /* scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -6622,106 +6636,83 @@ function showImportPanel() {
   if (es) es.style.display = 'none';
   const panel = document.getElementById('import-panel');
   panel.style.display = 'block';
-  const session = getSession();
-  const isMaster = session && session.role === 'master';
-  const boardOpts = BOARDS
-    .map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+  const boardOpts = BOARDS.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+  const leadTypeOpts = `<option value="">— Sin cambio —</option>` + getLeadTypes().map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  const fieldOpts = ['','nombre','lead','email','telefono','hijos','direccion','ubicacion','asignado','resultado','notas']
+    .map(f => `<option value="${f}">${f || '— ignorar —'}</option>`).join('');
 
-  panel.innerHTML = `
-    <div class="import-card" style="max-width:960px">
-      ${isMaster ? `
-      <div class="import-tabs">
-        <button class="import-tab active" id="tab-paste" onclick="switchImportTab('paste')">📋 Pegar desde Excel</button>
-        <button class="import-tab" id="tab-csv" onclick="switchImportTab('csv')">📂 Importar CSV</button>
-      </div>` : ''}
+  panel.innerHTML = `<div class="imp-page">
+    <!-- Steps -->
+    <div class="imp-steps">
+      <div class="imp-step active" id="impstep-1"><span class="imp-step-n">1</span>Pegar datos</div>
+      <div class="imp-step-line"></div>
+      <div class="imp-step" id="impstep-2"><span class="imp-step-n">2</span>Revisar y editar</div>
+      <div class="imp-step-line"></div>
+      <div class="imp-step" id="impstep-3"><span class="imp-step-n">3</span>Vista previa y confirmar</div>
+    </div>
 
-      <!-- PASTE TAB -->
-      <div id="import-tab-paste" ${isMaster ? '' : 'style="display:none"'}>
-        <p style="color:var(--text2);font-size:12px;margin-bottom:12px">
-          Copia las celdas directamente desde Excel o Google Sheets y pégalas aquí con <strong style="color:var(--text)">Ctrl+V</strong>.<br>
-          La primera fila debe ser el encabezado. Luego elige a qué board va cada lead.
-        </p>
-        <div class="paste-area-wrap">
-          <textarea class="paste-area" id="paste-area" placeholder="Pega aquí tu tabla de Excel (Ctrl+V)…" onpaste="handlePaste(event)" onkeydown="if(event.ctrlKey&&event.key==='v'){}"></textarea>
-        </div>
-        <div id="paste-preview-wrap" style="display:none">
-          <div class="paste-actions" style="margin-bottom:12px">
-            <div class="paste-dest-global">
-              <label>Destino para todos:</label>
-              <select id="global-dest" onchange="applyGlobalDest()">
-                <option value="">— Elegir board —</option>
-                ${boardOpts}
-              </select>
-            </div>
-            <div class="paste-dest-global">
-              <label>Tipo de lead:</label>
-              <select id="global-lead-type">
-                <option value="">— Sin cambio —</option>
-                ${getLeadTypes().map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}
-              </select>
-            </div>
-            <button class="btn btn-primary" onclick="importPastedLeads()">⬆ Importar seleccionados</button>
-            <button class="btn btn-secondary btn-sm" onclick="clearPaste()">✕ Limpiar</button>
-            <span class="paste-stats" id="paste-stats"></span>
-          </div>
-          <div class="paste-preview">
-            <table class="paste-table" id="paste-table"></table>
-          </div>
-        </div>
-        <div style="margin-top:12px">
-          <button class="btn btn-secondary" onclick="hideImportPanel()">← Volver</button>
-        </div>
-        <div id="paste-log" style="margin-top:10px;font-size:12px;color:var(--text2)"></div>
-      </div>
-
-      <!-- CSV TAB -->
-      <div id="import-tab-csv" style="display:none">
-        <p style="color:var(--text2);font-size:12px;margin-bottom:12px">
-          Columnas reconocidas: <strong style="color:var(--text)">nombre, lead, email, telefono, hijos, direccion, ubicacion, asignado, resultado, notas</strong>
-        </p>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
-          <div class="field" style="margin:0">
-            <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Board de destino</label>
-            <select class="filter-select" id="import-dest" style="width:240px">${boardOpts}</select>
-          </div>
-          <div class="field" style="margin:0">
-            <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Tipo de lead</label>
-            <select class="filter-select" id="import-lead-type" style="width:240px">
-              <option value="">— Sin cambio —</option>
-              ${getLeadTypes().map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}
-            </select>
-          </div>
-        </div>
-        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()"
-             ondragover="event.preventDefault();this.classList.add('drag')"
-             ondragleave="this.classList.remove('drag')"
-             ondrop="handleDrop(event)">
-          <div class="icon">📂</div>
-          <div>Arrastra tu CSV aquí o <strong style="color:var(--accent)">haz click para seleccionar</strong></div>
-        </div>
-        <input type="file" id="csv-file-input" accept=".csv" onchange="handleFileSelect(event)" />
-        <div style="margin-top:12px">
-          <button class="btn btn-secondary" onclick="hideImportPanel()">← Volver</button>
-        </div>
-        <div id="import-log" style="margin-top:14px;font-size:12px;color:var(--text2)"></div>
+    <!-- Step 1 -->
+    <div id="imp-s1" class="imp-step-pane">
+      <div class="imp-paste-card">
+        <div class="imp-paste-icon">📋</div>
+        <h3>Pega tu tabla desde Excel</h3>
+        <p>Copia las celdas directamente desde Excel o Google Sheets (incluyendo la fila de encabezado) y pégalas con <kbd>Ctrl+V</kbd>. La primera fila debe ser el encabezado con los nombres de las columnas.</p>
+        <textarea id="paste-area" class="imp-paste-area" placeholder="Haz clic aquí y presiona Ctrl+V para pegar tu tabla…" onpaste="handlePaste(event)"></textarea>
+        <div id="imp-paste-hint" style="font-size:11px;color:var(--text2);margin-top:10px;text-align:left"></div>
       </div>
     </div>
-  `;
 
-  if (!isMaster) {
-    document.getElementById('import-tab-csv').style.display = 'block';
-  }
+    <!-- Step 2 -->
+    <div id="imp-s2" class="imp-step-pane" style="display:none">
+      <div class="imp-s2-toolbar">
+        <div class="imp-dest-row">
+          <div class="imp-dest-field">
+            <label>Board para todos</label>
+            <select id="global-dest" onchange="applyGlobalDest()">
+              <option value="">— Elegir board —</option>
+              ${boardOpts}
+            </select>
+          </div>
+          <div class="imp-dest-field">
+            <label>Tipo de lead para todos</label>
+            <select id="global-lead-type" onchange="applyGlobalLeadType()">${leadTypeOpts}</select>
+          </div>
+          <div class="imp-stats-badge" id="imp-stats"></div>
+          <button class="btn btn-secondary btn-sm" onclick="clearPaste()" style="margin-left:auto">✕ Limpiar</button>
+        </div>
+      </div>
+      <div class="imp-table-scroll">
+        <table class="imp-edit-table" id="imp-edit-table"></table>
+      </div>
+      <div class="imp-s2-actions">
+        <button class="btn btn-secondary" onclick="clearPaste()">← Atrás</button>
+        <button class="btn btn-primary" onclick="goImportPreview()">Vista previa →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="imp-s3" class="imp-step-pane" style="display:none">
+      <div id="imp-preview-content"></div>
+      <div class="imp-s2-actions" style="margin-top:20px">
+        <button class="btn btn-secondary" onclick="goImportStep(2)">← Editar</button>
+        <button class="btn btn-primary" style="background:var(--green);border-color:var(--green);min-width:180px" onclick="confirmImport()">✓ Confirmar e Importar</button>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="imp-history-section">
+      <div class="imp-history-title">📊 Historial de Importaciones</div>
+      <div id="imp-history-list"></div>
+    </div>
+  </div>`;
+
+  window._impFieldOpts = fieldOpts;
+  window._impBoardOpts = boardOpts;
+  renderImportHistory();
 }
 
 let pastedRows = []; // { checked, dest, cells[] }
 let pastedHeaders = [];
-
-function switchImportTab(tab) {
-  document.getElementById('tab-paste').classList.toggle('active', tab === 'paste');
-  document.getElementById('tab-csv').classList.toggle('active', tab === 'csv');
-  document.getElementById('import-tab-paste').style.display = tab === 'paste' ? 'block' : 'none';
-  document.getElementById('import-tab-csv').style.display  = tab === 'csv'   ? 'block' : 'none';
-}
 
 function handlePaste(e) {
   e.preventDefault();
@@ -6735,15 +6726,13 @@ function handlePaste(e) {
 function parsePastedData(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) { showToast('Necesitas al menos encabezados y una fila de datos','error'); return; }
-
   pastedHeaders = lines[0].split('\t').map(h => h.trim());
   pastedRows = lines.slice(1).map(line => ({
     checked: true,
     dest: '',
-    cells: line.split('\t').map(c => c.trim())
+    cells: line.split('\t').map(c => c.trim()),
   }));
-
-  renderPasteTable();
+  goImportStep(2);
 }
 
 // field mapping from common header names
@@ -6767,52 +6756,59 @@ function guessField(header) {
   return FIELD_MAP[h] || '';
 }
 
-function renderPasteTable() {
-  const wrap = document.getElementById('paste-preview-wrap');
-  wrap.style.display = 'block';
+function goImportStep(n) {
+  [1,2,3].forEach(i => {
+    const pane = document.getElementById(`imp-s${i}`);
+    const step = document.getElementById(`impstep-${i}`);
+    if (pane) pane.style.display = i === n ? '' : 'none';
+    if (step) {
+      step.classList.toggle('active', i === n);
+      step.classList.toggle('done',   i < n);
+    }
+  });
+  if (n === 2) renderImportEditTable();
+}
 
-  const fieldOpts = ['','nombre','lead','email','telefono','hijos','direccion','ubicacion','asignado','resultado','notas']
-    .map(f => `<option value="${f}">${f || '— ignorar —'}</option>`).join('');
-
+function renderImportEditTable() {
   const mappings = pastedHeaders.map(h => guessField(h));
-  const boardOpts = '<option value="">— Elegir —</option>' +
-    BOARDS.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+  window._pastedMappings = mappings;
+  const boardOpts = `<option value="">— Elegir —</option>` + BOARDS.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  const fieldOpts = window._impFieldOpts || '';
 
   const thead = `<thead><tr>
-    <th class="paste-row-check"><input type="checkbox" checked onchange="toggleAllPasteRows(this)" /></th>
-    ${pastedHeaders.map((h,i) => `
-      <th>
-        <div>${esc(h)}</div>
-        <select onchange="updateMapping(${i},this.value)">
-          ${fieldOpts.replace(`value="${mappings[i]}"`,`value="${mappings[i]}" selected`)}
-        </select>
-      </th>`).join('')}
+    <th class="imp-chk-td"><input type="checkbox" checked onchange="toggleAllPasteRows(this)"/></th>
+    ${pastedHeaders.map((h,i)=>`<th><div style="margin-bottom:3px">${esc(h)}</div>
+      <select onchange="window._pastedMappings[${i}]=this.value">
+        ${fieldOpts.replace(`value="${mappings[i]}"`,`value="${mappings[i]}" selected`)}
+      </select></th>`).join('')}
     <th>BOARD DESTINO</th>
+    <th></th>
   </tr></thead>`;
 
-  const tbody = `<tbody>${pastedRows.map((row,ri) => `
-    <tr>
-      <td class="paste-row-check"><input type="checkbox" ${row.checked?'checked':''} onchange="togglePasteRow(${ri},this.checked)" /></td>
-      ${row.cells.map(c => `<td title="${esc(c)}">${esc(c)}</td>`).join('')}
-      <td class="dest-cell"><select onchange="pastedRows[${ri}].dest=this.value">
-        ${boardOpts}
+  const tbody = `<tbody>${pastedRows.map((row,ri)=>`
+    <tr id="imp-row-${ri}">
+      <td class="imp-chk-td"><input type="checkbox" ${row.checked?'checked':''} onchange="togglePasteRow(${ri},this.checked)"/></td>
+      ${row.cells.map((c,ci)=>`<td><input type="text" value="${esc(c)}" oninput="pastedRows[${ri}].cells[${ci}]=this.value"/></td>`).join('')}
+      <td class="imp-dest-td"><select onchange="pastedRows[${ri}].dest=this.value">
+        ${boardOpts}${row.dest ? boardOpts.replace(`value="${row.dest}"`,`value="${row.dest}" selected`):''}
       </select></td>
+      <td class="imp-del-td"><button onclick="deleteImportRow(${ri})" title="Eliminar fila">✕</button></td>
     </tr>`).join('')}</tbody>`;
 
-  document.getElementById('paste-table').innerHTML = thead + tbody;
+  document.getElementById('imp-edit-table').innerHTML = thead + tbody;
   updatePasteStats();
-
-  // store mappings reference
-  window._pastedMappings = mappings;
 }
 
-function updateMapping(colIdx, val) {
-  window._pastedMappings[colIdx] = val;
+function deleteImportRow(ri) {
+  pastedRows.splice(ri, 1);
+  renderImportEditTable();
 }
+
+function updateMapping(colIdx, val) { window._pastedMappings[colIdx] = val; }
 
 function toggleAllPasteRows(cb) {
   pastedRows.forEach(r => r.checked = cb.checked);
-  document.querySelectorAll('#paste-table tbody input[type=checkbox]').forEach(c => c.checked = cb.checked);
+  document.querySelectorAll('#imp-edit-table tbody input[type=checkbox]').forEach(c => c.checked = cb.checked);
   updatePasteStats();
 }
 
@@ -6823,58 +6819,139 @@ function togglePasteRow(idx, val) {
 
 function updatePasteStats() {
   const sel = pastedRows.filter(r => r.checked).length;
-  const el = document.getElementById('paste-stats');
+  const el = document.getElementById('imp-stats');
   if (el) el.textContent = `${sel} de ${pastedRows.length} filas seleccionadas`;
 }
 
 function applyGlobalDest() {
-  const dest = document.getElementById('global-dest').value;
+  const dest = document.getElementById('global-dest')?.value;
   if (!dest) return;
   pastedRows.forEach(r => r.dest = dest);
-  document.querySelectorAll('#paste-table tbody td.dest-cell select').forEach(s => s.value = dest);
+  document.querySelectorAll('#imp-edit-table tbody td.imp-dest-td select').forEach(s => s.value = dest);
+}
+
+function applyGlobalLeadType() {
+  const lt = document.getElementById('global-lead-type')?.value;
+  if (!lt) return;
+  // Store globally, applied at import time
+  window._globalLeadType = lt;
 }
 
 function clearPaste() {
   pastedRows = []; pastedHeaders = [];
-  document.getElementById('paste-area').value = '';
-  document.getElementById('paste-area').classList.remove('has-data');
-  document.getElementById('paste-preview-wrap').style.display = 'none';
+  window._pastedMappings = [];
+  window._globalLeadType = '';
+  goImportStep(1);
+  const area = document.getElementById('paste-area');
+  if (area) { area.value = ''; area.classList.remove('has-data'); }
 }
 
-function importPastedLeads() {
+function goImportPreview() {
   const mappings = window._pastedMappings || [];
   const toImport = pastedRows.filter(r => r.checked);
-  if (toImport.length === 0) { showToast('No hay filas seleccionadas','error'); return; }
-
+  if (!toImport.length) { showToast('No hay filas seleccionadas','error'); return; }
   const noDest = toImport.filter(r => !r.dest);
-  if (noDest.length > 0) { showToast(`${noDest.length} fila(s) sin board destino`, 'error'); return; }
+  if (noDest.length) { showToast(`${noDest.length} fila(s) sin board destino — elige un board para todas o individualmente`,'error'); return; }
 
-  const globalLeadType = (document.getElementById('global-lead-type') || {}).value || '';
+  const globalLeadType = window._globalLeadType || document.getElementById('global-lead-type')?.value || '';
+  // Build preview by board
   const byBoard = {};
   toImport.forEach(row => {
     const lead = { id: uid(), creacion: today() };
-    mappings.forEach((field, ci) => {
-      if (field && row.cells[ci] !== undefined) lead[field] = row.cells[ci];
-    });
+    mappings.forEach((field, ci) => { if (field && row.cells[ci] !== undefined) lead[field] = row.cells[ci]; });
     if (!lead.nombre) lead.nombre = row.cells[0] || '';
     if (globalLeadType) lead.lead = globalLeadType;
     if (!byBoard[row.dest]) byBoard[row.dest] = [];
     byBoard[row.dest].push(lead);
   });
+  window._importByBoard = byBoard;
 
+  const total = toImport.length;
+  const boardCards = Object.entries(byBoard).map(([bid, leads]) => {
+    const b = getBoard(bid);
+    return `<div class="imp-preview-board-card">
+      <div class="imp-preview-board-name">${esc(b?.name || bid)}</div>
+      <div class="imp-preview-board-count">${leads.length}</div>
+      <div class="imp-preview-board-sub">lead${leads.length!==1?'s':''}</div>
+    </div>`;
+  }).join('');
+
+  // Sample table (first 5 rows from all)
+  const sampleLeads = toImport.slice(0,5);
+  const sampleCols = mappings.map((f,i)=>({field:f,idx:i})).filter(x=>x.field && x.field !== '');
+  const sampleHead = sampleCols.map(x=>`<th>${x.field}</th>`).join('') + '<th>Board</th>';
+  const sampleBody = sampleLeads.map((row,ri) => {
+    const b = getBoard(row.dest);
+    return `<tr>${sampleCols.map(x=>`<td>${esc(row.cells[x.idx]||'')}</td>`).join('')}<td>${esc(b?.name||row.dest)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('imp-preview-content').innerHTML = `
+    <div class="imp-preview-header">Resumen: <strong>${total}</strong> lead${total!==1?'s':''} listos para importar</div>
+    <div class="imp-preview-boards">${boardCards}</div>
+    <div class="imp-preview-sample">
+      <div class="imp-preview-sample-title">Vista previa (primeras ${Math.min(5,total)} filas)</div>
+      <div style="overflow-x:auto"><table><thead><tr>${sampleHead}</tr></thead><tbody>${sampleBody}</tbody></table></div>
+    </div>`;
+  goImportStep(3);
+}
+
+async function confirmImport() {
+  const byBoard = window._importByBoard || {};
+  const session = getSession();
   let total = 0;
+  const distribution = [];
   Object.entries(byBoard).forEach(([boardId, leads]) => {
     const existing = loadLeads(boardId);
     saveLeads(boardId, [...existing, ...leads]);
     total += leads.length;
+    distribution.push({ boardId, boardName: getBoard(boardId)?.name || boardId, count: leads.length });
   });
 
-  const boardNames = Object.keys(byBoard).map(id => getBoard(id).name).join(', ');
+  // Save to history
+  const record = {
+    id:         uid(),
+    date:       new Date().toISOString(),
+    importedBy: session?.name || 'Desconocido',
+    importedByEmail: session?.email || '',
+    total,
+    distribution,
+  };
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
+    const history = JSON.parse(data?.value || '[]');
+    history.unshift(record);
+    await supa.from('kv_store').upsert({ key:'gew_import_history', value: JSON.stringify(history.slice(0,100)) });
+  } catch(_) {}
+
+  const boardNames = distribution.map(d=>d.boardName).join(', ');
   logActivity('lead_import', `${total} leads importados`, `Boards: ${boardNames}`);
-  document.getElementById('paste-log').innerHTML =
-    `<span style="color:var(--green)">✓ ${total} lead(s) importados a: <strong>${boardNames}</strong></span>`;
-  showToast(`${total} leads importados ✓`, 'success');
+  showToast(`✓ ${total} leads importados exitosamente`, 'success');
   clearPaste();
+  renderImportHistory();
+}
+
+async function renderImportHistory() {
+  const el = document.getElementById('imp-history-list');
+  if (!el) return;
+  el.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:10px 0">Cargando historial…</div>`;
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
+    const history = JSON.parse(data?.value || '[]');
+    if (!history.length) { el.innerHTML = `<div class="imp-history-empty">No hay importaciones registradas aún.</div>`; return; }
+    el.innerHTML = history.map(r => {
+      const d = new Date(r.date);
+      const dateStr = d.toLocaleDateString('es-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' + d.toLocaleTimeString('es-US',{hour:'2-digit',minute:'2-digit'});
+      const chips = (r.distribution||[]).map(d=>`<span class="imp-history-chip">${esc(d.boardName)}: ${d.count}</span>`).join('');
+      return `<div class="imp-history-row">
+        <div class="imp-history-date">${dateStr}</div>
+        <div class="imp-history-info">
+          <div class="imp-history-who">👤 ${esc(r.importedBy)} <span style="font-weight:400;color:var(--text2);font-size:11px">${esc(r.importedByEmail)}</span></div>
+          <div class="imp-history-dist">${chips}</div>
+        </div>
+        <div class="imp-history-total">${r.total}<span>leads</span></div>
+      </div>`;
+    }).join('');
+  } catch(_) { el.innerHTML = `<div class="imp-history-empty">Error cargando historial.</div>`; }
 }
 
 function hideImportPanel() {
