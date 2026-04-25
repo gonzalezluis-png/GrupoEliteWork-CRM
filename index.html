@@ -13575,7 +13575,7 @@ function openNotesPanel(leadId, navList) {
   _renderMsgJournal(lead);
   const _s = getSession();
   document.getElementById('np-tab-messages').style.display = (_s && _s.role === 'master') ? '' : 'none';
-  document.getElementById('np-tab-calls').style.display = _canUseZoom() ? '' : 'none';
+  document.getElementById('np-tab-calls').style.display = '';
   loadMsgCredits(boardId);
   switchNotesPanelTab('notes');
   document.getElementById('notes-panel-overlay').classList.add('open');
