@@ -5643,7 +5643,7 @@ function renderRows(board, leads) {
       if (c.key === 'hijos') return `<td class="td-hijos">${esc(l.hijos||'')}</td>`;
       if (c.key === 'telefono') {
         const ph = l.telefono || '';
-        const callBtn = (ph && _isZoomDev()) ? `<button onclick="event.stopPropagation();zoomCall('${l.id}','${esc(ph)}','${board?.id||currentBoardId}')" title="Llamar por Zoom" style="background:#2D8CFF;border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;line-height:1.6">📞</button>` : '';
+        const callBtn = (ph && _zoomConnected()) ? `<button onclick="event.stopPropagation();zoomCall('${l.id}','${esc(ph)}','${board?.id||currentBoardId}')" title="Llamar por Zoom" style="background:#2D8CFF;border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;line-height:1.6">📞</button>` : '';
         return `<td><div style="display:flex;align-items:center;gap:5px;white-space:nowrap">${esc(ph)}${callBtn}</div></td>`;
       }
       return `<td>${esc(l[c.key]||'')}</td>`;
@@ -10222,8 +10222,8 @@ function switchSettingsTab(tab) {
   }
   if (tab === 'account') {
     const zoomCard = document.getElementById('zoom-account-card');
-    if (zoomCard) zoomCard.style.display = _isZoomDev() ? 'block' : 'none';
-    if (_isZoomDev()) _loadZoomStatus().then(() => _renderZoomCard());
+    if (zoomCard) zoomCard.style.display = _canUseZoom() ? 'block' : 'none';
+    if (_canUseZoom()) _loadZoomStatus().then(() => _renderZoomCard());
   }
 }
 
@@ -11601,6 +11601,17 @@ function initToolbarGapHandle() {
 function _isZoomDev() {
   const s = getSession();
   return s?.email === 'gonzalezluis@grupoelitework.com';
+}
+
+// Any logged-in non-master user can connect and use Zoom
+function _canUseZoom() {
+  const s = getSession();
+  return !!(s && s.role !== 'master');
+}
+
+// Show call button only when the current user has Zoom connected
+function _zoomConnected() {
+  return !!(_zoomStatus?.connected);
 }
 
 async function pingConnections() {
@@ -13562,7 +13573,7 @@ function openNotesPanel(leadId, navList) {
   _renderMsgJournal(lead);
   const _s = getSession();
   document.getElementById('np-tab-messages').style.display = (_s && _s.role === 'master') ? '' : 'none';
-  document.getElementById('np-tab-calls').style.display = _isZoomDev() ? '' : 'none';
+  document.getElementById('np-tab-calls').style.display = _canUseZoom() ? '' : 'none';
   loadMsgCredits(boardId);
   switchNotesPanelTab('notes');
   document.getElementById('notes-panel-overlay').classList.add('open');
