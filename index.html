@@ -4149,7 +4149,7 @@ setTimeout(function(){
       <div id="calls-journal" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px;min-height:120px"></div>
       <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px">
         <div id="zoom-call-status" style="font-size:11px;color:var(--text2)"></div>
-        <button id="np-call-btn" onclick="zoomCallFromPanel()" style="background:#2D8CFF;border:none;color:#fff;border-radius:8px;padding:8px 18px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px">📞 Llamar por Zoom</button>
+        <a id="np-call-btn" href="#" onclick="event.preventDefault();zoomCallFromPanel()" style="background:#2D8CFF;border:none;color:#fff;border-radius:8px;padding:8px 18px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none">📞 Llamar por Zoom</a>
       </div>
     </div>
 
@@ -5643,7 +5643,8 @@ function renderRows(board, leads) {
       if (c.key === 'hijos') return `<td class="td-hijos">${esc(l.hijos||'')}</td>`;
       if (c.key === 'telefono') {
         const ph = l.telefono || '';
-        const callBtn = (ph && _zoomConnected()) ? `<button onclick="event.stopPropagation();zoomCall('${l.id}','${esc(ph)}','${board?.id||currentBoardId}')" title="Llamar por Zoom" style="background:#2D8CFF;border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;line-height:1.6">📞</button>` : '';
+        const _zoomPhone = ph.replace(/\D/g,'').replace(/^(\d{10})$/,'+1$1').replace(/^1(\d{10})$/,'+1$1') || ph;
+        const callBtn = ph ? `<a href="zoomus://zoom.us/call?callee=${encodeURIComponent(_zoomPhone)}" onclick="event.stopPropagation()" title="Llamar por Zoom" style="background:#2D8CFF;border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;line-height:1.6;text-decoration:none;display:inline-block">📞</a>` : '';
         return `<td><div style="display:flex;align-items:center;gap:5px;white-space:nowrap">${esc(ph)}${callBtn}</div></td>`;
       }
       return `<td>${esc(l[c.key]||'')}</td>`;
@@ -11936,8 +11937,9 @@ async function zoomCall(leadId, phoneNumber, boardId) {
 
 function zoomCallFromPanel() {
   const lead = _notesBoardId ? loadLeads(_notesBoardId).find(l => l.id === _notesLeadId) : null;
-  if (!lead) return;
-  zoomCall(lead.id, lead.telefono || '', _notesBoardId);
+  if (!lead?.telefono) return;
+  const ph = lead.telefono.replace(/\D/g,'').replace(/^(\d{10})$/,'+1$1').replace(/^1(\d{10})$/,'+1$1') || lead.telefono;
+  window.location.href = `zoomus://zoom.us/call?callee=${encodeURIComponent(ph)}`;
 }
 
 function _renderCallsPane() {
