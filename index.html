@@ -4960,6 +4960,22 @@ function _leadHash(l) {
   return `${l.asignado}|${l.asignadoId}|${l.resultado}|${l.notas}|${l.nombre}|${l.telefono}|${l.email}|${l.direccion}|${l.ubicacion}|${l.estado}|${l.lead}|${l.hijos}`;
 }
 
+// #4 — In-memory cache for board lead counts (avoids JSON.parse on every sidebar update)
+const _boardCountCache = new Map();
+
+// #6 — Debounce timers per board key (collapses rapid saves into one Supabase call)
+const _saveDebounceTimers = new Map();
+const _SAVE_DEBOUNCE_MS = 500;
+
+function _scheduledSync(key, leads) {
+  if (_saveDebounceTimers.has(key)) clearTimeout(_saveDebounceTimers.get(key));
+  _saveDebounceTimers.set(key, setTimeout(async () => {
+    _saveDebounceTimers.delete(key);
+    const ok = await supaSync(key, JSON.stringify(leads));
+    setSyncStatus(ok ? 'saved' : 'error');
+  }, _SAVE_DEBOUNCE_MS));
+}
+
 async function saveLeads(boardId, leads, opts = {}) {
   const session = getSession();
   const isMaster = session && session.role === 'master';
@@ -4981,59 +4997,28 @@ async function saveLeads(boardId, leads, opts = {}) {
 
   // Update local state immediately so UI is responsive
   localStorage.setItem(key, JSON.stringify(leads));
+  _boardCountCache.set(boardId, leads.length); // #4
   updateSidebarCount(boardId);
   renderSidebar();
   setSyncStatus('saving');
 
-  // ── Merge-on-write ──────────────────────────────────────────
-  try {
-    const { data } = await supa.from('kv_store').select('value').eq('key', key).maybeSingle();
-    let toWrite = leads;
-
-    if (data?.value) {
-      let serverLeads;
-      try { serverLeads = JSON.parse(data.value); } catch(_) { serverLeads = null; }
-      if (!serverLeads || !Array.isArray(serverLeads)) serverLeads = null;
-      if (serverLeads) {
-        const localMap = new Map(leads.map(l => [l.id, l]));
-        const merged = new Map(localMap);
-        for (const sl of serverLeads) {
-          if (_deletedLeadIds.has(sl.id)) continue;
-          if (!merged.has(sl.id)) {
-            merged.set(sl.id, sl);
-          } else {
-            const ll = merged.get(sl.id);
-            if (sl._updatedAt && ll._updatedAt && sl._updatedAt > ll._updatedAt) {
-              merged.set(sl.id, sl);
-            }
-          }
-        }
-        toWrite = [...merged.values()];
-      }
-    }
-
-    _ownWrites.set(key, Date.now());
-    const { error } = await supa.from('kv_store').upsert({ key, value: JSON.stringify(toWrite) }, { onConflict: 'key' });
-    if (!error) {
-      localStorage.setItem(key, JSON.stringify(toWrite));
-      if (currentBoardId === boardId) renderTableKeepSelection();
-      setSyncStatus('saved');
-    } else {
-      setSyncStatus('error');
-    }
-  } catch(e) {
-    console.error('saveLeads merge error:', e);
-    // Fallback to direct write so data is never lost
-    const ok = await supaSync(key, JSON.stringify(leads));
-    setSyncStatus(ok ? 'saved' : 'error');
-  }
+  // #2 + #6 — Direct debounced write, no SELECT round-trip
+  _scheduledSync(key, leads);
 }
 function allBoards() {
   BOARDS.forEach(b => updateSidebarCount(b.id));
 }
 function updateSidebarCount(boardId) {
   const el = document.querySelector(`.board-item[data-id="${boardId}"] .board-count`);
-  if (el) el.textContent = loadLeads(boardId).length;
+  if (!el) return;
+  // #4 — Use cache when available; only parse localStorage on first access
+  if (_boardCountCache.has(boardId)) {
+    el.textContent = _boardCountCache.get(boardId);
+  } else {
+    const count = loadLeads(boardId).length;
+    _boardCountCache.set(boardId, count);
+    el.textContent = count;
+  }
 }
 
 // ── ID ──
@@ -15148,6 +15133,7 @@ function _applyRealtimeKey(key) {
 
   if (key.startsWith('gew_leads_')) {
     const boardId = key.slice('gew_leads_'.length);
+    _boardCountCache.delete(boardId); // #4 invalidate stale count on external update
     if (currentBoardId === boardId) renderTableKeepSelection();
     else if (currentBoardId === '__agent__') renderTableKeepSelection();
     updateTabCounts();
