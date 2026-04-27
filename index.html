@@ -12046,9 +12046,8 @@ function initApp(user) {
       });
       document.getElementById('assign-strip').classList.add('hidden');
     }
-    // Caller: sees boards but NO admin sidebar, NO assign strip, NO agent filter
+    // Caller: sees boards but NO admin sidebar, NO assign strip
     if (user.role === 'caller') {
-      document.getElementById('f-asignado').style.display = 'none';
       document.getElementById('assign-strip').classList.add('hidden');
     }
     // All non-agent roles see Scripts de Llamada
