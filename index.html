@@ -3953,6 +3953,14 @@ setTimeout(function(){
                     <input id="ref-referidopor-tel" type="tel" placeholder="Ej: +1 555 000 0000" class="ref-input" />
                   </div>
                 </div>
+              </div>
+
+              <!-- Card: destino -->
+              <div class="ref-card">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+                  <span style="font-size:13px">📋</span>
+                  <span style="font-size:12px;font-weight:700;color:var(--text)">Destino de los leads</span>
+                </div>
                 <div id="ref-inner-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
                   <div class="ref-field-wrap">
                     <label class="ref-label">Modalidad</label>
@@ -3970,6 +3978,19 @@ setTimeout(function(){
                     <select id="ref-board" class="ref-input"></select>
                   </div>
                 </div>
+              </div>
+
+              <!-- Card: notas sobre el referidor -->
+              <div class="ref-card">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                  <span style="font-size:13px">📝</span>
+                  <span style="font-size:12px;font-weight:700;color:var(--text)">Notas sobre el Referido</span>
+                </div>
+                <div style="font-size:10px;color:var(--text2);margin-bottom:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid var(--border);line-height:1.55">
+                  Esta información estará presente en las notas de <em>todos</em> los leads suministrados. Cualquier detalle aportado podría ayudar a mejorar la experiencia del referido al ser contactado.
+                </div>
+                <textarea id="ref-notas-referido" placeholder="Ej: Conocidos de la iglesia, son muy receptivos, contactar después de las 6pm…"
+                  class="ref-input" style="resize:vertical;min-height:72px;font-family:inherit;font-size:12px;line-height:1.5"></textarea>
               </div>
 
               <!-- Card: upload -->
@@ -4003,6 +4024,10 @@ setTimeout(function(){
                     <input id="ref-file-gal" type="file" accept="image/*" style="display:none" onchange="refHandleFile(this.files[0])" />
                   </button>
                 </div>
+                <!-- Privacy notice -->
+                <p style="margin:10px 0 0;font-size:10px;color:rgba(255,255,255,.25);text-align:center;line-height:1.5">
+                  🔒 La imagen cargada no será guardada en ninguna base de datos.<br>Se utiliza únicamente para digitalizar la información de la hoja.
+                </p>
               </div>
             </div>
 
@@ -4020,7 +4045,7 @@ setTimeout(function(){
                 </div>
                 <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
                   <button onclick="refAnalyze()" id="ref-analyze-btn" class="ref-btn-primary" style="width:100%;justify-content:center">
-                    <span>✨</span> Analizar con IA
+                    <span>✨</span> Extraer
                   </button>
                   <button onclick="refResetImage()" class="ref-btn-ghost" style="width:100%;justify-content:center">
                     ↩ Cambiar imagen
@@ -8784,11 +8809,12 @@ function refAddRow() {
 }
 
 async function refSubmit() {
-  const boardId      = document.getElementById('ref-board').value;
-  const referidoPor  = document.getElementById('ref-referidopor').value.trim();
-  const referidoTel  = document.getElementById('ref-referidopor-tel').value.trim();
-  const tipo         = document.getElementById('ref-tipo').value || 'Presencial';
-  const ubicacion    = document.getElementById('ref-ubicacion').value;
+  const boardId        = document.getElementById('ref-board').value;
+  const referidoPor    = document.getElementById('ref-referidopor').value.trim();
+  const referidoTel    = document.getElementById('ref-referidopor-tel').value.trim();
+  const tipo           = document.getElementById('ref-tipo').value || 'Presencial';
+  const ubicacion      = document.getElementById('ref-ubicacion').value;
+  const notasReferido  = (document.getElementById('ref-notas-referido')?.value || '').trim();
   const agenteDisp   = document.getElementById('ref-agente-display');
   const agenteName   = agenteDisp ? agenteDisp._agenteName || '' : '';
   const agenteId     = agenteDisp ? agenteDisp._agenteId   || null : null;
@@ -8816,6 +8842,7 @@ async function refSubmit() {
         notaParts.push(ref);
       }
       if (r.notas && r.notas.trim()) notaParts.push(r.notas.trim());
+      if (notasReferido) notaParts.push(`Nota del referido: ${notasReferido}`);
       const lead = {
         id:          uid(),
         creacion:    today,
