@@ -3926,9 +3926,15 @@ setTimeout(function(){
                 </div>
                 <div id="ref-inner-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
                   <div class="ref-field-wrap">
-                    <label class="ref-label">Referido por</label>
+                    <label class="ref-label">Referido por (nombre)</label>
                     <input id="ref-referidopor" type="text" placeholder="Ej: José García" class="ref-input" />
                   </div>
+                  <div class="ref-field-wrap">
+                    <label class="ref-label">Teléfono del referidor</label>
+                    <input id="ref-referidopor-tel" type="tel" placeholder="Ej: +1 555 000 0000" class="ref-input" />
+                  </div>
+                </div>
+                <div style="margin-bottom:12px">
                   <div class="ref-field-wrap">
                     <label class="ref-label">Tipo de lead</label>
                     <select id="ref-leadtype" class="ref-input"><option value="">— Seleccionar —</option></select>
@@ -4050,14 +4056,23 @@ setTimeout(function(){
             </div>
 
             <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse" id="ref-preview-table">
+              <table style="width:100%;border-collapse:collapse;table-layout:fixed" id="ref-preview-table">
+                <colgroup>
+                  <col style="width:46px">
+                  <col>
+                  <col style="width:155px">
+                  <col style="width:80px">
+                  <col>
+                  <col style="width:36px">
+                </colgroup>
                 <thead>
-                  <tr style="background:rgba(0,0,0,.12)">
-                    <th style="padding:11px 16px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:48px">#</th>
-                    <th style="padding:11px 16px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border)">Nombre completo</th>
-                    <th style="padding:11px 16px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:160px">Teléfono</th>
-                    <th style="padding:11px 16px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:160px">Relación</th>
-                    <th style="width:44px;border-bottom:1px solid var(--border)"></th>
+                  <tr style="background:rgba(0,0,0,.22);position:sticky;top:0;z-index:1">
+                    <th style="padding:9px 10px;text-align:center;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">#</th>
+                    <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Nombre completo</th>
+                    <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Teléfono</th>
+                    <th style="padding:9px 10px;text-align:center;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Hijos</th>
+                    <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Notas</th>
+                    <th style="border-bottom:2px solid var(--accent)"></th>
                   </tr>
                 </thead>
                 <tbody id="ref-preview-tbody"></tbody>
@@ -8665,7 +8680,8 @@ async function refAnalyze() {
     _refRows = (data.result || []).map(r => ({
       nombre:   (r.nombre   || '').trim(),
       telefono: (r.telefono || '').trim(),
-      relacion: (r.relacion || '').trim(),
+      hijos:    (r.hijos    || '').trim(),
+      notas:    '',
     })).filter(r => r.nombre || r.telefono);
 
     if (!_refRows.length) throw new Error('La IA no detectó nombres ni teléfonos en la imagen');
@@ -8697,47 +8713,47 @@ function refRenderPreview() {
   const badge = document.getElementById('ref-count-badge');
   if (badge) badge.textContent = `${_refRows.length} lead${_refRows.length !== 1 ? 's' : ''}`;
 
-  const inp = (val, field, i, ph='') =>
+  const tdStyle = 'border-right:1px solid var(--border);border-bottom:1px solid var(--border)';
+
+  const inp = (val, field, i, ph='', extra='') =>
     `<input value="${esc(val)}" oninput="_refRows[${i}].${field}=this.value" placeholder="${ph}"
-      class="ref-input" style="padding:7px 11px;font-size:12px" />`;
+      style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:12px;background:transparent;border:none;color:var(--text);font-family:inherit;outline:none;${extra}" />`;
 
   tbody.innerHTML = _refRows.map((r, i) => {
-    const initials = (r.nombre||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-    const hue = [...(r.nombre||'A')].reduce((h,c)=>h+c.charCodeAt(0),0) % 360;
-    return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:10px 16px">
-        <div class="ref-row-num">${i+1}</div>
+    const rowBg = i % 2 === 0 ? 'background:rgba(255,255,255,.015)' : 'background:rgba(0,0,0,.08)';
+    return `<tr style="${rowBg}" onmouseover="this.style.background='rgba(0,115,234,.07)'" onmouseout="this.style.background='${i%2===0?'rgba(255,255,255,.015)':'rgba(0,0,0,.08)'}'" >
+      <td style="padding:0;text-align:center;${tdStyle};width:46px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:rgba(0,115,234,.18);color:#60a5fa;font-size:11px;font-weight:800">${i+1}</span>
       </td>
-      <td style="padding:6px 10px">
-        <div style="display:flex;align-items:center;gap:9px">
-          <div style="width:30px;height:30px;border-radius:8px;background:hsl(${hue},45%,30%);color:hsl(${hue},60%,85%);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
-          ${inp(r.nombre,'nombre',i)}
-        </div>
-      </td>
-      <td style="padding:6px 10px">${inp(r.telefono,'telefono',i,'Ej: +1 555 000 0000')}</td>
-      <td style="padding:6px 10px">${inp(r.relacion,'relacion',i,'Hermano, Vecino…')}</td>
-      <td style="padding:6px 12px;text-align:center">
+      <td style="padding:0;${tdStyle}">${inp(r.nombre,'nombre',i,'Nombre completo')}</td>
+      <td style="padding:0;${tdStyle}">${inp(r.telefono,'telefono',i,'+1 555 000 0000')}</td>
+      <td style="padding:0;text-align:center;${tdStyle}">${inp(r.hijos||'','hijos',i,'—','text-align:center')}</td>
+      <td style="padding:0;${tdStyle}">${inp(r.notas||'','notas',i,'Observaciones…')}</td>
+      <td style="padding:0;text-align:center;border-bottom:1px solid var(--border)">
         <button onclick="_refRows.splice(${i},1);refRenderPreview()"
-          style="background:rgba(226,68,92,.1);border:1px solid rgba(226,68,92,.25);color:var(--red);border-radius:7px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px" title="Eliminar">✕</button>
+          style="background:none;border:none;color:rgba(226,68,92,.6);width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;border-radius:6px" title="Eliminar"
+          onmouseover="this.style.color='var(--red)';this.style.background='rgba(226,68,92,.1)'"
+          onmouseout="this.style.color='rgba(226,68,92,.6)';this.style.background='none'">✕</button>
       </td>
     </tr>`;
   }).join('');
 }
 
 function refAddRow() {
-  _refRows.push({ nombre:'', telefono:'', relacion:'' });
+  _refRows.push({ nombre:'', telefono:'', hijos:'', notas:'' });
   refRenderPreview();
   document.getElementById('ref-step2').style.display = 'block';
 }
 
 async function refSubmit() {
-  const boardId    = document.getElementById('ref-board').value;
-  const referidoPor = document.getElementById('ref-referidopor').value.trim();
-  const leadType   = document.getElementById('ref-leadtype').value;
-  const tipo       = document.getElementById('ref-tipo').value || 'Presencial';
-  const ubicacion  = document.getElementById('ref-ubicacion').value;
-  const statusEl   = document.getElementById('ref-submit-status');
-  const btn        = document.getElementById('ref-submit-btn');
+  const boardId      = document.getElementById('ref-board').value;
+  const referidoPor  = document.getElementById('ref-referidopor').value.trim();
+  const referidoTel  = document.getElementById('ref-referidopor-tel').value.trim();
+  const leadType     = document.getElementById('ref-leadtype').value;
+  const tipo         = document.getElementById('ref-tipo').value || 'Presencial';
+  const ubicacion    = document.getElementById('ref-ubicacion').value;
+  const statusEl     = document.getElementById('ref-submit-status');
+  const btn          = document.getElementById('ref-submit-btn');
 
   const rows = _refRows.filter(r => r.nombre.trim() || r.telefono.trim());
   if (!rows.length) { showToast('No hay leads para cargar', 'error'); return; }
@@ -8753,8 +8769,12 @@ async function refSubmit() {
 
     rows.forEach(r => {
       const notaParts = [];
-      if (referidoPor) notaParts.push(`Referido por: ${referidoPor}`);
-      if (r.relacion)  notaParts.push(`Relación: ${r.relacion}`);
+      if (referidoPor) {
+        let ref = `Referido por: ${referidoPor}`;
+        if (referidoTel) ref += ` (${referidoTel})`;
+        notaParts.push(ref);
+      }
+      if (r.notas && r.notas.trim()) notaParts.push(r.notas.trim());
       const lead = {
         id:        uid(),
         creacion:  today,
@@ -8768,7 +8788,7 @@ async function refSubmit() {
         notas:     notaParts.join(' · '),
         asignado:  '',
         resultado: '',
-        hijos:     '',
+        hijos:     r.hijos ? r.hijos.trim() : '',
       };
       leads.push(lead);
       added++;
