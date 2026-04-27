@@ -8854,6 +8854,7 @@ async function refSubmit() {
         lead:        'REF',
         tipo,
         notas:       notaParts.join(' · '),
+        _notes:      notaParts.length ? JSON.stringify([{ text: notaParts.join('\n'), author: agenteName || 'Sistema', date: new Date().toISOString(), system: true }]) : '',
         asignado:    agenteName,
         asignadoId:  agenteId,
         resultado:   '',
