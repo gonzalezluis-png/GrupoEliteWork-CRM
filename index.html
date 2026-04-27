@@ -2077,6 +2077,7 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-reconcile" onclick="showReconcilePage()" style="display:none">🔗 <span>Reconciliar Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-weekly-report" onclick="showWeeklyReportPage()">📈 <span>Reporte Semanal</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-import" onclick="showImportPage()" style="display:none">📥 <span>Importar Leads</span><span class="emblem-dev">🙈 Solo yo</span></div>
+      <div class="sidebar-item" id="nav-referidos" onclick="showReferidosPage()" style="display:none">📸 <span>Referidos por Foto</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-connections" onclick="showConnectionsPage()" style="display:none">🔌 <span>Conexiones</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-users" onclick="showSettingsPage();switchSettingsTab('team')" style="display:none">👥 <span>Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-messaging" onclick="showSettingsPage();switchSettingsTab('messaging')" style="display:none">💬 <span>Panel de mensajería</span><span class="emblem-dev">🙈 Solo yo</span></div>
@@ -3795,6 +3796,113 @@ setTimeout(function(){
 
       </div>
     </div>
+
+    <!-- REFERIDOS POR FOTO PAGE -->
+    <div id="referidos-page" style="display:none;flex:1;flex-direction:column;overflow-y:auto;background:var(--bg);padding:28px 32px 60px">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+        <div style="font-size:28px">📸</div>
+        <div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">Referidos por Foto</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">Sube una imagen con nombres y teléfonos — la IA extrae los leads automáticamente</div>
+        </div>
+      </div>
+
+      <!-- STEP 1: Config + Upload -->
+      <div id="ref-step1" style="max-width:680px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px">1 · Información del referido</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Referido por</label>
+              <input id="ref-referidopor" type="text" placeholder="Ej: José García" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input,var(--bg));color:var(--text);font-size:13px;box-sizing:border-box" />
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Tipo de lead</label>
+              <select id="ref-leadtype" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input,var(--bg));color:var(--text);font-size:13px;box-sizing:border-box">
+                <option value="">— Seleccionar —</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Tipo (Presencial / Online)</label>
+              <select id="ref-tipo" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input,var(--bg));color:var(--text);font-size:13px;box-sizing:border-box">
+                <option value="Presencial">Presencial</option>
+                <option value="Online">Online</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Ubicación</label>
+              <select id="ref-ubicacion" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input,var(--bg));color:var(--text);font-size:13px;box-sizing:border-box">
+                <option value="">— Seleccionar —</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Board destino</label>
+              <select id="ref-board" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input,var(--bg));color:var(--text);font-size:13px;box-sizing:border-box">
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload zone -->
+        <div id="ref-dropzone" style="border:2px dashed var(--border);border-radius:14px;padding:40px 24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s"
+          onclick="document.getElementById('ref-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(0,115,234,.05)'"
+          ondragleave="this.style.borderColor='';this.style.background=''"
+          ondrop="refHandleDrop(event)">
+          <div style="font-size:36px;margin-bottom:10px">🖼️</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Arrastra una imagen aquí o haz clic para subir</div>
+          <div style="font-size:12px;color:var(--text2)">JPG, PNG, WEBP — desde galería o cámara del dispositivo</div>
+          <input id="ref-file-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="refHandleFile(this.files[0])" />
+        </div>
+
+        <!-- Preview thumbnail -->
+        <div id="ref-thumb-wrap" style="display:none;margin-top:14px;text-align:center">
+          <img id="ref-thumb" style="max-height:220px;max-width:100%;border-radius:10px;border:1px solid var(--border)" />
+          <div style="margin-top:10px">
+            <button onclick="refAnalyze()" id="ref-analyze-btn" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:13px;font-weight:700;cursor:pointer">✨ Analizar con IA</button>
+            <button onclick="refResetImage()" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:10px 18px;font-size:12px;cursor:pointer;margin-left:8px">Cambiar imagen</button>
+          </div>
+          <div id="ref-ai-status" style="margin-top:10px;font-size:12px;color:var(--text2)"></div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Preview table -->
+      <div id="ref-step2" style="display:none;max-width:900px;margin-top:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">2 · Revisar y confirmar leads extraídos</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="refAddRow()" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:7px;padding:6px 14px;font-size:12px;cursor:pointer">+ Agregar fila</button>
+            <button onclick="refResetImage()" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:7px;padding:6px 14px;font-size:12px;cursor:pointer">← Nueva imagen</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
+          <table style="width:100%;border-collapse:collapse;font-size:12px" id="ref-preview-table">
+            <thead>
+              <tr style="background:rgba(0,0,0,.2)">
+                <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">#</th>
+                <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Nombre completo</th>
+                <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Teléfono</th>
+                <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Relación</th>
+                <th style="padding:10px 14px;text-align:center;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)"></th>
+              </tr>
+            </thead>
+            <tbody id="ref-preview-tbody"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
+          <button onclick="refSubmit()" id="ref-submit-btn" style="background:var(--green,#3ecf8e);color:#0a2e22;border:none;border-radius:8px;padding:11px 32px;font-size:13px;font-weight:800;cursor:pointer">✅ Cargar leads al board</button>
+          <span id="ref-submit-status" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+      </div>
+
+    </div>
+    <!-- END REFERIDOS PAGE -->
 
     <!-- WEEKLY REPORT PAGE -->
     <div id="weekly-report-page" style="display:none;flex:1;flex-direction:column;overflow:hidden;background:#f1f5f9">
@@ -8258,6 +8366,222 @@ function hideImportPanel() {
   }
 }
 
+// ════════════════════════════════════════════
+//  REFERIDOS POR FOTO
+// ════════════════════════════════════════════
+let _refRows      = []; // [{nombre, telefono, relacion}]
+let _refImageB64  = null;
+
+function showReferidosPage() {
+  showBoardView();
+  document.getElementById('assign-strip').classList.add('hidden');
+  currentBoardId = null;
+  document.getElementById('board-title').textContent = 'Referidos por Foto';
+  document.getElementById('btn-new-lead').style.display  = 'none';
+  document.getElementById('btn-export').style.display    = 'none';
+  document.getElementById('table-wrap').style.display    = 'none';
+  document.getElementById('toolbar').style.display       = 'none';
+  document.getElementById('referidos-page').style.display = 'flex';
+  document.querySelectorAll('.board-item,.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-referidos').classList.add('active');
+  _refPopulateSelects();
+}
+
+function _refPopulateSelects() {
+  // Lead types
+  const ltSel = document.getElementById('ref-leadtype');
+  if (ltSel) {
+    const types = [...new Set(
+      BOARDS.flatMap(b => loadLeads(b.id).map(l => l.lead)).filter(Boolean)
+    )].sort();
+    ltSel.innerHTML = '<option value="">— Seleccionar —</option>'
+      + types.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  }
+  // Ubicaciones
+  const ubSel = document.getElementById('ref-ubicacion');
+  if (ubSel) {
+    const ubs = [...new Set(BOARDS.flatMap(b => b.ubicaciones).filter(Boolean))].sort();
+    ubSel.innerHTML = '<option value="">— Seleccionar —</option>'
+      + ubs.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+  }
+  // Boards
+  const bSel = document.getElementById('ref-board');
+  if (bSel) {
+    bSel.innerHTML = BOARDS.map(b => `<option value="${b.id}">${esc(b.name)} ${b.icon||''}</option>`).join('');
+  }
+}
+
+function refHandleDrop(e) {
+  e.preventDefault();
+  document.getElementById('ref-dropzone').style.borderColor = '';
+  document.getElementById('ref-dropzone').style.background  = '';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) refLoadImage(file);
+}
+
+function refHandleFile(file) {
+  if (file) refLoadImage(file);
+}
+
+function refLoadImage(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    _refImageB64 = e.target.result; // full data URL
+    document.getElementById('ref-thumb').src = _refImageB64;
+    document.getElementById('ref-thumb-wrap').style.display = '';
+    document.getElementById('ref-dropzone').style.display   = 'none';
+    document.getElementById('ref-step2').style.display      = 'none';
+    document.getElementById('ref-ai-status').textContent    = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function refResetImage() {
+  _refImageB64 = null;
+  _refRows = [];
+  document.getElementById('ref-thumb-wrap').style.display   = 'none';
+  document.getElementById('ref-dropzone').style.display     = '';
+  document.getElementById('ref-step2').style.display        = 'none';
+  document.getElementById('ref-file-input').value           = '';
+  document.getElementById('ref-ai-status').textContent      = '';
+}
+
+async function refAnalyze() {
+  if (!_refImageB64) return;
+  const btn    = document.getElementById('ref-analyze-btn');
+  const status = document.getElementById('ref-ai-status');
+  btn.disabled = true;
+  btn.textContent = '✨ Analizando…';
+  status.textContent = 'Enviando imagen a Claude…';
+  status.style.color = 'var(--text2)';
+
+  try {
+    // Strip data URL prefix to get pure base64
+    const b64 = _refImageB64.replace(/^data:image\/\w+;base64,/, '');
+    const mediaType = _refImageB64.match(/^data:(image\/\w+);/)?.[1] || 'image/jpeg';
+
+    const res = await fetch(`${SUPA_FN_URL}/claude-enrich`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPA_KEY}` },
+      body: JSON.stringify({
+        task: 'extract_referrals_image',
+        imageBase64: b64,
+        mediaType,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Error de IA');
+
+    _refRows = (data.result || []).map(r => ({
+      nombre:   (r.nombre   || '').trim(),
+      telefono: (r.telefono || '').trim(),
+      relacion: (r.relacion || '').trim(),
+    })).filter(r => r.nombre || r.telefono);
+
+    if (!_refRows.length) throw new Error('La IA no encontró nombres ni teléfonos en la imagen');
+
+    refRenderPreview();
+    document.getElementById('ref-step2').style.display = 'block';
+    status.textContent = `✓ ${_refRows.length} lead(s) detectados`;
+    status.style.color = 'var(--green)';
+  } catch(e) {
+    status.textContent = '❌ ' + e.message;
+    status.style.color = 'var(--red)';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Analizar con IA';
+  }
+}
+
+function refRenderPreview() {
+  const tbody = document.getElementById('ref-preview-tbody');
+  tbody.innerHTML = _refRows.map((r, i) => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 14px;color:var(--text2);font-weight:600">${i+1}</td>
+      <td style="padding:6px 8px"><input value="${esc(r.nombre)}" oninput="_refRows[${i}].nombre=this.value"
+        style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--input,var(--bg));color:var(--text);font-size:12px;box-sizing:border-box" /></td>
+      <td style="padding:6px 8px"><input value="${esc(r.telefono)}" oninput="_refRows[${i}].telefono=this.value"
+        style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--input,var(--bg));color:var(--text);font-size:12px;box-sizing:border-box" /></td>
+      <td style="padding:6px 8px"><input value="${esc(r.relacion)}" oninput="_refRows[${i}].relacion=this.value"
+        placeholder="Ej: Hermano, Vecino…"
+        style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--input,var(--bg));color:var(--text);font-size:12px;box-sizing:border-box" /></td>
+      <td style="padding:6px 8px;text-align:center">
+        <button onclick="_refRows.splice(${i},1);refRenderPreview()" style="background:transparent;border:none;color:var(--red);font-size:16px;cursor:pointer" title="Eliminar">✕</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function refAddRow() {
+  _refRows.push({ nombre:'', telefono:'', relacion:'' });
+  refRenderPreview();
+  document.getElementById('ref-step2').style.display = 'block';
+}
+
+async function refSubmit() {
+  const boardId    = document.getElementById('ref-board').value;
+  const referidoPor = document.getElementById('ref-referidopor').value.trim();
+  const leadType   = document.getElementById('ref-leadtype').value;
+  const tipo       = document.getElementById('ref-tipo').value || 'Presencial';
+  const ubicacion  = document.getElementById('ref-ubicacion').value;
+  const statusEl   = document.getElementById('ref-submit-status');
+  const btn        = document.getElementById('ref-submit-btn');
+
+  const rows = _refRows.filter(r => r.nombre.trim() || r.telefono.trim());
+  if (!rows.length) { showToast('No hay leads para cargar', 'error'); return; }
+  if (!boardId)     { showToast('Selecciona un board destino', 'error'); return; }
+
+  btn.disabled = true;
+  statusEl.textContent = 'Guardando…';
+
+  try {
+    const leads = loadLeads(boardId);
+    const today  = new Date().toISOString().slice(0,10);
+    let added = 0;
+
+    rows.forEach(r => {
+      const notaParts = [];
+      if (referidoPor) notaParts.push(`Referido por: ${referidoPor}`);
+      if (r.relacion)  notaParts.push(`Relación: ${r.relacion}`);
+      const lead = {
+        id:        uid(),
+        creacion:  today,
+        nombre:    r.nombre.trim(),
+        telefono:  r.telefono.trim(),
+        email:     '',
+        direccion: '',
+        ubicacion,
+        lead:      leadType,
+        tipo,
+        notas:     notaParts.join(' · '),
+        asignado:  '',
+        resultado: '',
+        hijos:     '',
+      };
+      leads.push(lead);
+      added++;
+    });
+
+    await saveLeads(boardId, leads);
+    statusEl.textContent = `✅ ${added} lead(s) cargados`;
+    statusEl.style.color = 'var(--green)';
+    showToast(`${added} referidos importados ✓`, 'success');
+
+    // Reset for next batch
+    setTimeout(() => {
+      refResetImage();
+      _refRows = [];
+      document.getElementById('ref-step2').style.display = 'none';
+      statusEl.textContent = '';
+      btn.disabled = false;
+    }, 2000);
+  } catch(e) {
+    statusEl.textContent = '❌ Error: ' + e.message;
+    statusEl.style.color = 'var(--red)';
+    btn.disabled = false;
+  }
+}
+
 function showImportPage() {
   showBoardView();
   document.getElementById('assign-strip').classList.add('hidden');
@@ -12102,6 +12426,8 @@ function initApp(user) {
       if (navRec) navRec.style.display = '';
       const navImp = document.getElementById('nav-import');
       if (navImp) navImp.style.display = '';
+      const navRef = document.getElementById('nav-referidos');
+      if (navRef) navRef.style.display = '';
       const navCon = document.getElementById('nav-connections');
       if (navCon) navCon.style.display = '';
       // Dev-only sidebar shortcuts (also show for admin)
@@ -12361,6 +12687,7 @@ function showBoardView() {
   document.getElementById('reconcile-page').style.display = 'none';
   document.getElementById('weekly-report-page').style.display = 'none';
   document.getElementById('connections-page').style.display = 'none';
+  document.getElementById('referidos-page').style.display = 'none';
   const navWR = document.getElementById('nav-weekly-report');
   if (navWR) navWR.classList.remove('active');
   const navConn = document.getElementById('nav-connections');
