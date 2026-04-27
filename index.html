@@ -8013,6 +8013,7 @@ async function renderImportHistory() {
     if (!history.length) { el.innerHTML = `<div class="imp-history-empty">No hay importaciones registradas aún.</div>`; return; }
     const now = Date.now();
     const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+    const weekOpts = getWeekOptions();
     el.innerHTML = history.map(r => {
       const d = new Date(r.date);
       const ageMs = now - d.getTime();
@@ -8024,11 +8025,25 @@ async function renderImportHistory() {
         : canUndo
           ? `<button onclick="promptUndoImport('${r.id}')" style="background:transparent;border:1px solid var(--red);color:var(--red);border-radius:7px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;margin-top:4px">↩ Deshacer</button>`
           : ageMs >= ONE_WEEK ? `<span style="font-size:10px;color:var(--text2)">Expirado</span>` : '';
+      const curWeek = weekOpts.find(w => w.start === r.weekStart);
+      const weekLabel = curWeek ? curWeek.label : (r.weekStart || 'Sin semana');
+      const weekSelOpts = weekOpts.map(w =>
+        `<option value="${w.start}"${w.start===r.weekStart?' selected':''}>${w.label}</option>`
+      ).join('');
       return `<div class="imp-history-row" id="imp-history-row-${r.id}">
         <div class="imp-history-date">${dateStr}</div>
         <div class="imp-history-info">
           <div class="imp-history-who">👤 ${esc(r.importedBy)} <span style="font-weight:400;color:var(--text2);font-size:11px">${esc(r.importedByEmail)}</span></div>
           <div class="imp-history-dist">${chips}</div>
+          <div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:10px;color:var(--text2);background:rgba(0,0,0,.08);border-radius:5px;padding:2px 8px">📅 ${esc(weekLabel)}</span>
+            <button onclick="toggleWeekEdit('${r.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer">✏️ Editar semana</button>
+            <span id="week-edit-wrap-${r.id}" style="display:none;align-items:center;gap:4px">
+              <select id="week-edit-sel-${r.id}" style="font-size:11px;padding:2px 4px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--text)">${weekSelOpts}</select>
+              <button onclick="changeImportWeek('${r.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:5px;padding:2px 10px;font-size:11px;font-weight:700;cursor:pointer">Guardar</button>
+              <button onclick="toggleWeekEdit('${r.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer">✕</button>
+            </span>
+          </div>
         </div>
         <div class="imp-history-total" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
           <div>${r.total}<span>leads</span></div>
@@ -8038,6 +8053,28 @@ async function renderImportHistory() {
     }).join('');
     if (_isZoomDev()) renderWeeklyReport(history);
   } catch(_) { el.innerHTML = `<div class="imp-history-empty">Error cargando historial.</div>`; }
+}
+
+function toggleWeekEdit(recordId) {
+  const wrap = document.getElementById('week-edit-wrap-' + recordId);
+  if (!wrap) return;
+  wrap.style.display = wrap.style.display === 'none' ? 'inline-flex' : 'none';
+}
+
+async function changeImportWeek(recordId) {
+  const sel = document.getElementById('week-edit-sel-' + recordId);
+  const newWeekStart = sel?.value;
+  if (!newWeekStart) return;
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
+    const history = JSON.parse(data?.value || '[]');
+    const rec = history.find(r => r.id === recordId);
+    if (!rec) { showToast('Registro no encontrado'); return; }
+    rec.weekStart = newWeekStart;
+    await supa.from('kv_store').upsert({ key:'gew_import_history', value: JSON.stringify(history) });
+    showToast('Semana actualizada ✓', 'success');
+    await renderImportHistory();
+  } catch(e) { showToast('Error al actualizar: ' + e.message); }
 }
 
 let _undoImportId = null;
@@ -8628,8 +8665,12 @@ async function loadDetailedReport() {
   body.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:20px 0">Cargando…</div>`;
 
   try {
-    const { data } = await supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle();
-    const history = JSON.parse(data?.value || '[]');
+    const [histRes, ovrRes] = await Promise.all([
+      supa.from('kv_store').select('value').eq('key','gew_import_history').maybeSingle(),
+      supa.from('kv_store').select('value').eq('key','gew_week_overrides').maybeSingle(),
+    ]);
+    const history   = JSON.parse(histRes.data?.value || '[]');
+    const overrides = JSON.parse(ovrRes.data?.value  || '{}');
 
     if (!history.length) {
       body.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--text2)"><div style="font-size:40px;margin-bottom:12px">🗂</div><div style="font-size:14px;font-weight:600">Sin registros</div></div>`;
@@ -8639,7 +8680,7 @@ async function loadDetailedReport() {
     // Build nested structure: month -> week -> board -> {count, price}
     const months = {}; // key: "YYYY-MM"
     history.forEach(r => {
-      const ws = r.weekStart || r.date?.slice(0,10) || '';
+      const ws = r.weekStart || '';
       if (!ws) return;
       const d     = new Date(ws + 'T00:00:00');
       const mKey  = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
@@ -8674,10 +8715,12 @@ async function loadDetailedReport() {
 
       const weekRows = sortedWeeks.flatMap((wKey, wi) => {
         const w = m.weeks[wKey];
+        const ovr = overrides[wKey] || {};
         const boardEntries = Object.entries(w.boards);
         let weekLeads = 0, weekRevenue = 0;
         const bRows = boardEntries.map(([bName, info], bi) => {
-          const sub = info.count * info.price;
+          const price = ovr.boardPrices?.[bName] ?? info.price;
+          const sub = info.count * price;
           weekLeads += info.count; weekRevenue += sub;
           const isFirst = bi === 0;
           const weekCell = isFirst
@@ -8691,21 +8734,32 @@ async function loadDetailedReport() {
             ${weekCell}
             ${C(esc(bName),'font-size:12px;color:#111827;font-weight:500')}
             ${C(fmtNum(info.count),'text-align:right;font-size:12px;font-weight:700;color:#1d4ed8')}
-            ${C(info.price>0?fmtMoney(info.price):'—','text-align:right;font-size:12px;color:#374151')}
+            ${C(price>0?fmtMoney(price):'—','text-align:right;font-size:12px;color:#374151')}
             ${C(fmtMoney(sub),'text-align:right;font-size:12px;font-weight:700;color:#059669')}
             ${C('','font-size:11px;color:#9ca3af')}
           </tr>`;
         });
-        monthLeads += weekLeads; monthRevenue += weekRevenue;
+        // Apply discounts for this week
+        const discounts = ovr.discounts || [];
+        const discountTotal = discounts.reduce((s, d) => s + d.leads * d.price, 0);
+        const weekNet = weekRevenue - discountTotal;
+        monthLeads += weekLeads; monthRevenue += weekNet;
+        const discountRows = discounts.map(d => `<tr style="background:#fff8f0">
+          <td style="padding:6px 14px;border:1px solid #d1d5db;font-size:11px;color:#b45309;font-style:italic" colspan="2">Descuento: ${esc(d.label||'Ajuste')}</td>
+          ${C(fmtNum(d.leads),'text-align:right;font-size:11px;color:#b45309')}
+          ${C(fmtMoney(d.price),'text-align:right;font-size:11px;color:#b45309')}
+          ${C('-'+fmtMoney(d.leads*d.price),'text-align:right;font-size:11px;font-weight:700;color:#dc2626')}
+          ${C('','font-size:11px;color:#9ca3af')}
+        </tr>`);
         // Week subtotal row
         const subRow = `<tr style="background:#e8edf5">
           <td style="padding:7px 14px;border:1px solid #d1d5db;font-size:11px;font-weight:700;color:#374151;text-align:right;font-style:italic" colspan="2">Subtotal semana</td>
           ${C(fmtNum(weekLeads),'text-align:right;font-weight:800;color:#1d4ed8;font-size:12px')}
           ${C('','text-align:right')}
-          ${C(fmtMoney(weekRevenue),'text-align:right;font-weight:800;color:#059669;font-size:12px')}
+          ${C(fmtMoney(weekNet),'text-align:right;font-weight:800;color:#059669;font-size:12px')}
           ${C('')}
         </tr>`;
-        return [...bRows, subRow];
+        return [...bRows, ...discountRows, subRow];
       });
       grandLeads += monthLeads; grandRevenue += monthRevenue;
 
