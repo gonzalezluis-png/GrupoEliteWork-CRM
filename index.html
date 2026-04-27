@@ -4897,7 +4897,10 @@ function normalizeAsignado(val) {
 function loadLeads(boardId) {
   try {
     const leads = JSON.parse(localStorage.getItem('gew_leads_' + boardId)) || [];
-    leads.forEach(l => { l.asignado = normalizeAsignado(l.asignado); });
+    leads.forEach(l => {
+      l.asignado = normalizeAsignado(l.asignado);
+      if (!l.tipo) l.tipo = 'Presencial'; // default for existing & new leads
+    });
     return leads;
   } catch { return []; }
 }
@@ -5618,6 +5621,26 @@ function renderRows(board, leads) {
         return `<td><div style="display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap">${dateLabel}</div></td>`;
       }
       if (c.key === 'notas') return `<td class="td-notes"><span title="${esc(l.notas||'')}">${esc(l.notas||'')}</span></td>`;
+      if (c.key === 'tipo') {
+        const tipoVal = l.tipo || 'Presencial';
+        const isOnline = tipoVal === 'Online';
+        const tipoBg   = isOnline ? 'rgba(52,211,153,.15)' : 'rgba(96,165,250,.10)';
+        const tipoBorder = isOnline ? 'rgba(52,211,153,.35)' : 'rgba(96,165,250,.25)';
+        const tipoColor  = isOnline ? '#34d399' : '#93c5fd';
+        const tipoDot    = isOnline ? '#34d399' : '#60a5fa';
+        const tipoOpts = ['Presencial','Online'].map(o =>
+          `<option value="${o}"${tipoVal===o?' selected':''}>${o}</option>`
+        ).join('');
+        return `<td style="text-align:center;vertical-align:middle" class="td-inline" onclick="event.stopPropagation()">
+          <div style="display:inline-flex;align-items:center;gap:5px;background:${tipoBg};border:1px solid ${tipoBorder};border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;color:${tipoColor};white-space:nowrap;cursor:pointer" onclick="openInlineSel(this)">
+            <span style="width:6px;height:6px;border-radius:50%;background:${tipoDot};flex-shrink:0;display:inline-block"></span>
+            ${esc(tipoVal)} <span style="opacity:.4;font-size:9px;margin-left:2px">▾</span>
+          </div>
+          <select class="inline-select" style="display:none"
+            onchange="saveInlineField(this,'${l.id}','tipo')"
+            onblur="closeInlineSel(this)">${tipoOpts}</select>
+        </td>`;
+      }
       // custom column
       if (c.customDef) {
         const def = c.customDef;
@@ -10159,6 +10182,7 @@ function getActiveColumns(board) {
     if (cfg[c.key] !== false) cols.push({ key: c.key, label: labels[c.key] || c.label });
   });
   (cfg.custom || []).forEach(c => cols.push({ key: c.key, label: (labels[c.key] || c.label).toUpperCase(), customDef: c }));
+  cols.push({ key: 'tipo', label: labels['tipo'] || 'TIPO' });
   cols.push({ key: '_actions', label: '' });
   return cols;
 }
@@ -11075,6 +11099,18 @@ async function _backfillAsignadoId() {
     });
     if (changed) await saveLeads(board.id, leads);
   }
+}
+
+async function _backfillTipo() {
+  if (localStorage.getItem('gew_backfill_tipo_done')) return;
+  for (const board of BOARDS) {
+    const leads = loadLeads(board.id);
+    let changed = false;
+    leads.forEach(l => { if (!l.tipo) { l.tipo = 'Presencial'; changed = true; } });
+    if (changed) await saveLeads(board.id, leads);
+  }
+  localStorage.setItem('gew_backfill_tipo_done', '1');
+  supaSync('gew_backfill_tipo_done', '1');
 }
 
 async function assignUserCodes() {
@@ -12087,6 +12123,7 @@ function initApp(user) {
   if (user.role === 'master') assignUserCodes().catch(() => {});
   // Backfill asignadoId on existing leads that only have asignado (name)
   if (user.role === 'master' || user.role === 'admin') _backfillAsignadoId().catch(() => {});
+  _backfillTipo().catch(() => {});
 }
 
 function showAgentView() {
