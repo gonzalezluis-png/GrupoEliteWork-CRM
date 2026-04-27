@@ -5343,10 +5343,9 @@ function loadAgentLeads(agentName, agentId) {
   const all = [];
   const norm = (agentName || '').trim().toLowerCase();
   BOARDS.forEach(b => loadLeads(b.id).forEach(l => {
-    const match = (agentId && l.asignadoId)
-      ? l.asignadoId === agentId
-      : (norm && (l.asignado || '').trim().toLowerCase() === norm);
-    if (match) all.push({ ...l, _boardId: b.id });
+    const byId   = agentId && l.asignadoId && l.asignadoId === agentId;
+    const byName = norm && (l.asignado || '').trim().toLowerCase() === norm;
+    if (byId || byName) all.push({ ...l, _boardId: b.id });
   }));
   return all;
 }
@@ -5469,7 +5468,9 @@ function renderRows(board, leads) {
     document.getElementById('leads-table').style.display = leads.length === 0 ? 'none' : '';
     document.getElementById('empty-state').style.display = leads.length === 0 ? 'flex' : 'none';
     // re-evaluate with actual board data
-    const allLeads = loadLeads(currentBoardId);
+    const allLeads = currentBoardId === '__agent__'
+      ? loadAgentLeads(getSession()?.name || '', getSession()?.id)
+      : loadLeads(currentBoardId);
     document.getElementById('empty-state').style.display = allLeads.length === 0 ? 'flex' : 'none';
     if (allLeads.length > 0 && leads.length === 0) {
       // filtered but has leads — show table with empty tbody + message row
