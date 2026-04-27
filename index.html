@@ -4043,7 +4043,7 @@ setTimeout(function(){
         </div>
 
         <!-- ─── STEP 2: Preview table ─── -->
-        <div id="ref-step2" style="display:none;margin-top:28px">
+        <div id="ref-step2" style="display:none;margin-top:16px">
 
           <!-- Divider -->
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
@@ -4057,7 +4057,7 @@ setTimeout(function(){
 
           <div class="ref-card" style="padding:0;overflow:hidden">
             <!-- Table header bar -->
-            <div id="ref-step2-header" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15)">
+            <div id="ref-step2-header" style="padding:9px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15)">
               <div style="display:flex;align-items:center;gap:10px">
                 <span id="ref-count-badge" style="background:rgba(0,115,234,.15);border:1px solid rgba(0,115,234,.3);color:var(--accent);font-size:11px;font-weight:700;border-radius:20px;padding:3px 12px">0 leads</span>
                 <span style="font-size:11px;color:var(--text2)">Edita cualquier celda antes de importar</span>
@@ -4071,20 +4071,20 @@ setTimeout(function(){
             <div style="overflow-x:auto">
               <table style="width:100%;border-collapse:collapse;table-layout:fixed" id="ref-preview-table">
                 <colgroup>
-                  <col style="width:46px">
+                  <col style="width:38px">
+                  <col style="width:170px">
+                  <col style="width:145px">
+                  <col style="width:52px">
                   <col>
-                  <col style="width:155px">
-                  <col style="width:80px">
-                  <col>
-                  <col style="width:36px">
+                  <col style="width:34px">
                 </colgroup>
                 <thead>
                   <tr style="background:rgba(0,0,0,.22);position:sticky;top:0;z-index:1">
-                    <th style="padding:9px 10px;text-align:center;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">#</th>
-                    <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Nombre completo</th>
-                    <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Teléfono</th>
-                    <th style="padding:9px 10px;text-align:center;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Hijos</th>
-                    <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Notas</th>
+                    <th style="padding:6px 4px;text-align:center;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">#</th>
+                    <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Nombre completo</th>
+                    <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Teléfono</th>
+                    <th style="padding:6px 4px;text-align:center;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Hijos</th>
+                    <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Observaciones</th>
                     <th style="border-bottom:2px solid var(--accent)"></th>
                   </tr>
                 </thead>
@@ -4094,7 +4094,7 @@ setTimeout(function(){
           </div>
 
           <!-- Submit bar -->
-          <div id="ref-submit-bar" style="margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <div id="ref-submit-bar" style="margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
             <div style="font-size:12px;color:var(--text2);line-height:1.5">
               Los leads se importarán con las configuraciones seleccionadas arriba.<br>
               Las notas incluirán automáticamente el nombre de quien refirió.
@@ -8727,45 +8727,56 @@ function refRenderPreview() {
   const badge = document.getElementById('ref-count-badge');
   if (badge) badge.textContent = `${_refRows.length} lead${_refRows.length !== 1 ? 's' : ''}`;
 
-  const tdStyle = 'border-right:1px solid var(--border);border-bottom:1px solid var(--border)';
+  const td = 'border-right:1px solid var(--border);border-bottom:1px solid var(--border)';
+  const inp = (val, field, i, ph='', extra='') =>
+    `<input value="${esc(val)}" oninput="_refRows[${i}].${field}=this.value" placeholder="${ph}"
+      style="width:100%;box-sizing:border-box;padding:4px 6px;font-size:12px;background:transparent;border:none;color:var(--text);font-family:inherit;outline:none;${extra}" />`;
 
-  const inp = (val, field, i, ph='', extra='') => {
-    const onchange = field === 'telefono'
-      ? `_refRows[${i}].${field}=this.value;refRenderPreview()`
-      : `_refRows[${i}].${field}=this.value`;
-    return `<input value="${esc(val)}" oninput="${onchange}" placeholder="${ph}"
-      style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:12px;background:transparent;border:none;color:var(--text);font-family:inherit;outline:none;${extra}" />`;
-  };
+  function _telWarnHtml(tel) {
+    const d = (tel||'').replace(/\D/g,'').length;
+    if (!tel.trim() || (d>=7&&d<=15)) return '';
+    const msg = d<7?'Número muy corto':'Número muy largo';
+    return `<span style="flex-shrink:0;font-size:11px;cursor:help;color:#f59e0b" title="${msg}: ${d} dígitos">⚠</span>`;
+  }
 
   tbody.innerHTML = _refRows.map((r, i) => {
-    const rowBg = i % 2 === 0 ? 'rgba(255,255,255,.015)' : 'rgba(0,0,0,.08)';
-
-    // Phone validation
-    const digits = (r.telefono || '').replace(/\D/g,'').length;
-    const telWarn = r.telefono.trim() && (digits < 7 || digits > 15)
-      ? `<span title="Número inválido: ${digits} dígitos detectados" style="color:#f59e0b;font-size:13px;cursor:help;flex-shrink:0">⚠️</span>`
-      : '';
-    const telWrapStyle = `display:flex;align-items:center;gap:4px`;
-
-    return `<tr style="background:${rowBg}" onmouseover="this.style.background='rgba(0,115,234,.07)'" onmouseout="this.style.background='${rowBg}'">
-      <td style="padding:6px 0;text-align:center;${tdStyle}">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;background:rgba(0,115,234,.2);color:#60a5fa;font-size:12px;font-weight:800">${i+1}</span>
+    const bg = i%2===0?'rgba(255,255,255,.012)':'rgba(0,0,0,.07)';
+    return `<tr style="background:${bg}" onmouseover="this.style.background='rgba(0,115,234,.06)'" onmouseout="this.style.background='${bg}'">
+      <td style="padding:3px 0;text-align:center;${td}">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:rgba(0,115,234,.2);color:#60a5fa;font-size:11px;font-weight:800">${i+1}</span>
       </td>
-      <td style="padding:0;${tdStyle}">${inp(r.nombre,'nombre',i,'Nombre completo')}</td>
-      <td style="padding:0;${tdStyle}">
-        <div style="${telWrapStyle}">${inp(r.telefono,'telefono',i,'+1 555 000 0000')}${telWarn}</div>
+      <td style="padding:0;${td}">${inp(r.nombre,'nombre',i,'Nombre completo')}</td>
+      <td style="padding:0;${td}">
+        <div style="display:flex;align-items:center">
+          <input value="${esc(r.telefono)}" id="ref-tel-inp-${i}" placeholder="+1 555 000 0000"
+            oninput="_refRows[${i}].telefono=this.value;_refTelCheck(${i},this.value)"
+            style="flex:1;min-width:0;box-sizing:border-box;padding:4px 6px;font-size:12px;background:transparent;border:none;color:var(--text);font-family:inherit;outline:none" />
+          <span id="ref-tel-warn-${i}" style="flex-shrink:0;font-size:11px;color:#f59e0b;padding-right:4px;cursor:help" title=""></span>
+        </div>
       </td>
-      <td style="padding:0;text-align:center;${tdStyle}">${inp(r.hijos||'','hijos',i,'—','text-align:center')}</td>
-      <td style="padding:0;${tdStyle}">${inp(r.notas||'','notas',i,'Observaciones…')}</td>
-      <td style="padding:4px 6px;text-align:center;border-bottom:1px solid var(--border)">
+      <td style="padding:0;text-align:center;${td}">${inp(r.hijos||'','hijos',i,'—','text-align:center')}</td>
+      <td style="padding:0;${td}">${inp(r.notas||'','notas',i,'Notas del lead…')}</td>
+      <td style="padding:2px 4px;text-align:center;border-bottom:1px solid var(--border)">
         <button onclick="_refRows.splice(${i},1);refRenderPreview()"
-          style="background:rgba(226,68,92,.15);border:1px solid rgba(226,68,92,.3);color:#f87171;width:32px;height:32px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;font-weight:700"
+          style="background:rgba(226,68,92,.15);border:1px solid rgba(226,68,92,.3);color:#f87171;width:26px;height:26px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px"
           title="Eliminar fila"
-          onmouseover="this.style.background='rgba(226,68,92,.3)';this.style.color='#fff'"
+          onmouseover="this.style.background='rgba(226,68,92,.35)';this.style.color='#fff'"
           onmouseout="this.style.background='rgba(226,68,92,.15)';this.style.color='#f87171'">✕</button>
       </td>
     </tr>`;
   }).join('');
+
+  // Run initial phone check on all rows after render
+  _refRows.forEach((r,i) => _refTelCheck(i, r.telefono));
+}
+
+function _refTelCheck(i, val) {
+  const warn = document.getElementById(`ref-tel-warn-${i}`);
+  if (!warn) return;
+  const d = (val||'').replace(/\D/g,'').length;
+  if (!val.trim() || (d>=7&&d<=15)) { warn.textContent=''; warn.title=''; return; }
+  warn.textContent = '⚠';
+  warn.title = d < 7 ? `Muy corto: ${d} dígitos` : `Muy largo: ${d} dígitos`;
 }
 
 function refAddRow() {
