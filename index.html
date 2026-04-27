@@ -3924,6 +3924,25 @@ setTimeout(function(){
                   <span class="ref-step-badge">1</span>
                   <span style="font-size:12px;font-weight:700;color:var(--text)">Información del referido</span>
                 </div>
+
+                <!-- Agente + Tipo de lead (siempre REF) -->
+                <div style="display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:12px;align-items:end">
+                  <div class="ref-field-wrap">
+                    <label class="ref-label">Agente</label>
+                    <div id="ref-agente-display" style="display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.03)">
+                      <div id="ref-agente-avatar" style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),#6366f1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">?</div>
+                      <span id="ref-agente-name" style="font-size:13px;color:var(--text);font-weight:600">—</span>
+                    </div>
+                  </div>
+                  <div class="ref-field-wrap" style="flex-shrink:0">
+                    <label class="ref-label">Tipo de lead</label>
+                    <div style="display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1px solid rgba(52,211,153,.3);background:rgba(52,211,153,.08)">
+                      <span style="width:8px;height:8px;border-radius:50%;background:#3ecf8e;flex-shrink:0"></span>
+                      <span style="font-size:13px;font-weight:800;color:#3ecf8e;letter-spacing:.5px">REF</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div id="ref-inner-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
                   <div class="ref-field-wrap">
                     <label class="ref-label">Referido por (nombre)</label>
@@ -3932,12 +3951,6 @@ setTimeout(function(){
                   <div class="ref-field-wrap">
                     <label class="ref-label">Teléfono del referidor</label>
                     <input id="ref-referidopor-tel" type="tel" placeholder="Ej: +1 555 000 0000" class="ref-input" />
-                  </div>
-                </div>
-                <div style="margin-bottom:12px">
-                  <div class="ref-field-wrap">
-                    <label class="ref-label">Tipo de lead</label>
-                    <select id="ref-leadtype" class="ref-input"><option value="">— Seleccionar —</option></select>
                   </div>
                 </div>
                 <div id="ref-inner-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
@@ -8583,15 +8596,16 @@ function showReferidosPage() {
 }
 
 function _refPopulateSelects() {
-  // Lead types
-  const ltSel = document.getElementById('ref-leadtype');
-  if (ltSel) {
-    const types = [...new Set(
-      BOARDS.flatMap(b => loadLeads(b.id).map(l => l.lead)).filter(Boolean)
-    )].sort();
-    ltSel.innerHTML = '<option value="">— Seleccionar —</option>'
-      + types.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
-  }
+  // Agente actual (read-only)
+  const session = getSession();
+  const agenteName = session ? (session.name || session.email || 'Usuario') : 'Usuario';
+  const agenteId   = session ? session.id : null;
+  const nameEl = document.getElementById('ref-agente-name');
+  const avatarEl = document.getElementById('ref-agente-avatar');
+  if (nameEl) nameEl.textContent = agenteName;
+  if (avatarEl) avatarEl.textContent = agenteName.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+  document.getElementById('ref-agente-display')._agenteName = agenteName;
+  document.getElementById('ref-agente-display')._agenteId   = agenteId;
   // Ubicaciones
   const ubSel = document.getElementById('ref-ubicacion');
   if (ubSel) {
@@ -8715,25 +8729,40 @@ function refRenderPreview() {
 
   const tdStyle = 'border-right:1px solid var(--border);border-bottom:1px solid var(--border)';
 
-  const inp = (val, field, i, ph='', extra='') =>
-    `<input value="${esc(val)}" oninput="_refRows[${i}].${field}=this.value" placeholder="${ph}"
+  const inp = (val, field, i, ph='', extra='') => {
+    const onchange = field === 'telefono'
+      ? `_refRows[${i}].${field}=this.value;refRenderPreview()`
+      : `_refRows[${i}].${field}=this.value`;
+    return `<input value="${esc(val)}" oninput="${onchange}" placeholder="${ph}"
       style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:12px;background:transparent;border:none;color:var(--text);font-family:inherit;outline:none;${extra}" />`;
+  };
 
   tbody.innerHTML = _refRows.map((r, i) => {
-    const rowBg = i % 2 === 0 ? 'background:rgba(255,255,255,.015)' : 'background:rgba(0,0,0,.08)';
-    return `<tr style="${rowBg}" onmouseover="this.style.background='rgba(0,115,234,.07)'" onmouseout="this.style.background='${i%2===0?'rgba(255,255,255,.015)':'rgba(0,0,0,.08)'}'" >
-      <td style="padding:0;text-align:center;${tdStyle};width:46px">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:rgba(0,115,234,.18);color:#60a5fa;font-size:11px;font-weight:800">${i+1}</span>
+    const rowBg = i % 2 === 0 ? 'rgba(255,255,255,.015)' : 'rgba(0,0,0,.08)';
+
+    // Phone validation
+    const digits = (r.telefono || '').replace(/\D/g,'').length;
+    const telWarn = r.telefono.trim() && (digits < 7 || digits > 15)
+      ? `<span title="Número inválido: ${digits} dígitos detectados" style="color:#f59e0b;font-size:13px;cursor:help;flex-shrink:0">⚠️</span>`
+      : '';
+    const telWrapStyle = `display:flex;align-items:center;gap:4px`;
+
+    return `<tr style="background:${rowBg}" onmouseover="this.style.background='rgba(0,115,234,.07)'" onmouseout="this.style.background='${rowBg}'">
+      <td style="padding:6px 0;text-align:center;${tdStyle}">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;background:rgba(0,115,234,.2);color:#60a5fa;font-size:12px;font-weight:800">${i+1}</span>
       </td>
       <td style="padding:0;${tdStyle}">${inp(r.nombre,'nombre',i,'Nombre completo')}</td>
-      <td style="padding:0;${tdStyle}">${inp(r.telefono,'telefono',i,'+1 555 000 0000')}</td>
+      <td style="padding:0;${tdStyle}">
+        <div style="${telWrapStyle}">${inp(r.telefono,'telefono',i,'+1 555 000 0000')}${telWarn}</div>
+      </td>
       <td style="padding:0;text-align:center;${tdStyle}">${inp(r.hijos||'','hijos',i,'—','text-align:center')}</td>
       <td style="padding:0;${tdStyle}">${inp(r.notas||'','notas',i,'Observaciones…')}</td>
-      <td style="padding:0;text-align:center;border-bottom:1px solid var(--border)">
+      <td style="padding:4px 6px;text-align:center;border-bottom:1px solid var(--border)">
         <button onclick="_refRows.splice(${i},1);refRenderPreview()"
-          style="background:none;border:none;color:rgba(226,68,92,.6);width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;border-radius:6px" title="Eliminar"
-          onmouseover="this.style.color='var(--red)';this.style.background='rgba(226,68,92,.1)'"
-          onmouseout="this.style.color='rgba(226,68,92,.6)';this.style.background='none'">✕</button>
+          style="background:rgba(226,68,92,.15);border:1px solid rgba(226,68,92,.3);color:#f87171;width:32px;height:32px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;font-weight:700"
+          title="Eliminar fila"
+          onmouseover="this.style.background='rgba(226,68,92,.3)';this.style.color='#fff'"
+          onmouseout="this.style.background='rgba(226,68,92,.15)';this.style.color='#f87171'">✕</button>
       </td>
     </tr>`;
   }).join('');
@@ -8749,9 +8778,11 @@ async function refSubmit() {
   const boardId      = document.getElementById('ref-board').value;
   const referidoPor  = document.getElementById('ref-referidopor').value.trim();
   const referidoTel  = document.getElementById('ref-referidopor-tel').value.trim();
-  const leadType     = document.getElementById('ref-leadtype').value;
   const tipo         = document.getElementById('ref-tipo').value || 'Presencial';
   const ubicacion    = document.getElementById('ref-ubicacion').value;
+  const agenteDisp   = document.getElementById('ref-agente-display');
+  const agenteName   = agenteDisp ? agenteDisp._agenteName || '' : '';
+  const agenteId     = agenteDisp ? agenteDisp._agenteId   || null : null;
   const statusEl     = document.getElementById('ref-submit-status');
   const btn          = document.getElementById('ref-submit-btn');
 
@@ -8769,6 +8800,7 @@ async function refSubmit() {
 
     rows.forEach(r => {
       const notaParts = [];
+      if (agenteName) notaParts.push(`Agente: ${agenteName}`);
       if (referidoPor) {
         let ref = `Referido por: ${referidoPor}`;
         if (referidoTel) ref += ` (${referidoTel})`;
@@ -8776,19 +8808,21 @@ async function refSubmit() {
       }
       if (r.notas && r.notas.trim()) notaParts.push(r.notas.trim());
       const lead = {
-        id:        uid(),
-        creacion:  today,
-        nombre:    r.nombre.trim(),
-        telefono:  r.telefono.trim(),
-        email:     '',
-        direccion: '',
+        id:          uid(),
+        creacion:    today,
+        nombre:      r.nombre.trim(),
+        telefono:    r.telefono.trim(),
+        email:       '',
+        direccion:   '',
         ubicacion,
-        lead:      leadType,
+        lead:        'REF',
         tipo,
-        notas:     notaParts.join(' · '),
-        asignado:  '',
-        resultado: '',
-        hijos:     r.hijos ? r.hijos.trim() : '',
+        notas:       notaParts.join(' · '),
+        asignado:    agenteName,
+        asignadoId:  agenteId,
+        resultado:   '',
+        hijos:       r.hijos ? r.hijos.trim() : '',
+        _esReferido: true,
       };
       leads.push(lead);
       added++;
