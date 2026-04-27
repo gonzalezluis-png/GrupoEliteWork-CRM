@@ -4071,12 +4071,11 @@ setTimeout(function(){
             <div style="overflow-x:auto">
               <table style="width:100%;border-collapse:collapse;table-layout:fixed" id="ref-preview-table">
                 <colgroup>
-                  <col style="width:38px">
+                  <col style="width:52px">
                   <col style="width:170px">
                   <col style="width:145px">
                   <col style="width:52px">
                   <col>
-                  <col style="width:34px">
                 </colgroup>
                 <thead>
                   <tr style="background:rgba(0,0,0,.22);position:sticky;top:0;z-index:1">
@@ -4084,8 +4083,7 @@ setTimeout(function(){
                     <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Nombre completo</th>
                     <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Teléfono</th>
                     <th style="padding:6px 4px;text-align:center;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Hijos</th>
-                    <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent);border-right:1px solid var(--border)">Observaciones</th>
-                    <th style="border-bottom:2px solid var(--accent)"></th>
+                    <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--accent)">Observaciones</th>
                   </tr>
                 </thead>
                 <tbody id="ref-preview-tbody"></tbody>
@@ -8743,7 +8741,14 @@ function refRenderPreview() {
     const bg = i%2===0?'rgba(255,255,255,.012)':'rgba(0,0,0,.07)';
     return `<tr style="background:${bg}" onmouseover="this.style.background='rgba(0,115,234,.06)'" onmouseout="this.style.background='${bg}'">
       <td style="padding:3px 0;text-align:center;${td}">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:rgba(0,115,234,.2);color:#60a5fa;font-size:11px;font-weight:800">${i+1}</span>
+        <div style="display:flex;align-items:center;justify-content:center;gap:3px">
+          <button onclick="_refRows.splice(${i},1);refRenderPreview()"
+            style="background:none;border:none;color:rgba(255,255,255,.18);width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;border-radius:3px;padding:0;flex-shrink:0"
+            title="Eliminar"
+            onmouseover="this.style.color='#f87171'"
+            onmouseout="this.style.color='rgba(255,255,255,.18)'">✕</button>
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:rgba(0,115,234,.2);color:#60a5fa;font-size:11px;font-weight:800">${i+1}</span>
+        </div>
       </td>
       <td style="padding:0;${td}">${inp(r.nombre,'nombre',i,'Nombre completo')}</td>
       <td style="padding:0;${td}">
@@ -8755,14 +8760,7 @@ function refRenderPreview() {
         </div>
       </td>
       <td style="padding:0;text-align:center;${td}">${inp(r.hijos||'','hijos',i,'—','text-align:center')}</td>
-      <td style="padding:0;${td}">${inp(r.notas||'','notas',i,'Notas del lead…')}</td>
-      <td style="padding:2px 4px;text-align:center;border-bottom:1px solid var(--border)">
-        <button onclick="_refRows.splice(${i},1);refRenderPreview()"
-          style="background:rgba(226,68,92,.15);border:1px solid rgba(226,68,92,.3);color:#f87171;width:26px;height:26px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px"
-          title="Eliminar fila"
-          onmouseover="this.style.background='rgba(226,68,92,.35)';this.style.color='#fff'"
-          onmouseout="this.style.background='rgba(226,68,92,.15)';this.style.color='#f87171'">✕</button>
-      </td>
+      <td style="padding:0;border-bottom:1px solid var(--border)">${inp(r.notas||'','notas',i,'Notas del lead…')}</td>
     </tr>`;
   }).join('');
 
