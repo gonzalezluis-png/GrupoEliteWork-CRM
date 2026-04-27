@@ -3859,12 +3859,33 @@ setTimeout(function(){
         background:var(--accent);animation:refPulse 1.2s ease-in-out infinite;margin-right:6px;
       }
       @keyframes refPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+      /* ── Mobile responsive ─────────────────────────────────────────── */
+      @media (max-width:640px) {
+        #ref-page-header { padding:16px 16px 14px !important; }
+        #ref-page-header-steps { display:none !important; }
+        #ref-page-body { padding:16px 14px 80px !important; }
+        #ref-main-grid { grid-template-columns:1fr !important; }
+        #ref-inner-grid-2 { grid-template-columns:1fr !important; }
+        #ref-inner-grid-3 { grid-template-columns:1fr 1fr !important; }
+        #ref-thumb-wrap { position:static !important;top:auto !important; }
+        #ref-dropzone { padding:32px 16px !important; }
+        .ref-upload-icon { width:48px !important;height:48px !important;font-size:22px !important; }
+        #ref-step2-header { flex-direction:column !important;align-items:flex-start !important;gap:10px !important; }
+        #ref-step2-header > div:last-child { width:100%; }
+        #ref-step2-header > div:last-child button { flex:1 !important; }
+        #ref-submit-bar { flex-direction:column !important;gap:12px !important; }
+        #ref-submit-actions { width:100%;flex-direction:column !important;align-items:stretch !important; }
+        #ref-submit-btn { width:100% !important;justify-content:center !important; }
+        .ref-btn-ghost, .ref-btn-primary { min-height:44px; }
+        #ref-cam-buttons { flex-direction:column !important; }
+      }
     </style>
 
     <div id="referidos-page" style="display:none;flex:1;flex-direction:column;overflow-y:auto;background:var(--bg)">
 
       <!-- Gradient hero header -->
-      <div style="background:linear-gradient(135deg,rgba(0,115,234,.12) 0%,rgba(99,102,241,.08) 60%,transparent 100%);border-bottom:1px solid var(--border);padding:28px 36px 24px;flex-shrink:0">
+      <div id="ref-page-header" style="background:linear-gradient(135deg,rgba(0,115,234,.12) 0%,rgba(99,102,241,.08) 60%,transparent 100%);border-bottom:1px solid var(--border);padding:28px 36px 24px;flex-shrink:0">
         <div style="display:flex;align-items:center;gap:16px;max-width:1100px">
           <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#6366f1);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 8px 24px rgba(0,115,234,.3)">📸</div>
           <div>
@@ -3872,7 +3893,7 @@ setTimeout(function(){
             <div style="font-size:12px;color:var(--text2);margin-top:3px">Fotografía la hoja de referidos — la IA detecta nombres, teléfonos y relaciones automáticamente</div>
           </div>
           <!-- Step indicators -->
-          <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div id="ref-page-header-steps" style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0">
             <div id="ref-stepin-1" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;background:rgba(0,115,234,.15);border:1px solid rgba(0,115,234,.3)">
               <span class="ref-step-badge" id="ref-badge-1">1</span>
               <span style="font-size:11px;font-weight:600;color:var(--accent)">Configurar</span>
@@ -3887,12 +3908,12 @@ setTimeout(function(){
       </div>
 
       <!-- Body -->
-      <div style="padding:28px 36px 80px;max-width:1100px">
+      <div id="ref-page-body" style="padding:28px 36px 80px;max-width:1100px">
 
         <!-- ─── STEP 1 ─── -->
         <div id="ref-step1">
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+          <div id="ref-main-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
 
             <!-- LEFT: Form fields -->
             <div style="display:flex;flex-direction:column;gap:14px">
@@ -3903,7 +3924,7 @@ setTimeout(function(){
                   <span class="ref-step-badge">1</span>
                   <span style="font-size:12px;font-weight:700;color:var(--text)">Información del referido</span>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div id="ref-inner-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
                   <div class="ref-field-wrap">
                     <label class="ref-label">Referido por</label>
                     <input id="ref-referidopor" type="text" placeholder="Ej: José García" class="ref-input" />
@@ -3913,7 +3934,7 @@ setTimeout(function(){
                     <select id="ref-leadtype" class="ref-input"><option value="">— Seleccionar —</option></select>
                   </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                <div id="ref-inner-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
                   <div class="ref-field-wrap">
                     <label class="ref-label">Modalidad</label>
                     <select id="ref-tipo" class="ref-input">
@@ -3951,7 +3972,7 @@ setTimeout(function(){
                 </div>
 
                 <!-- Botones cámara / galería explícitos para móvil -->
-                <div style="display:flex;gap:10px;margin-top:12px">
+                <div id="ref-cam-buttons" style="display:flex;gap:10px;margin-top:12px">
                   <button class="ref-btn-ghost" style="flex:1;justify-content:center"
                     onclick="document.getElementById('ref-file-cam').click()">
                     📷 Cámara
@@ -4017,7 +4038,7 @@ setTimeout(function(){
 
           <div class="ref-card" style="padding:0;overflow:hidden">
             <!-- Table header bar -->
-            <div style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15)">
+            <div id="ref-step2-header" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15)">
               <div style="display:flex;align-items:center;gap:10px">
                 <span id="ref-count-badge" style="background:rgba(0,115,234,.15);border:1px solid rgba(0,115,234,.3);color:var(--accent);font-size:11px;font-weight:700;border-radius:20px;padding:3px 12px">0 leads</span>
                 <span style="font-size:11px;color:var(--text2)">Edita cualquier celda antes de importar</span>
@@ -4045,12 +4066,12 @@ setTimeout(function(){
           </div>
 
           <!-- Submit bar -->
-          <div style="margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <div id="ref-submit-bar" style="margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px">
             <div style="font-size:12px;color:var(--text2);line-height:1.5">
               Los leads se importarán con las configuraciones seleccionadas arriba.<br>
               Las notas incluirán automáticamente el nombre de quien refirió.
             </div>
-            <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+            <div id="ref-submit-actions" style="display:flex;align-items:center;gap:12px;flex-shrink:0">
               <span id="ref-submit-status" style="font-size:12px;color:var(--text2)"></span>
               <button onclick="refSubmit()" id="ref-submit-btn" class="ref-btn-primary" style="padding:12px 32px;font-size:13px">
                 <span>⬆️</span> Importar al board
