@@ -14395,7 +14395,11 @@ async function _saveNpEdit() {
 }
 
 function _renderNotesJournal(lead) {
-  const notes = parseNotes(lead._notes);
+  let notes = parseNotes(lead._notes);
+  // Fallback: if journal is empty but the plain `notas` field has content, show it
+  if (!notes.length && lead.notas && lead.notas.trim()) {
+    notes = [{ text: lead.notas.trim(), author: 'Sistema', date: lead.creacion || '', system: true }];
+  }
   const el = document.getElementById('notes-journal');
   if (!notes.length) {
     el.innerHTML = `<div style="color:var(--text2);font-size:12px;text-align:center;padding:20px 0">Sin notas aún. Sé el primero en agregar una.</div>`;
