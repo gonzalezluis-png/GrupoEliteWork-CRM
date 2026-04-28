@@ -14269,6 +14269,13 @@ function openNotesPanel(leadId, navList) {
     RESULTADOS.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
   resSel.value = '';
 
+  // Migrate plain `notas` → `_notes` journal if needed
+  if (lead.notas && lead.notas.trim() && !lead._notes) {
+    lead._notes = JSON.stringify([{ text: lead.notas.trim(), author: 'Sistema', date: lead.creacion ? lead.creacion + 'T00:00:00Z' : new Date().toISOString(), system: true }]);
+    const leads = loadLeads(boardId);
+    const idx = leads.findIndex(l => l.id === leadId);
+    if (idx !== -1) { leads[idx]._notes = lead._notes; saveLeads(boardId, leads); }
+  }
   _renderNotesJournal(lead);
   document.getElementById('notes-new-input').value = '';
   // pre-fill phone for messages tab
