@@ -2071,6 +2071,7 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-stats" onclick="showStatsPage()">📈 <span>Estadísticas</span></div>
       <div class="sidebar-item" id="nav-calendar" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
       <div class="sidebar-item" id="nav-activity" onclick="showActivityPage()">📊 <span>Actividad</span></div>
+      <div class="sidebar-item" id="nav-referidos-admin" onclick="showReferidosPage()">🗂️ <span>Digitalización de Referidos</span></div>
       <div class="sidebar-item" id="nav-credits" onclick="showCreditsPage()" style="display:none">🧾 <span>Facturación</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
     </div>
@@ -8615,7 +8616,7 @@ function showReferidosPage() {
   document.getElementById('toolbar').style.display       = 'none';
   document.getElementById('referidos-page').style.display = 'flex';
   document.querySelectorAll('.board-item,.sidebar-item').forEach(el => el.classList.remove('active'));
-  ['nav-referidos','nav-referidos-agent'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('active'); });
+  ['nav-referidos','nav-referidos-agent','nav-referidos-admin'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('active'); });
   _refPopulateSelects();
 }
 
@@ -12692,6 +12693,8 @@ function initApp(user) {
     document.getElementById('f-asignado').style.display = 'none';
     document.getElementById('sidebar-agent').style.display = 'block';
     document.getElementById('sidebar-scripts').style.display = 'block';
+    const _navRefAg = document.getElementById('nav-referidos-agent');
+    if (_navRefAg) _navRefAg.style.display = '';
     showAgentView();
   } else {
     document.getElementById('sidebar').style.display = '';
@@ -12714,9 +12717,9 @@ function initApp(user) {
     if (user.role === 'caller') {
       document.getElementById('assign-strip').classList.add('hidden');
     }
-    // Digitalización de Referidos visible for all roles
-    const _navRefAll = document.getElementById('nav-referidos');
-    if (_navRefAll) { _navRefAll.style.display = ''; const _emb = _navRefAll.querySelector('.emblem-dev'); if (_emb) _emb.remove(); }
+    // Digitalización de Referidos visible for all non-agent roles via sidebar-admin item
+    const _navRefAdmin = document.getElementById('nav-referidos-admin');
+    if (_navRefAdmin) _navRefAdmin.style.display = '';
     // All non-agent roles see Scripts de Llamada
     document.getElementById('sidebar-scripts').style.display = 'block';
     if (user.role === 'master') {
