@@ -2077,7 +2077,7 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-reconcile" onclick="showReconcilePage()" style="display:none">🔗 <span>Reconciliar Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-weekly-report" onclick="showWeeklyReportPage()">📈 <span>Reporte Semanal</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-import" onclick="showImportPage()" style="display:none">📥 <span>Importar Leads</span><span class="emblem-dev">🙈 Solo yo</span></div>
-      <div class="sidebar-item" id="nav-referidos" onclick="showReferidosPage()" style="display:none">📸 <span>Referidos por Foto</span><span class="emblem-dev">🙈 Solo yo</span></div>
+      <div class="sidebar-item" id="nav-referidos" onclick="showReferidosPage()" style="display:none">🗂️ <span>Digitalización de Referidos</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-connections" onclick="showConnectionsPage()" style="display:none">🔌 <span>Conexiones</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-users" onclick="showSettingsPage();switchSettingsTab('team')" style="display:none">👥 <span>Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-messaging" onclick="showSettingsPage();switchSettingsTab('messaging')" style="display:none">💬 <span>Panel de mensajería</span><span class="emblem-dev">🙈 Solo yo</span></div>
@@ -3884,84 +3884,85 @@ setTimeout(function(){
 
     <div id="referidos-page" style="display:none;flex:1;flex-direction:column;overflow-y:auto;background:var(--bg)">
 
-      <!-- Gradient hero header -->
-      <div id="ref-page-header" style="background:linear-gradient(135deg,rgba(0,115,234,.12) 0%,rgba(99,102,241,.08) 60%,transparent 100%);border-bottom:1px solid var(--border);padding:28px 36px 24px;flex-shrink:0">
-        <div style="display:flex;align-items:center;gap:16px;max-width:1100px">
-          <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#6366f1);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 8px 24px rgba(0,115,234,.3)">📸</div>
-          <div>
-            <div style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.3px">Referidos por Foto</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px">Fotografía la hoja de referidos — la IA detecta nombres, teléfonos y relaciones automáticamente</div>
+      <!-- Header -->
+      <div id="ref-page-header" style="background:linear-gradient(135deg,rgba(0,115,234,.1) 0%,rgba(99,102,241,.06) 50%,transparent 100%);border-bottom:1px solid var(--border);padding:18px 32px 16px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:14px;max-width:1100px">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#6366f1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 6px 18px rgba(0,115,234,.25)">🗂️</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px">Digitalización de Referidos</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">Convierte hojas físicas en leads digitales · IA extrae nombres y teléfonos automáticamente</div>
           </div>
-          <!-- Step indicators -->
-          <div id="ref-page-header-steps" style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <div id="ref-stepin-1" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;background:rgba(0,115,234,.15);border:1px solid rgba(0,115,234,.3)">
-              <span class="ref-step-badge" id="ref-badge-1">1</span>
-              <span style="font-size:11px;font-weight:600;color:var(--accent)">Configurar</span>
+          <div id="ref-page-header-steps" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <div id="ref-stepin-1" style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;background:rgba(0,115,234,.15);border:1px solid rgba(0,115,234,.3)">
+              <span class="ref-step-badge" id="ref-badge-1" style="width:18px;height:18px;font-size:10px">1</span>
+              <span style="font-size:10px;font-weight:600;color:var(--accent)">Configurar</span>
             </div>
-            <div style="width:24px;height:1px;background:var(--border)"></div>
-            <div id="ref-stepin-2" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid var(--border)">
-              <span class="ref-step-badge" id="ref-badge-2" style="background:var(--border);color:var(--text2)">2</span>
-              <span style="font-size:11px;font-weight:600;color:var(--text2)">Revisar y cargar</span>
+            <div style="width:16px;height:1px;background:var(--border)"></div>
+            <div id="ref-stepin-2" style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid var(--border)">
+              <span class="ref-step-badge" id="ref-badge-2" style="width:18px;height:18px;font-size:10px;background:var(--border);color:var(--text2)">2</span>
+              <span style="font-size:10px;font-weight:600;color:var(--text2)">Revisar</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Brief description -->
+        <div style="max-width:1100px;margin-top:14px;display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)">
+          <span style="font-size:15px;flex-shrink:0;margin-top:1px">💡</span>
+          <div style="font-size:11px;color:var(--text2);line-height:1.65">
+            <strong style="color:var(--text);font-weight:600">¿Qué es esto?</strong> Esta herramienta permite digitalizar en segundos las hojas de referidos recolectadas en campo. Fotografía o carga la imagen de la hoja — la IA identifica cada nombre, teléfono y relación, los muestra en una tabla editable y, con un clic, los importa directamente al board como leads tipo <span style="color:#3ecf8e;font-weight:700">REF</span>, asignados al agente activo y con todas sus notas incluidas.
           </div>
         </div>
       </div>
 
       <!-- Body -->
-      <div id="ref-page-body" style="padding:28px 36px 80px;max-width:1100px">
+      <div id="ref-page-body" style="padding:20px 32px 80px;max-width:1100px">
 
         <!-- ─── STEP 1 ─── -->
         <div id="ref-step1">
 
-          <div id="ref-main-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+          <div id="ref-main-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
 
-            <!-- LEFT: Form fields -->
-            <div style="display:flex;flex-direction:column;gap:14px">
+            <!-- LEFT: Unified config card -->
+            <div class="ref-card" style="padding:0;overflow:hidden">
 
-              <!-- Card: quién refirió -->
-              <div class="ref-card">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-                  <span class="ref-step-badge">1</span>
-                  <span style="font-size:12px;font-weight:700;color:var(--text)">Información del referido</span>
-                </div>
-
-                <!-- Agente + Tipo de lead (siempre REF) -->
-                <div style="display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:12px;align-items:end">
-                  <div class="ref-field-wrap">
-                    <label class="ref-label">Agente</label>
-                    <div id="ref-agente-display" style="display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.03)">
-                      <div id="ref-agente-avatar" style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),#6366f1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">?</div>
-                      <span id="ref-agente-name" style="font-size:13px;color:var(--text);font-weight:600">—</span>
-                    </div>
-                  </div>
-                  <div class="ref-field-wrap" style="flex-shrink:0">
-                    <label class="ref-label">Tipo de lead</label>
-                    <div style="display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1px solid rgba(52,211,153,.3);background:rgba(52,211,153,.08)">
-                      <span style="width:8px;height:8px;border-radius:50%;background:#3ecf8e;flex-shrink:0"></span>
-                      <span style="font-size:13px;font-weight:800;color:#3ecf8e;letter-spacing:.5px">REF</span>
-                    </div>
+              <!-- Section: Agente + REF -->
+              <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="display:flex;align-items:center;gap:9px;min-width:0;flex:1">
+                  <div id="ref-agente-avatar" style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#6366f1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0">?</div>
+                  <div id="ref-agente-display" style="min-width:0">
+                    <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Agente</div>
+                    <div id="ref-agente-name" style="font-size:13px;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
                   </div>
                 </div>
+                <div style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid rgba(52,211,153,.35);background:rgba(52,211,153,.08);flex-shrink:0">
+                  <span style="width:6px;height:6px;border-radius:50%;background:#3ecf8e"></span>
+                  <span style="font-size:11px;font-weight:800;color:#3ecf8e;letter-spacing:.6px">REF</span>
+                </div>
+              </div>
 
-                <div id="ref-inner-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div style="height:1px;background:var(--border);margin:0 16px"></div>
+
+              <!-- Section: Referido por -->
+              <div style="padding:14px 16px">
+                <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Referido por</div>
+                <div id="ref-inner-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                   <div class="ref-field-wrap">
-                    <label class="ref-label">Referido por (nombre)</label>
+                    <label class="ref-label">Nombre</label>
                     <input id="ref-referidopor" type="text" placeholder="Ej: José García" class="ref-input" />
                   </div>
                   <div class="ref-field-wrap">
-                    <label class="ref-label">Teléfono del referidor</label>
-                    <input id="ref-referidopor-tel" type="tel" placeholder="Ej: +1 555 000 0000" class="ref-input" />
+                    <label class="ref-label">Teléfono</label>
+                    <input id="ref-referidopor-tel" type="tel" placeholder="+1 555 000 0000" class="ref-input" />
                   </div>
                 </div>
               </div>
 
-              <!-- Card: destino -->
-              <div class="ref-card">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-                  <span style="font-size:13px">📋</span>
-                  <span style="font-size:12px;font-weight:700;color:var(--text)">Destino de los leads</span>
-                </div>
-                <div id="ref-inner-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+              <div style="height:1px;background:var(--border);margin:0 16px"></div>
+
+              <!-- Section: Destino -->
+              <div style="padding:14px 16px">
+                <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Destino</div>
+                <div id="ref-inner-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
                   <div class="ref-field-wrap">
                     <label class="ref-label">Modalidad</label>
                     <select id="ref-tipo" class="ref-input">
@@ -3974,31 +3975,30 @@ setTimeout(function(){
                     <select id="ref-ubicacion" class="ref-input"><option value="">— Seleccionar —</option></select>
                   </div>
                   <div class="ref-field-wrap">
-                    <label class="ref-label">Board destino</label>
+                    <label class="ref-label">Board</label>
                     <select id="ref-board" class="ref-input"></select>
                   </div>
                 </div>
               </div>
 
-              <!-- Card: notas sobre el referidor -->
-              <div class="ref-card">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-                  <span style="font-size:13px">📝</span>
-                  <span style="font-size:12px;font-weight:700;color:var(--text)">Notas sobre el Referido</span>
-                </div>
-                <div style="font-size:10px;color:var(--text2);margin-bottom:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid var(--border);line-height:1.55">
-                  Esta información estará presente en las notas de <em>todos</em> los leads suministrados. Cualquier detalle aportado podría ayudar a mejorar la experiencia del referido al ser contactado.
-                </div>
-                <textarea id="ref-notas-referido" placeholder="Ej: Conocidos de la iglesia, son muy receptivos, contactar después de las 6pm…"
-                  class="ref-input" style="resize:vertical;min-height:72px;font-family:inherit;font-size:12px;line-height:1.5"></textarea>
+              <div style="height:1px;background:var(--border);margin:0 16px"></div>
+
+              <!-- Section: Notas sobre el referido -->
+              <div style="padding:14px 16px">
+                <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Notas sobre el Referido</div>
+                <textarea id="ref-notas-referido" placeholder="Contexto útil para el agente: horarios, preferencias, relación con quien refirió…"
+                  class="ref-input" style="resize:none;height:60px;font-family:inherit;font-size:12px;line-height:1.5"></textarea>
+                <div style="margin-top:6px;font-size:10px;color:rgba(255,255,255,.2);line-height:1.5">Esta nota se incluirá en todos los leads importados de esta sesión.</div>
               </div>
 
-              <!-- Card: upload -->
-              <div class="ref-card">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-                  <span style="font-size:13px">🖼️</span>
-                  <span style="font-size:12px;font-weight:700;color:var(--text)">Imagen de la hoja</span>
-                </div>
+            </div>
+
+            <!-- RIGHT: Upload + Preview -->
+            <div style="display:flex;flex-direction:column;gap:12px">
+
+              <!-- Upload card -->
+              <div class="ref-card" style="padding:14px 16px">
+                <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Imagen de la hoja</div>
 
                 <div id="ref-dropzone"
                   onclick="document.getElementById('ref-file-input').click()"
@@ -4006,62 +4006,62 @@ setTimeout(function(){
                   ondragleave="this.style.borderColor='rgba(255,255,255,.12)';this.style.background='rgba(255,255,255,.02)'"
                   ondrop="refHandleDrop(event)">
                   <div class="ref-upload-icon">📄</div>
-                  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Arrastra aquí o toca para abrir</div>
-                  <div style="font-size:11px;color:var(--text2);line-height:1.6">JPG · PNG · WEBP<br>Galería o cámara del dispositivo</div>
+                  <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Arrastra o toca para cargar</div>
+                  <div style="font-size:10px;color:var(--text2)">JPG · PNG · WEBP</div>
                   <input id="ref-file-input" type="file" accept="image/*" style="display:none" onchange="refHandleFile(this.files[0])" />
                 </div>
 
-                <!-- Botones cámara / galería explícitos para móvil -->
-                <div id="ref-cam-buttons" style="display:flex;gap:10px;margin-top:12px">
-                  <button class="ref-btn-ghost" style="flex:1;justify-content:center"
+                <div id="ref-cam-buttons" style="display:flex;gap:8px;margin-top:10px">
+                  <button class="ref-btn-ghost" style="flex:1;justify-content:center;font-size:11px;padding:8px 10px"
                     onclick="document.getElementById('ref-file-cam').click()">
                     📷 Cámara
                     <input id="ref-file-cam" type="file" accept="image/*" capture="environment" style="display:none" onchange="refHandleFile(this.files[0])" />
                   </button>
-                  <button class="ref-btn-ghost" style="flex:1;justify-content:center"
+                  <button class="ref-btn-ghost" style="flex:1;justify-content:center;font-size:11px;padding:8px 10px"
                     onclick="document.getElementById('ref-file-gal').click()">
                     🖼 Galería
                     <input id="ref-file-gal" type="file" accept="image/*" style="display:none" onchange="refHandleFile(this.files[0])" />
                   </button>
                 </div>
-                <!-- Privacy notice -->
-                <p style="margin:10px 0 0;font-size:10px;color:rgba(255,255,255,.25);text-align:center;line-height:1.5">
-                  🔒 La imagen cargada no será guardada en ninguna base de datos.<br>Se utiliza únicamente para digitalizar la información de la hoja.
+
+                <p style="margin:8px 0 0;font-size:9px;color:rgba(255,255,255,.2);text-align:center;line-height:1.5">
+                  🔒 La imagen no se almacena en ninguna base de datos. Se usa únicamente para digitalizar la hoja.
                 </p>
               </div>
-            </div>
 
-            <!-- RIGHT: Image preview -->
-            <div id="ref-thumb-wrap" style="display:none;position:sticky;top:20px">
-              <div class="ref-card" style="padding:14px">
-                <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;max-height:420px;display:flex;align-items:center;justify-content:center">
-                  <img id="ref-thumb" style="max-width:100%;max-height:420px;object-fit:contain;display:block;border-radius:10px" />
-                  <div id="ref-img-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;border-radius:10px">
-                    <div style="text-align:center;color:#fff">
-                      <div style="font-size:32px;margin-bottom:8px">⚙️</div>
-                      <div style="font-size:13px;font-weight:700">Analizando…</div>
+              <!-- Image preview (hidden until loaded) -->
+              <div id="ref-thumb-wrap" style="display:none;position:sticky;top:16px">
+                <div class="ref-card" style="padding:12px">
+                  <div style="position:relative;border-radius:10px;overflow:hidden;background:#000;max-height:340px;display:flex;align-items:center;justify-content:center">
+                    <img id="ref-thumb" style="max-width:100%;max-height:340px;object-fit:contain;display:block;border-radius:8px" />
+                    <div id="ref-img-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;border-radius:8px">
+                      <div style="text-align:center;color:#fff">
+                        <div style="font-size:26px;margin-bottom:6px">⚙️</div>
+                        <div style="font-size:12px;font-weight:700">Analizando…</div>
+                      </div>
                     </div>
                   </div>
+                  <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px">
+                    <button onclick="refAnalyze()" id="ref-analyze-btn" class="ref-btn-primary" style="width:100%;justify-content:center;padding:10px">
+                      <span>✨</span> Extraer datos
+                    </button>
+                    <button onclick="refResetImage()" class="ref-btn-ghost" style="width:100%;justify-content:center;padding:8px;font-size:11px">
+                      ↩ Cambiar imagen
+                    </button>
+                  </div>
+                  <div id="ref-ai-status" style="margin-top:8px;font-size:11px;text-align:center;color:var(--text2);min-height:16px"></div>
                 </div>
-                <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
-                  <button onclick="refAnalyze()" id="ref-analyze-btn" class="ref-btn-primary" style="width:100%;justify-content:center">
-                    <span>✨</span> Extraer
-                  </button>
-                  <button onclick="refResetImage()" class="ref-btn-ghost" style="width:100%;justify-content:center">
-                    ↩ Cambiar imagen
-                  </button>
-                </div>
-                <div id="ref-ai-status" style="margin-top:10px;font-size:12px;text-align:center;color:var(--text2);min-height:18px"></div>
               </div>
-            </div>
 
-            <!-- RIGHT placeholder when no image -->
-            <div id="ref-no-image-hint" style="display:flex;align-items:center;justify-content:center;padding:60px 20px">
-              <div style="text-align:center;opacity:.4">
-                <div style="font-size:56px;margin-bottom:14px">🗒️</div>
-                <div style="font-size:13px;font-weight:600;color:var(--text)">Sube la hoja de referidos</div>
-                <div style="font-size:11px;color:var(--text2);margin-top:4px">La vista previa aparecerá aquí</div>
+              <!-- Placeholder when no image -->
+              <div id="ref-no-image-hint" style="display:flex;align-items:center;justify-content:center;padding:40px 20px">
+                <div style="text-align:center;opacity:.3">
+                  <div style="font-size:44px;margin-bottom:10px">🗒️</div>
+                  <div style="font-size:12px;font-weight:600;color:var(--text)">Carga la hoja de referidos</div>
+                  <div style="font-size:10px;color:var(--text2);margin-top:3px">La vista previa aparecerá aquí</div>
+                </div>
               </div>
+
             </div>
 
           </div>
@@ -8607,7 +8607,7 @@ function showReferidosPage() {
   showBoardView();
   document.getElementById('assign-strip').classList.add('hidden');
   currentBoardId = null;
-  document.getElementById('board-title').textContent = 'Referidos por Foto';
+  document.getElementById('board-title').textContent = 'Digitalización de Referidos';
   document.getElementById('btn-new-lead').style.display  = 'none';
   document.getElementById('btn-export').style.display    = 'none';
   document.getElementById('table-wrap').style.display    = 'none';
