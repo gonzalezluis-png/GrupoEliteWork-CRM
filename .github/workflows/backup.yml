@@ -2,8 +2,8 @@ name: Daily Database Backup
 
 on:
   schedule:
-    - cron: '0 8 * * *'   # 3:00 AM hora Colombia (UTC-5 → 08:00 UTC)
-  workflow_dispatch:        # permite ejecutarlo manualmente desde GitHub
+    - cron: '0 8 * * *'   # 3:00 AM Colombia (UTC-5 → 08:00 UTC)
+  workflow_dispatch:
 
 jobs:
   backup:
@@ -12,93 +12,60 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout repo
+      - name: Checkout main
         uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
 
-      - name: Fetch backup from Supabase
+      - name: Fetch data from Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
-          DATE=$(date -u +"%Y-%m-%d")
+          FILENAME="backup_${TIMESTAMP}.json"
 
-          echo "Descargando kv_store..."
-          curl -s \
-            -H "apikey: $SUPABASE_SERVICE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
-            -H "Content-Type: application/json" \
-            "$SUPABASE_URL/rest/v1/kv_store?select=*" \
-            -o "backup_raw.json"
+          curl -sf \
+            -H "apikey: ${SUPABASE_SERVICE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+            "${SUPABASE_URL}/rest/v1/kv_store?select=*" \
+            -o /tmp/raw.json
 
-          # Verificar que la respuesta es JSON válido y tiene datos
-          COUNT=$(jq 'length' backup_raw.json 2>/dev/null || echo "0")
-          echo "Registros encontrados: $COUNT"
+          COUNT=$(jq 'length' /tmp/raw.json)
+          echo "Registros: $COUNT"
 
-          if [ "$COUNT" = "0" ] || [ "$COUNT" = "null" ]; then
-            echo "ERROR: No se obtuvieron datos o la respuesta es inválida"
-            cat backup_raw.json
-            exit 1
-          fi
-
-          # Crear archivo de backup con metadata
           jq -n \
             --arg ts "$TIMESTAMP" \
-            --arg date "$DATE" \
-            --argjson count "$COUNT" \
-            --slurpfile data backup_raw.json \
-            '{
-              backup_date: $date,
-              backup_timestamp: $ts,
-              total_records: $count,
-              source: "supabase_kv_store",
-              data: $data[0]
-            }' > "backup_${TIMESTAMP}.json"
+            --arg count "$COUNT" \
+            --slurpfile data /tmp/raw.json \
+            '{timestamp: $ts, records: ($count|tonumber), data: $data[0]}' \
+            > /tmp/${FILENAME}
 
-          rm backup_raw.json
-          echo "Backup creado: backup_${TIMESTAMP}.json ($COUNT registros)"
-          echo "BACKUP_FILE=backup_${TIMESTAMP}.json" >> $GITHUB_ENV
-          echo "RECORD_COUNT=$COUNT" >> $GITHUB_ENV
+          echo "FILENAME=${FILENAME}" >> $GITHUB_ENV
+          echo "COUNT=${COUNT}" >> $GITHUB_ENV
 
-      - name: Push to backups branch
+      - name: Commit to backups branch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Crear o cambiar a rama backups
-          git fetch origin backups 2>/dev/null && git checkout backups || git checkout --orphan backups
+          # Cambiar a rama backups (créala si no existe)
+          git fetch origin backups 2>/dev/null \
+            && git checkout backups \
+            || git checkout --orphan backups && git rm -rf . --quiet
 
-          # Limpiar archivos del branch principal (si es orphan)
-          if git show-ref --quiet refs/remotes/origin/backups; then
-            git reset --hard origin/backups
-          else
-            git rm -rf . --quiet 2>/dev/null || true
-          fi
+          cp /tmp/${{ env.FILENAME }} .
 
-          # Mover el backup
-          mv /home/runner/work/GrupoEliteWork-CRM/GrupoEliteWork-CRM/${{ env.BACKUP_FILE }} .
+          # Conservar solo los últimos 30 backups
+          ls -t backup_*.json 2>/dev/null | tail -n +31 | xargs rm -f || true
 
-          # Mantener solo los últimos 30 backups
-          ls -t backup_*.json 2>/dev/null | tail -n +31 | xargs rm -f 2>/dev/null || true
-
-          REMAINING=$(ls backup_*.json 2>/dev/null | wc -l)
-
-          git add backup_*.json
-          git commit -m "backup: ${{ env.BACKUP_FILE }} · ${{ env.RECORD_COUNT }} registros · $REMAINING archivos guardados"
+          git add -A
+          git commit -m "backup: ${{ env.FILENAME }} · ${{ env.COUNT }} registros"
           git push origin backups
 
       - name: Summary
         run: |
           echo "### ✅ Backup completado" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Archivo | \`${{ env.BACKUP_FILE }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Registros | ${{ env.RECORD_COUNT }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Rama | \`backups\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Retención | últimos 30 días |" >> $GITHUB_STEP_SUMMARY
+          echo "- **Archivo:** \`${{ env.FILENAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registros:** ${{ env.COUNT }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rama:** \`backups\`" >> $GITHUB_STEP_SUMMARY
