@@ -14399,8 +14399,20 @@ async function _saveNpEdit() {
   const npInitials = newNombre.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   document.getElementById('np-avatar').textContent = npInitials || '?';
 
-  // Re-render info grid and tags
-  openNotesPanel(_notesLeadId, boardId);
+  // Re-render info grid and tags in the panel
+  const updatedLead = leads[idx];
+  const npChips2 = [
+    updatedLead.telefono  && { label:`📞 ${updatedLead.telefono}`,  c:'#a78bfa', bg:'rgba(167,139,250,0.1)', b:'rgba(167,139,250,0.3)' },
+    updatedLead.ubicacion && { label:`📍 ${updatedLead.ubicacion}`, c:'#60a5fa', bg:'rgba(59,130,246,0.1)',  b:'rgba(59,130,246,0.3)'  },
+    updatedLead.asignado  && { label:`👤 ${updatedLead.asignado}`,  c:'#34d399', bg:'rgba(16,185,129,0.1)',  b:'rgba(16,185,129,0.3)'  },
+  ].filter(Boolean);
+  const summaryEl = document.getElementById('notes-lead-summary');
+  if (summaryEl) summaryEl.innerHTML = npChips2.map(ch =>
+    `<span style="background:${ch.bg};border:1px solid ${ch.b};border-radius:20px;padding:4px 12px;font-size:11px;color:${ch.c};font-weight:500">${esc(ch.label)}</span>`
+  ).join('');
+
+  // Refresh table row immediately without reloading the panel
+  applyFilters();
   showToast('Lead actualizado ✓', 'success');
   try { renderTable && renderTable(); } catch(e) {}
 }
