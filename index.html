@@ -753,6 +753,7 @@
   .pill-blue   { background: rgba(0,115,234,.2);   color: #4da8ff; }
   .pill-purple { background: rgba(120,75,209,.2);  color: #a97ff2; }
   .pill-teal   { background: rgba(0,189,165,.18);  color: #00bda5; }
+  .pill-gold   { background: rgba(255,200,0,.18); color: #f5c400; border: 1px solid rgba(255,200,0,.3); }
 
   .pill-lead   { background: rgba(0,115,234,.15); color: #4da8ff; font-size: 10px; }
 
@@ -5038,6 +5039,20 @@ setTimeout(function(){
   <canvas id="cita-confetti-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
 </div>
 
+<div id="vendido-congrats" style="display:none;position:fixed;inset:0;z-index:9600;pointer-events:none;align-items:center;justify-content:center">
+  <div id="vendido-congrats-card" style="
+    background:linear-gradient(135deg,#1a1200,#2d2000);
+    border:2px solid rgba(245,196,0,.4); border-radius:20px;
+    padding:36px 48px; text-align:center;
+    box-shadow:0 20px 80px rgba(245,196,0,.3);
+    animation: congrats-pop .45s cubic-bezier(.34,1.56,.64,1) both;
+  ">
+    <div style="font-size:52px;margin-bottom:10px;animation:congrats-bounce .6s .1s cubic-bezier(.34,1.56,.64,1) both">🏆</div>
+    <div style="font-size:24px;font-weight:900;color:#f5c400;margin-bottom:6px">¡VENDIDO!</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.7);line-height:1.6">¡Excelente trabajo!<br>Este lead ha sido marcado como cliente.</div>
+  </div>
+</div>
+
 <style>
 @keyframes cita-modal-in {
   from { opacity:0; transform:translateY(20px) scale(.96); }
@@ -5177,7 +5192,7 @@ const LEAD_TYPES = DEFAULT_LEAD_TYPES; // legacy alias — use getLeadTypes() fo
 const ESTADOS = ['ACTIVO','INACTIVO','EN PROCESO','CERRADO','NUEVO'];
 const RESULTADOS = [
   'INTERESADO','NO INTERESADO','NO CONTESTA','NÚMERO EQUIVOCADO',
-  'BUZÓN DE VOZ','CITA AGENDADA','CLIENTE ACTIVO','PENDIENTE','SIN RESULTADO'
+  'BUZÓN DE VOZ','CITA AGENDADA','CLIENTE ACTIVO','PENDIENTE','SIN RESULTADO','VENDIDO! 🏆'
 ];
 
 const DEFAULT_BOARDS = [
@@ -5190,6 +5205,7 @@ const DEFAULT_BOARDS = [
   { id: 'washington', name: 'LEAD WASHINGTON',           icon: '🌲',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Washington'] },
 ];
 let BOARDS = [...DEFAULT_BOARDS];
+const VENDIDOS_BOARD = { id: 'vendidos', name: 'LEAD VENDIDOS', icon: '🏆', hidden: true };
 
 const STATE_PILL = {
   'ACTIVO':     'pill-green',
@@ -5208,6 +5224,7 @@ const RESULT_PILL = {
   'BUZÓN DE VOZ':     'pill-yellow',
   'PENDIENTE':        'pill-yellow',
   'SIN RESULTADO':    'pill-gray',
+  'VENDIDO! 🏆':     'pill-gold',
 };
 
 // ════════════════════════════════════════════
@@ -5566,6 +5583,17 @@ function renderSidebar() {
 
   if (isAgent && visibleBoards.length === 0) {
     list.innerHTML = '<div style="padding:14px 18px;font-size:12px;color:var(--text2)">No tienes leads asignados aún.</div>';
+  }
+
+  // Append VENDIDOS board for master and admin only
+  if (isMaster || (session && session.role === 'admin')) {
+    const vendidosCount = loadLeads(VENDIDOS_BOARD.id).length;
+    list.innerHTML += `
+      <div class="board-item" data-id="${VENDIDOS_BOARD.id}" onclick="selectBoard('${VENDIDOS_BOARD.id}')" style="border-top:1px solid rgba(245,196,0,.2);margin-top:4px">
+        <span class="board-icon">🏆</span>
+        <span class="board-name" style="color:#f5c400">LEAD VENDIDOS</span>
+        <span class="board-count" style="background:rgba(245,196,0,.2);color:#f5c400">${vendidosCount}</span>
+      </div>`;
   }
 
   if (isMaster) {
@@ -6231,6 +6259,13 @@ async function saveDeletedLeads(leads) {
 }
 
 function softDeleteLead(leadId, boardId) {
+  if (boardId === VENDIDOS_BOARD.id) {
+    const session = getSession();
+    if (!session || (session.role !== 'master' && session.role !== 'admin')) {
+      showToast('Los leads vendidos no pueden eliminarse.', 'error');
+      return;
+    }
+  }
   const session = getSession();
   const leads   = loadLeads(boardId);
   const lead    = leads.find(l => l.id === leadId);
@@ -9763,6 +9798,14 @@ function applyBulkEdit() {
 
 function bulkDelete() {
   if (selectedIds.size === 0) return;
+  // Block deletion of vendidos leads for non-admin/non-master
+  if (currentBoardId === VENDIDOS_BOARD.id) {
+    const _sessD = getSession();
+    if (!_sessD || (_sessD.role !== 'master' && _sessD.role !== 'admin')) {
+      showToast('Los leads vendidos no pueden eliminarse.', 'error');
+      return;
+    }
+  }
   const count = selectedIds.size;
   const leads = loadLeads(currentBoardId);
   const assigned = leads.filter(l => selectedIds.has(l.id) && l.asignado && l.asignado !== 'Sin asignar');
@@ -10001,12 +10044,35 @@ function undoLastAssign() {
 }
 
 function saveInlineField(sel, leadId, field) {
+  // Leads in vendidos board are fully locked
+  const _lockBoardId = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
+  if (_lockBoardId === VENDIDOS_BOARD.id) {
+    const _sess = getSession();
+    if (!_sess || (_sess.role !== 'master' && _sess.role !== 'admin')) {
+      showToast('Este lead está bloqueado. Solo el administrador puede modificarlo.', 'error');
+      return;
+    }
+  }
   if (field === 'asignado' && sel.value === '__add_agent__') {
     sel.value = '';
     sel.style.display = 'none';
     const spanEl = sel.previousElementSibling;
     if (spanEl) spanEl.style.display = '';
     showUsersPage();
+    return;
+  }
+  // VENDIDO! — move to vendidos board + celebration
+  if (field === 'resultado' && sel.value === 'VENDIDO! 🏆') {
+    sel.value = '';
+    sel.style.display = 'none';
+    const spanElV = sel.previousElementSibling;
+    if (spanElV) spanElV.style.display = '';
+    const bIdV = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
+    if (!bIdV) return;
+    const leadV = loadLeads(bIdV).find(l => l.id === leadId);
+    if (!leadV) return;
+    showVendidoAnimation();
+    setTimeout(() => moveLeadToVendidos(leadId, bIdV), 400);
     return;
   }
   if (field === 'resultado' && sel.value === '__delete_lead__') {
@@ -10256,6 +10322,57 @@ function launchConfetti() {
     }
   };
   draw();
+}
+
+function showVendidoAnimation() {
+  const el = document.getElementById('vendido-congrats');
+  el.style.display = 'flex';
+  launchConfettiGold();
+  setTimeout(() => {
+    const card = document.getElementById('vendido-congrats-card');
+    if (card) card.style.animation = 'congrats-out .4s ease forwards';
+    setTimeout(() => {
+      el.style.display = 'none';
+      if (card) card.style.animation = 'congrats-pop .45s cubic-bezier(.34,1.56,.64,1) both';
+    }, 420);
+  }, 3000);
+}
+
+function launchConfettiGold() {
+  const canvas = document.getElementById('cita-confetti-canvas');
+  if (!canvas) return;
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx     = canvas.getContext('2d');
+  const pieces  = Array.from({ length: 120 }, () => ({
+    x:     Math.random() * canvas.width,
+    y:     -10 - Math.random() * 80,
+    r:     Math.random() * 7 + 3,
+    d:     Math.random() * 2 + 1,
+    color: ['#f5c400','#ffd700','#ffec6e','#fff','#ff8c00','#00c875'][Math.floor(Math.random()*6)],
+    tilt:  Math.random() * 10 - 5,
+    tiltV: Math.random() * .15 + .05,
+    shape: Math.random() > .4 ? 'circle' : 'rect',
+  }));
+  let frame;
+  const draw = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.tilt * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      if (p.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI*2); ctx.fill(); }
+      else { ctx.fillRect(-p.r/2, -p.r/2, p.r, p.r*1.5); }
+      ctx.restore();
+      p.y += p.d * 2.5;
+      p.tilt += p.tiltV;
+      if (p.y > canvas.height) { p.y = -10; p.x = Math.random() * canvas.width; }
+    });
+    frame = requestAnimationFrame(draw);
+  };
+  draw();
+  setTimeout(() => { cancelAnimationFrame(frame); ctx.clearRect(0, 0, canvas.width, canvas.height); }, 3500);
 }
 
 // ════════════════════════════════════════════
@@ -11649,6 +11766,21 @@ function saveBoard() {
   renderSidebar();
   showToast(`Board "${name}" creado ✓`, 'success');
   selectBoard(id);
+}
+
+function moveLeadToVendidos(leadId, sourceBoardId) {
+  const leads = loadLeads(sourceBoardId);
+  const lead  = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  // Remove from source board
+  saveLeads(sourceBoardId, leads.filter(l => l.id !== leadId));
+  // Add to vendidos board with lock flag
+  const vendidosLeads = loadLeads(VENDIDOS_BOARD.id);
+  vendidosLeads.unshift({ ...lead, resultado: 'VENDIDO! 🏆', _vendido: true, _vendidoAt: new Date().toISOString(), _locked: true });
+  saveLeads(VENDIDOS_BOARD.id, vendidosLeads);
+  logActivity('lead_edit', 'Lead marcado como VENDIDO 🏆', lead.nombre || lead.id, { boardId: sourceBoardId });
+  renderTable();
+  renderSidebar();
 }
 
 function deleteBoard(id) {
