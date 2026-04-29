@@ -4149,6 +4149,18 @@ setTimeout(function(){
         </div>
 
       </div>
+
+      <!-- ─── HISTORIAL DE CARGAS ─── -->
+      <div style="padding:0 32px 60px;max-width:1100px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="height:1px;flex:1;background:var(--border)"></div>
+          <span style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">Historial de cargas</span>
+          <div style="height:1px;flex:1;background:var(--border)"></div>
+        </div>
+        <div id="ref-history-list" style="display:flex;flex-direction:column;gap:10px">
+          <div style="text-align:center;padding:32px;color:var(--text2);font-size:12px;opacity:.5">Cargando historial…</div>
+        </div>
+      </div>
     </div>
     <!-- END REFERIDOS PAGE -->
 
@@ -8682,6 +8694,7 @@ function showReferidosPage() {
   document.querySelectorAll('.board-item,.sidebar-item').forEach(el => el.classList.remove('active'));
   ['nav-referidos','nav-referidos-agent','nav-referidos-admin'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('active'); });
   _refPopulateSelects();
+  renderRefHistory();
 }
 
 function _refPopulateSelects() {
@@ -8937,6 +8950,18 @@ async function refSubmit() {
     statusEl.style.color = 'var(--green)';
     showToast(`${added} referidos importados ✓`, 'success');
 
+    // Save to per-user history
+    const _importedLeads = rows.map(r => ({ nombre: r.nombre.trim(), telefono: r.telefono.trim(), hijos: r.hijos||'', notas: r.notas||'' }));
+    const _leadIds = leads.slice(-added).map(l => l.id);
+    await refSaveHistory({
+      id: uid(), date: new Date().toISOString(),
+      uploadedBy: agenteName, uploadedById: agenteId,
+      boardId, boardName: getBoard(boardId)?.name || boardId,
+      referidoPor, ubicacion, added,
+      leads: _importedLeads, _leadIds,
+    });
+    renderRefHistory();
+
     // Reset for next batch
     setTimeout(() => {
       refResetImage();
@@ -8950,6 +8975,113 @@ async function refSubmit() {
     statusEl.style.color = 'var(--red)';
     btn.disabled = false;
   }
+}
+
+// ── Referidos history ────────────────────────────────────────────────────────
+function _refHistoryKey() {
+  const session = getSession();
+  return session ? `gew_ref_history_${session.id}` : null;
+}
+
+async function refSaveHistory(record) {
+  const key = _refHistoryKey();
+  if (!key) return;
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key', key).maybeSingle();
+    const hist = JSON.parse(data?.value || '[]');
+    hist.unshift(record);
+    await supa.from('kv_store').upsert({ key, value: JSON.stringify(hist.slice(0, 200)) });
+  } catch(_) {}
+}
+
+async function refLoadHistory() {
+  const key = _refHistoryKey();
+  if (!key) return [];
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key', key).maybeSingle();
+    return JSON.parse(data?.value || '[]');
+  } catch(_) { return []; }
+}
+
+async function renderRefHistory() {
+  const container = document.getElementById('ref-history-list');
+  if (!container) return;
+  container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text2);font-size:12px;opacity:.5">Cargando…</div>`;
+  const hist = await refLoadHistory();
+  const session = getSession();
+  const isMaster = session && session.role === 'master';
+  if (!hist.length) {
+    container.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text2);font-size:12px;opacity:.4">No hay cargas registradas aún.</div>`;
+    return;
+  }
+  container.innerHTML = hist.map(h => {
+    const d = new Date(h.date);
+    const dateStr = d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+    const reverted = h._reverted;
+    const leadsHtml = (h.leads || []).map((l, i) => `
+      <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+        <td style="padding:5px 8px;font-size:11px;color:var(--text2)">${i+1}</td>
+        <td style="padding:5px 8px;font-size:12px;color:var(--text);font-weight:600">${esc(l.nombre||'—')}</td>
+        <td style="padding:5px 8px;font-size:11px;color:var(--text2)">${esc(l.telefono||'—')}</td>
+        <td style="padding:5px 8px;font-size:11px;color:var(--text2)">${esc(l.hijos||'')}</td>
+        <td style="padding:5px 8px;font-size:11px;color:var(--text2);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.notas||'')}</td>
+      </tr>`).join('');
+    return `
+    <details style="background:var(--card2);border:1px solid ${reverted ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.07)'};border-radius:12px;overflow:hidden${reverted ? ';opacity:.6' : ''}">
+      <summary style="padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;user-select:none">
+        <span style="font-size:15px">${reverted ? '↩' : '🗂️'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:${reverted ? 'var(--text2)' : 'var(--text)'}">
+            ${esc(h.boardName || h.boardId)}
+            ${h.referidoPor ? `<span style="font-weight:400;color:var(--text2)"> · Ref: ${esc(h.referidoPor)}</span>` : ''}
+            ${reverted ? `<span style="color:var(--red);font-size:10px;font-weight:700;margin-left:6px">REVERTIDO</span>` : ''}
+          </div>
+          <div style="font-size:10px;color:var(--text2);margin-top:2px">${dateStr} · ${h.added || (h.leads||[]).length} leads${h.ubicacion ? ' · ' + esc(h.ubicacion) : ''}</div>
+        </div>
+        ${isMaster && !reverted ? `<button onclick="event.preventDefault();event.stopPropagation();refUndo('${h.id}')" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:var(--red);font-size:10px;font-weight:700;padding:4px 12px;border-radius:6px;cursor:pointer;flex-shrink:0">↩ Revertir</button>` : ''}
+      </summary>
+      <div style="border-top:1px solid rgba(255,255,255,.06);overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:rgba(0,0,0,.2)">
+              <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:left;width:32px">#</th>
+              <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:left">Nombre</th>
+              <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:left">Teléfono</th>
+              <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:left;width:50px">Hijos</th>
+              <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:left">Notas</th>
+            </tr>
+          </thead>
+          <tbody>${leadsHtml}</tbody>
+        </table>
+      </div>
+    </details>`;
+  }).join('');
+}
+
+async function refUndo(histId) {
+  const session = getSession();
+  if (!session || session.role !== 'master') { showToast('Solo el master puede revertir cargas', 'error'); return; }
+  if (!confirm('¿Revertir esta carga? Se eliminarán los leads importados de su board.')) return;
+  const key = _refHistoryKey();
+  if (!key) return;
+  try {
+    const { data } = await supa.from('kv_store').select('value').eq('key', key).maybeSingle();
+    const hist = JSON.parse(data?.value || '[]');
+    const rec = hist.find(h => h.id === histId);
+    if (!rec) { showToast('Registro no encontrado', 'error'); return; }
+    // Remove leads from board
+    if (rec._leadIds?.length && rec.boardId) {
+      const boardLeads = loadLeads(rec.boardId);
+      const idSet = new Set(rec._leadIds);
+      await saveLeads(rec.boardId, boardLeads.filter(l => !idSet.has(l.id)));
+    }
+    // Mark as reverted
+    rec._reverted = true;
+    rec._revertedAt = new Date().toISOString();
+    await supa.from('kv_store').upsert({ key, value: JSON.stringify(hist) });
+    showToast('Carga revertida', 'success');
+    renderRefHistory();
+  } catch(e) { showToast('Error al revertir: ' + e.message, 'error'); }
 }
 
 function showImportPage() {
