@@ -5241,9 +5241,11 @@ const _deletedLeadIds = new Set();
 let COL_WIDTHS      = {
   nombre: 160, lead: 185, creacion: 120, hijos: 80,
   email: 160, telefono: 120, direccion: 160, ubicacion: 155,
-  asignado: 150, resultado: 130,
+  entrada: 130, asignado: 150, resultado: 130,
   notas: 160, _actions: 60
 };
+
+const ENTRADA_OPTS = ['Solicitud', 'Referido', 'Digitalización'];
 
 function getBoard(id) { return BOARDS.find(b => b.id === id); }
 
@@ -5956,6 +5958,21 @@ function renderRows(board, leads) {
             onblur="closeInlineSel(this)">${opts}</select>
         </td>`;
       }
+      if (c.key === 'entrada') {
+        const entVal = l.entrada || 'Solicitud';
+        const entColor = entVal === 'Referido' ? '#a78bfa' : entVal === 'Digitalización' ? '#00b7c3' : '#94a3b8';
+        const entOpts = ENTRADA_OPTS.map(o => `<option value="${o}"${entVal===o?' selected':''}>${o}</option>`).join('');
+        return `<td style="text-align:center;vertical-align:middle" class="td-inline" onclick="event.stopPropagation()">
+          <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;color:${entColor};white-space:nowrap;cursor:pointer" onclick="openInlineSel(this)">
+            ${esc(entVal)} <span style="opacity:.4;font-size:9px">▾</span>
+          </div>
+          <select class="inline-select" style="display:none"
+            onchange="saveInlineField(this,'${l.id}','entrada')"
+            onblur="closeInlineSel(this)">
+            ${entOpts}
+          </select>
+        </td>`;
+      }
       if (c.key === 'asignado') {
         const sess         = getSession();
         const displayVal   = l.asignado || '';
@@ -6105,6 +6122,10 @@ function buildForm(board, lead) {
       <label>Ubicación</label>
       <select id="f_ubicacion"><option value="">— Seleccionar —</option>${selUb}</select>
     </div>
+    <div class="field">
+      <label>Entrada</label>
+      <select id="f_entrada">${ENTRADA_OPTS.map(o=>`<option value="${o}"${(v('entrada')||'Solicitud')===o?' selected':''}>${o}</option>`).join('')}</select>
+    </div>
     <div class="field form-full">
       <label>Dirección</label>
       <input type="text" id="f_direccion" value="${esc(v('direccion'))}" placeholder="Dirección completa" />
@@ -6146,6 +6167,7 @@ function saveLead() {
     hijos:       get('f_hijos'),
     direccion:   get('f_direccion'),
     ubicacion:   get('f_ubicacion'),
+    entrada:     get('f_entrada') || 'Solicitud',
     asignado:    asignadoName,
     asignadoId:  asignadoUser ? asignadoUser.id : undefined,
     estado:      get('f_estado'),
@@ -8249,7 +8271,7 @@ function goImportPreview() {
   const globalLeadType = window._globalLeadType || document.getElementById('global-lead-type')?.value || '';
   const byBoard = {};
   toImport.forEach(row => {
-    const lead = { id: uid(), creacion: today() };
+    const lead = { id: uid(), creacion: today(), entrada: 'Digitalización' };
     // Fixed fields
     IMP_FIXED_FIELDS.forEach(f => { const v = getRowField(row, f); if (v) lead[f] = v; });
     // Extra mapped fields (lead type, asignado, etc.)
@@ -8901,6 +8923,7 @@ async function refSubmit() {
         resultado:   '',
         hijos:       r.hijos ? r.hijos.trim() : '',
         _esReferido: true,
+        entrada:     'Referido',
       };
       leads.push(lead);
       added++;
@@ -10053,6 +10076,18 @@ function saveInlineField(sel, leadId, field) {
       return;
     }
   }
+  // ENTRADA — warn before changing
+  if (field === 'entrada' && sel.value) {
+    const _prevEntrada = (loadLeads(currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId).find(l => l.id === leadId) || {}).entrada || 'Solicitud';
+    if (sel.value !== _prevEntrada) {
+      const ok = confirm(`⚠️ Esta información es importante para el manejo del cliente.\n\nAl hacer este cambio podrías alterar la forma de comunicación con el cliente.\n\nSea prudente con este cambio.\n\n¿Deseas continuar?`);
+      if (!ok) {
+        sel.value = _prevEntrada;
+        closeInlineSel(sel);
+        return;
+      }
+    }
+  }
   if (field === 'asignado' && sel.value === '__add_agent__') {
     sel.value = '';
     sel.style.display = 'none';
@@ -10937,6 +10972,7 @@ function getActiveColumns(board) {
     { key: 'telefono',  label: labels['telefono']  || 'TELÉFONO' },
     { key: 'direccion', label: labels['direccion'] || 'DIRECCIÓN' },
     { key: 'ubicacion', label: labels['ubicacion'] || 'UBICACIÓN' },
+    { key: 'entrada',   label: labels['entrada']   || 'ENTRADA' },
   ];
   getOrderedOptionalCols().forEach(c => {
     if (cfg[c.key] !== false) cols.push({ key: c.key, label: labels[c.key] || c.label });
