@@ -6196,6 +6196,10 @@ function confirmOverlayClick(e) {
 }
 function confirmDelete() {
   if (!deleteLeadId) return;
+  const lead = loadLeads(currentBoardId).find(l => l.id === deleteLeadId);
+  if (lead && lead.asignado && lead.asignado !== 'Sin asignar') {
+    if (!confirm(`⚠️ Este lead está asignado a ${lead.asignado}.\n¿Seguro que quieres eliminarlo? El agente perderá acceso.`)) return;
+  }
   softDeleteLead(deleteLeadId, currentBoardId);
   closeConfirm();
   renderTable();
@@ -9760,7 +9764,17 @@ function applyBulkEdit() {
 function bulkDelete() {
   if (selectedIds.size === 0) return;
   const count = selectedIds.size;
-  if (!confirm(`¿Mover ${count} lead${count !== 1 ? 's' : ''} a la carpeta de Eliminados?`)) return;
+  const leads = loadLeads(currentBoardId);
+  const assigned = leads.filter(l => selectedIds.has(l.id) && l.asignado && l.asignado !== 'Sin asignar');
+  if (assigned.length > 0) {
+    const agentGroups = {};
+    assigned.forEach(l => { agentGroups[l.asignado] = (agentGroups[l.asignado] || 0) + 1; });
+    const agentList = Object.entries(agentGroups).map(([name, n]) => `• ${name} (${n})`).join('\n');
+    const ok = confirm(`⚠️ ADVERTENCIA: ${assigned.length} de los ${count} leads seleccionados tienen agente asignado:\n\n${agentList}\n\n¿Seguro que quieres eliminarlos? El agente perderá acceso a estos leads.`);
+    if (!ok) return;
+  } else {
+    if (!confirm(`¿Mover ${count} lead${count !== 1 ? 's' : ''} a la carpeta de Eliminados?`)) return;
+  }
   selectedIds.forEach(id => softDeleteLead(id, currentBoardId));
   clearSelection();
   renderTable();
