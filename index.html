@@ -8410,15 +8410,23 @@ async function aiCompleteAddresses() {
     data.result.forEach(r => {
       const row = pastedRows[r.idx];
       if (!row || !r.direccion_completa) return;
-      row.aiAddress     = r.direccion_completa;
-      row.useAiAddress  = false;
+      row.aiAddress    = r.direccion_completa;
+      row.useAiAddress = true;
+      // Auto-apply to direccion field
+      setRowField(r.idx, 'direccion', r.direccion_completa);
+      // Extract ubicacion from result (last part: "City, State ZIP")
+      const parts = r.direccion_completa.split(',');
+      if (parts.length >= 2) {
+        const cityState = parts.slice(1).join(',').trim();
+        if (cityState) setRowField(r.idx, 'ubicacion', cityState);
+      }
       count++;
     });
 
     renderImportEditTable();
-    status.textContent = `✓ ${count} sugerencia(s) generadas — elige cuáles aplicar`;
+    status.textContent = `✓ ${count} dirección(es) completadas automáticamente`;
     status.style.color = 'var(--green)';
-    showToast(`✨ IA generó ${count} sugerencias de dirección`, 'success');
+    showToast(`✨ IA completó ${count} direcciones`, 'success');
   } catch(e) {
     status.textContent = 'Error: ' + e.message;
     status.style.color = 'var(--red)';
