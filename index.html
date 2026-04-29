@@ -2288,6 +2288,9 @@ setTimeout(function(){
             <button class="settings-nav-item" data-tab="permisos" id="snav-permisos" onclick="switchSettingsTab('permisos')">
               <span class="sni-icon-wrap">🔐</span>Permisos por Rol
             </button>
+            <button class="settings-nav-item" data-tab="vendidos" id="snav-vendidos" onclick="switchSettingsTab('vendidos')" style="color:#f5c400">
+              <span class="sni-icon-wrap">🏆</span>Lead Vendidos
+            </button>
           </div>
 
           <div class="settings-nav-group" style="margin-top:auto">
@@ -3362,6 +3365,17 @@ setTimeout(function(){
               <p>Total de mensajes SMS y WhatsApp enviados.</p>
               <div id="msg-dash-sent" style="display:flex;flex-direction:column;gap:8px"></div>
             </div>
+          </div>
+
+          <!-- TAB: Lead Vendidos -->
+          <div class="settings-tab" id="stab-vendidos">
+            <div class="st-header">
+              <div>
+                <div class="st-title" style="color:#f5c400">🏆 Lead Vendidos</div>
+                <div class="st-subtitle">Leads cerrados. Solo lectura — no pueden moverse ni eliminarse.</div>
+              </div>
+            </div>
+            <div id="vendidos-settings-list" style="display:flex;flex-direction:column;gap:8px;margin-top:4px"></div>
           </div>
 
         </div><!-- /.settings-content -->
@@ -5585,17 +5599,6 @@ function renderSidebar() {
 
   if (isAgent && visibleBoards.length === 0) {
     list.innerHTML = '<div style="padding:14px 18px;font-size:12px;color:var(--text2)">No tienes leads asignados aún.</div>';
-  }
-
-  // Append VENDIDOS board for master and admin only
-  if (isMaster || (session && session.role === 'admin')) {
-    const vendidosCount = loadLeads(VENDIDOS_BOARD.id).length;
-    list.innerHTML += `
-      <div class="board-item" data-id="${VENDIDOS_BOARD.id}" onclick="selectBoard('${VENDIDOS_BOARD.id}')" style="border-top:1px solid rgba(245,196,0,.2);margin-top:4px">
-        <span class="board-icon">🏆</span>
-        <span class="board-name" style="color:#f5c400">LEAD VENDIDOS</span>
-        <span class="board-count" style="background:rgba(245,196,0,.2);color:#f5c400">${vendidosCount}</span>
-      </div>`;
   }
 
   if (isMaster) {
@@ -11086,6 +11089,31 @@ function switchSettingsTab(tab) {
     if (zoomCard) zoomCard.style.display = _canUseZoom() ? 'block' : 'none';
     if (_canUseZoom()) _loadZoomStatus().then(() => _renderZoomCard());
   }
+  if (tab === 'vendidos') { renderVendidosSettings(); }
+}
+
+function renderVendidosSettings() {
+  const container = document.getElementById('vendidos-settings-list');
+  if (!container) return;
+  const leads = loadLeads(VENDIDOS_BOARD.id);
+  if (!leads.length) {
+    container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text2);font-size:13px">No hay leads vendidos aún.</div>`;
+    return;
+  }
+  container.innerHTML = leads.map(l => `
+    <div style="display:flex;align-items:center;gap:14px;background:var(--card2);border:1px solid rgba(245,196,0,.2);border-radius:10px;padding:14px 18px">
+      <span style="font-size:18px">🏆</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.nombre || '—')}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap">
+          ${l.telefono ? `<span>📞 ${esc(l.telefono)}</span>` : ''}
+          ${l.email    ? `<span>✉️ ${esc(l.email)}</span>` : ''}
+          ${l.asignado ? `<span>👤 ${esc(l.asignado)}</span>` : ''}
+          ${l._vendidoAt ? `<span>📅 ${new Date(l._vendidoAt).toLocaleDateString('es-MX')}</span>` : ''}
+        </div>
+      </div>
+      <span style="background:rgba(245,196,0,.15);color:#f5c400;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap">VENDIDO 🏆</span>
+    </div>`).join('');
 }
 
 function showSettingsPage() {
@@ -11113,8 +11141,15 @@ function showSettingsPage() {
   if (ltCtrl) ltCtrl.style.display = (session && session.role === 'master') ? 'flex' : 'none';
   const ltNav = document.getElementById('snav-leadtypes');
   if (ltNav) ltNav.style.display = (session && session.role === 'master') ? 'block' : 'none';
+  const isMasterRole = session && session.role === 'master';
   const backupNav = document.getElementById('snav-sec-backup');
-  if (backupNav) backupNav.style.display = (session && session.role === 'master') ? 'block' : 'none';
+  if (backupNav) backupNav.style.display = isAdminOrMaster ? 'block' : 'none';
+  const backupBtn = document.getElementById('snav-backup');
+  if (backupBtn) backupBtn.style.display = isMasterRole ? 'block' : 'none';
+  const permisosBtn = document.getElementById('snav-permisos');
+  if (permisosBtn) permisosBtn.style.display = isMasterRole ? 'block' : 'none';
+  const vendidosNav = document.getElementById('snav-vendidos');
+  if (vendidosNav) vendidosNav.style.display = isAdminOrMaster ? 'block' : 'none';
   const boardsNav = document.getElementById('snav-boards');
   if (boardsNav) boardsNav.style.display = isAdminOrMaster ? 'block' : 'none';
   const orgnameCard = document.getElementById('orgname-card');
