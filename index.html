@@ -8150,14 +8150,8 @@ function impToggleAI(ri, useAI) {
   const row = pastedRows[ri];
   row.useAiAddress = useAI;
   if (useAI && row.aiAddress) {
-    // Apply AI address to direccion field
+    // Apply AI address to direccion field only — ubicacion is chosen by the user
     setRowField(ri, 'direccion', row.aiAddress);
-    // Also try to extract ubicacion if present (city, state after comma)
-    const parts = row.aiAddress.split(',');
-    if (parts.length >= 2) {
-      const cityState = parts.slice(1).join(',').trim();
-      if (cityState) setRowField(ri, 'ubicacion', cityState);
-    }
   }
   renderImportEditTable();
 }
@@ -8204,15 +8198,17 @@ function applyGlobalDest() {
   if (!dest) return;
   pastedRows.forEach(r => r.dest = dest);
   document.querySelectorAll('#imp-edit-table tbody td.imp-dest-td select').forEach(s => s.value = dest);
-  // Populate ubicacion select with unique values from this board's leads
+  // Populate ubicacion select with board's configured ubicaciones
   const ubSel = document.getElementById('global-ubicacion');
   if (!ubSel) return;
-  const leads = loadLeads(dest);
-  const unique = [...new Set(leads.map(l => (l.ubicacion || '').trim()).filter(Boolean))].sort();
+  const board = getBoard(dest);
+  const configured = board?.ubicaciones?.filter(Boolean) || [];
+  const allUbs = configured.length > 0
+    ? configured
+    : [...new Set(BOARDS.flatMap(b => b.ubicaciones).filter(Boolean))].sort();
   ubSel.innerHTML = `<option value="">— Elegir —</option>`
-    + unique.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-  // Auto-select if only one option
-  if (unique.length === 1) { ubSel.value = unique[0]; applyGlobalUbicacion(); }
+    + allUbs.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+  if (allUbs.length === 1) { ubSel.value = allUbs[0]; applyGlobalUbicacion(); }
 }
 
 function applyGlobalUbicacion() {
@@ -8412,14 +8408,8 @@ async function aiCompleteAddresses() {
       if (!row || !r.direccion_completa) return;
       row.aiAddress    = r.direccion_completa;
       row.useAiAddress = true;
-      // Auto-apply to direccion field
+      // Auto-apply to direccion field only — ubicacion is chosen by the user
       setRowField(r.idx, 'direccion', r.direccion_completa);
-      // Extract ubicacion from result (last part: "City, State ZIP")
-      const parts = r.direccion_completa.split(',');
-      if (parts.length >= 2) {
-        const cityState = parts.slice(1).join(',').trim();
-        if (cityState) setRowField(r.idx, 'ubicacion', cityState);
-      }
       count++;
     });
 
