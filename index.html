@@ -8282,7 +8282,7 @@ function goImportPreview() {
   const globalLeadType = window._globalLeadType || document.getElementById('global-lead-type')?.value || '';
   const byBoard = {};
   toImport.forEach(row => {
-    const lead = { id: uid(), creacion: today(), entrada: 'Digitalización' };
+    const lead = { id: uid(), creacion: today(), entrada: 'Solicitud' };
     // Fixed fields
     IMP_FIXED_FIELDS.forEach(f => { const v = getRowField(row, f); if (v) lead[f] = v; });
     // Extra mapped fields (lead type, asignado, etc.)
