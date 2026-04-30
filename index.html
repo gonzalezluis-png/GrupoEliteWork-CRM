@@ -4331,9 +4331,12 @@ setTimeout(function(){
     <div class="modal-body">
       <div class="form-grid" id="form-grid"></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveLead()">Guardar Lead</button>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-secondary" id="modal-delete-btn" onclick="confirmDelete()" style="background:rgba(226,68,92,.1);color:var(--red);border:1px solid rgba(226,68,92,.3)">🗑 Eliminar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveLead()">Guardar Lead</button>
+      </div>
     </div>
   </div>
 </div>
@@ -6260,12 +6263,15 @@ function confirmOverlayClick(e) {
   if (e.target === document.getElementById('confirm-overlay')) closeConfirm();
 }
 function confirmDelete() {
-  if (!deleteLeadId) return;
-  const lead = loadLeads(currentBoardId).find(l => l.id === deleteLeadId);
+  const leadId  = deleteLeadId || editingLeadId;
+  if (!leadId) return;
+  const boardId = (currentBoardId === '__agent__' && editingLeadId) ? findLeadBoard(leadId) : currentBoardId;
+  const lead = loadLeads(boardId).find(l => l.id === leadId);
   if (lead && lead.asignado && lead.asignado !== 'Sin asignar') {
     if (!confirm(`⚠️ Este lead está asignado a ${lead.asignado}.\n¿Seguro que quieres eliminarlo? El agente perderá acceso.`)) return;
   }
-  softDeleteLead(deleteLeadId, currentBoardId);
+  closeModal();
+  softDeleteLead(leadId, boardId);
   closeConfirm();
   renderTable();
   showToast('Lead movido a Eliminados', 'error');
