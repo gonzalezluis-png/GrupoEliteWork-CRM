@@ -6173,6 +6173,12 @@ function buildForm(board, lead) {
 // Pending save context when non-master is intercepted for resultado note
 let _pendingModalSave = null;
 
+const RESULTADO_CONFIRM = new Set(['NO INTERESADO', 'NÚMERO EQUIVOCADO']);
+function _confirmDestructivo(value, nombre) {
+  if (!RESULTADO_CONFIRM.has(value)) return true;
+  return confirm(`¿Confirmas marcar a "${nombre || 'este lead'}" como "${value}"?\nEl lead será movido a la papelera.`);
+}
+
 function _applyModalSave(leads, merged, saveBoardId, leadId, oldLead, isEdit) {
   const resultado = merged.resultado || '';
   if (resultado === 'VENDIDO! 🏆') {
@@ -6182,6 +6188,7 @@ function _applyModalSave(leads, merged, saveBoardId, leadId, oldLead, isEdit) {
     return;
   }
   if (resultado === 'NO INTERESADO' || resultado === 'NÚMERO EQUIVOCADO') {
+    if (!_confirmDestructivo(resultado, merged.nombre)) return;
     saveLeads(saveBoardId, leads);
     softDeleteLead(leadId, saveBoardId);
     renderTable();
@@ -6269,6 +6276,7 @@ function saveLead() {
     const session = getSession();
     const resultadoChanged = data.resultado && data.resultado !== (oldLead.resultado || '');
     if (session && session.role !== 'master' && resultadoChanged) {
+      if (!_confirmDestructivo(data.resultado, data.nombre)) return;
       leads[idx] = merged;
       _pendingModalSave = { leads, merged, saveBoardId, leadId: editingLeadId, oldLead, isEdit };
       closeModal();
@@ -10292,11 +10300,20 @@ function saveInlineField(sel, leadId, field) {
     const _sessR = getSession();
     if (_sessR && _sessR.role !== 'master') {
       const capturedVal = sel.value;
+      // Confirm before proceeding for destructive results
+      const bIdR = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
+      const _leadR = bIdR ? loadLeads(bIdR).find(l => l.id === leadId) : null;
+      if (!_confirmDestructivo(capturedVal, _leadR?.nombre)) {
+        sel.value = '';
+        sel.style.display = 'none';
+        const spanElRx = sel.previousElementSibling;
+        if (spanElRx) spanElRx.style.display = '';
+        return;
+      }
       sel.value = '';
       sel.style.display = 'none';
       const spanElR = sel.previousElementSibling;
       if (spanElR) spanElR.style.display = '';
-      const bIdR = currentBoardId === '__agent__' ? findLeadBoard(leadId) : currentBoardId;
       openResultadoNoteModal(leadId, bIdR, capturedVal);
       return;
     }
