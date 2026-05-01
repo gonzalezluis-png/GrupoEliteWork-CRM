@@ -6170,6 +6170,39 @@ function buildForm(board, lead) {
   `;
 }
 
+// Pending save context when non-master is intercepted for resultado note
+let _pendingModalSave = null;
+
+function _applyModalSave(leads, merged, saveBoardId, leadId, oldLead, isEdit) {
+  const resultado = merged.resultado || '';
+  if (resultado === 'VENDIDO! 🏆') {
+    saveLeads(saveBoardId, leads);
+    showVendidoAnimation();
+    setTimeout(() => moveLeadToVendidos(leadId, saveBoardId), 400);
+    return;
+  }
+  if (resultado === 'NO INTERESADO' || resultado === 'NÚMERO EQUIVOCADO') {
+    saveLeads(saveBoardId, leads);
+    softDeleteLead(leadId, saveBoardId);
+    renderTable();
+    showToast(`Lead movido a papelera: ${resultado}`, 'error');
+    return;
+  }
+  saveLeads(saveBoardId, leads);
+  if (resultado === 'CITA AGENDADA') {
+    renderTable();
+    openCitaModal(leadId, saveBoardId, merged.nombre || '');
+    return;
+  }
+  if (isEdit && oldLead && resultado && resultado !== (oldLead.resultado || '')) {
+    logActivity('lead_edit', 'Cambio de resultado', `${merged.nombre} · "${oldLead.resultado||'—'}" → "${resultado}"`, { boardId: saveBoardId });
+  } else {
+    logActivity('lead_edit', isEdit ? 'Lead editado' : 'Lead creado', `${merged.nombre}${merged.asignado ? ' · '+merged.asignado : ''}`, { boardId: saveBoardId });
+  }
+  renderTable();
+  showToast(isEdit ? 'Lead actualizado ✓' : 'Lead agregado ✓', 'success');
+}
+
 function saveLead() {
   const nombre = document.getElementById('f_nombre').value.trim();
   if (!nombre) { showToast('El nombre es requerido','error'); return; }
@@ -6199,11 +6232,15 @@ function saveLead() {
   };
   if (!data.asignadoId) delete data.asignadoId;
 
+  const isEdit = !!editingLeadId;
   let oldLead = null;
+
   if (editingLeadId) {
     const idx = leads.findIndex(l => l.id === editingLeadId);
     if (idx === -1) return;
     oldLead = leads[idx];
+
+    // Reassign flow
     const newAgent = data.asignado || '';
     if (oldLead.asignado && oldLead.asignado !== newAgent) {
       checkReassign(oldLead, newAgent, (mode) => {
@@ -6224,40 +6261,31 @@ function saveLead() {
       });
       return;
     }
+
     const merged = { ...oldLead, ...data };
     if (!data.asignadoId) delete merged.asignadoId;
+
+    // Non-master + resultado changed: require justification note (same as column)
+    const session = getSession();
+    const resultadoChanged = data.resultado && data.resultado !== (oldLead.resultado || '');
+    if (session && session.role !== 'master' && resultadoChanged) {
+      leads[idx] = merged;
+      _pendingModalSave = { leads, merged, saveBoardId, leadId: editingLeadId, oldLead, isEdit };
+      closeModal();
+      openResultadoNoteModal(editingLeadId, saveBoardId, data.resultado);
+      return;
+    }
+
     leads[idx] = merged;
+    closeModal();
+    _applyModalSave(leads, merged, saveBoardId, editingLeadId, oldLead, true);
   } else {
     data.id      = uid();
     data.creacion = today();
     leads.unshift(data);
-  }
-
-  if (data.resultado === 'VENDIDO! 🏆') {
-    saveLeads(saveBoardId, leads);
     closeModal();
-    showVendidoAnimation();
-    setTimeout(() => moveLeadToVendidos(editingLeadId || data.id, saveBoardId), 400);
-    return;
+    _applyModalSave(leads, data, saveBoardId, data.id, null, false);
   }
-  if (data.resultado === 'NO INTERESADO') {
-    saveLeads(saveBoardId, leads);
-    closeModal();
-    softDeleteLead(editingLeadId || data.id, saveBoardId);
-    renderTable();
-    showToast('Lead eliminado: No Interesado', 'error');
-    return;
-  }
-  saveLeads(saveBoardId, leads);
-  const isEdit = !!editingLeadId;
-  if (isEdit && oldLead && data.resultado && data.resultado !== oldLead.resultado) {
-    logActivity('lead_edit', 'Cambio de resultado', `${data.nombre} · resultado: "${oldLead.resultado||'—'}" → "${data.resultado}"`, { boardId: saveBoardId });
-  } else {
-    logActivity('lead_edit', isEdit ? 'Lead editado' : 'Lead creado', `${data.nombre}${data.asignado ? ' · Asignado a: '+data.asignado : ''}`, { boardId: saveBoardId });
-  }
-  closeModal();
-  renderTable();
-  showToast(isEdit ? 'Lead actualizado ✓' : 'Lead agregado ✓', 'success');
 }
 
 // ════════════════════════════════════════════
@@ -12572,21 +12600,32 @@ function confirmResultadoNote() {
   if (!note) return;
   const session = getSession();
   const who = session ? (session.name || session.email) : 'Sistema';
-  const ts  = new Date().toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' });
   const leadId = _rnLeadId, boardId = _rnBoardId, value = _rnValue;
+  const pending = _pendingModalSave;
+  _pendingModalSave = null;
   closeResultadoNoteModal();
-  const leads = loadLeads(boardId);
+
+  // Resolve the leads array: use pending context (full modal save) or reload from storage
+  const leads = pending ? pending.leads : loadLeads(boardId);
   const lead  = leads.find(l => l.id === leadId);
   if (!lead) return;
+
+  // Append justification note
   const isDelete = value === '__delete_lead__';
   const resultLabel = isDelete ? 'ELIMINAR' : value;
   const _notes = parseNotes(lead._notes);
   _notes.push({ text: `Resultado → ${resultLabel} — ${note}`, author: who, date: new Date().toISOString(), system: true });
   lead._notes = JSON.stringify(_notes);
   if (!isDelete) lead.resultado = value;
+
+  if (pending) {
+    // Came from the lead modal: use _applyModalSave for consistent behavior
+    _applyModalSave(leads, lead, boardId, leadId, pending.oldLead, pending.isEdit);
+    return;
+  }
+
+  // Standard inline-column flow
   if (isDelete || value === 'NO INTERESADO' || value === 'NÚMERO EQUIVOCADO') {
-    // Write notes to localStorage only so softDeleteLead can include them in the trash record,
-    // then let softDeleteLead do the single authoritative Supabase save (avoids race condition).
     localStorage.setItem('gew_leads_' + boardId, JSON.stringify(leads));
     softDeleteLead(leadId, boardId);
     renderTable();
