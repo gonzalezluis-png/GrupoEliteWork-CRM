@@ -6233,6 +6233,13 @@ function saveLead() {
     leads.unshift(data);
   }
 
+  if (data.resultado === 'VENDIDO! 🏆') {
+    saveLeads(saveBoardId, leads);
+    closeModal();
+    showVendidoAnimation();
+    setTimeout(() => moveLeadToVendidos(editingLeadId || data.id, saveBoardId), 400);
+    return;
+  }
   if (data.resultado === 'NO INTERESADO') {
     saveLeads(saveBoardId, leads);
     closeModal();
