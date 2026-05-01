@@ -6079,8 +6079,11 @@ function esc(s) {
 function openModal(leadId) {
   if (!currentBoardId) { showToast('Selecciona un board primero','error'); return; }
   editingLeadId = leadId || null;
-  const board = getBoard(currentBoardId);
-  const leads = loadLeads(currentBoardId);
+  // Agents use __agent__ virtual board — resolve to first real board for new leads
+  const resolvedBoardId = (!leadId && currentBoardId === '__agent__') ? (BOARDS[0]?.id || null) : currentBoardId;
+  if (!resolvedBoardId) { showToast('No hay boards disponibles','error'); return; }
+  const board = getBoard(resolvedBoardId);
+  const leads = loadLeads(resolvedBoardId);
   const lead  = leadId ? leads.find(l => l.id === leadId) : null;
 
   document.getElementById('modal-title').textContent = lead ? 'Editar Lead' : 'Nuevo Lead';
@@ -6214,7 +6217,9 @@ function saveLead() {
   const nombre = document.getElementById('f_nombre').value.trim();
   if (!nombre) { showToast('El nombre es requerido','error'); return; }
 
-  const saveBoardId = (currentBoardId === '__agent__' && editingLeadId) ? findLeadBoard(editingLeadId) : currentBoardId;
+  const saveBoardId = currentBoardId === '__agent__'
+    ? (editingLeadId ? findLeadBoard(editingLeadId) : (BOARDS[0]?.id || null))
+    : currentBoardId;
   if (!saveBoardId) return;
   const leads  = loadLeads(saveBoardId);
   const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
