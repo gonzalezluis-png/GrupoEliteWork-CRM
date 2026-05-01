@@ -6099,7 +6099,9 @@ function overlayClick(e) {
 
 function buildForm(board, lead) {
   const grid = document.getElementById('form-grid');
-  const v = k => lead ? (lead[k] || '') : '';
+  const session = getSession();
+  const defaultAsignado = lead ? (lead.asignado || '') : (session?.name || '');
+  const v = k => k === 'asignado' ? defaultAsignado : (lead ? (lead[k] || '') : '');
 
   const ubOpts = board.ubicaciones.length > 0
     ? board.ubicaciones
