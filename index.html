@@ -5221,7 +5221,6 @@ function getLeadTypes() {
 }
 function saveLeadTypes(arr) { localStorage.setItem('gew_lead_types', JSON.stringify(arr)); supaSync('gew_lead_types', JSON.stringify(arr)); }
 const LEAD_TYPES = DEFAULT_LEAD_TYPES; // legacy alias — use getLeadTypes() for live data
-const ESTADOS = ['ACTIVO','INACTIVO','EN PROCESO','CERRADO','NUEVO'];
 const RESULTADOS = [
   'INTERESADO','NO INTERESADO','NO CONTESTA','NÚMERO EQUIVOCADO',
   'BUZÓN DE VOZ','CITA AGENDADA','CLIENTE ACTIVO','PENDIENTE','SIN RESULTADO','VENDIDO! 🏆'
@@ -5239,13 +5238,6 @@ const DEFAULT_BOARDS = [
 let BOARDS = [...DEFAULT_BOARDS];
 const VENDIDOS_BOARD = { id: 'vendidos', name: 'LEAD VENDIDOS', icon: '🏆', hidden: true };
 
-const STATE_PILL = {
-  'ACTIVO':     'pill-green',
-  'INACTIVO':   'pill-red',
-  'EN PROCESO': 'pill-yellow',
-  'CERRADO':    'pill-gray',
-  'NUEVO':      'pill-blue',
-};
 const RESULT_PILL = {
   'INTERESADO':       'pill-green',
   'CITA AGENDADA':    'pill-teal',
@@ -5938,8 +5930,7 @@ function renderRows(board, leads) {
         </td>`;
       }
       if (c.key === 'estado') {
-        const cls = STATE_PILL[l.estado] || 'pill-gray';
-        return `<td><span class="pill ${cls}">${esc(l.estado||'')}</span></td>`;
+        return `<td></td>`;
       }
       if (c.key === 'resultado') {
         const resOpts = ['', ...RESULTADOS].map(r =>
@@ -6113,7 +6104,6 @@ function buildForm(board, lead) {
   const selUb = ubOpts.map(u => `<option${v('ubicacion')===u?' selected':''}>${u}</option>`).join('');
   const selAgents = getAgents().map(a => `<option${v('asignado')===a?' selected':''}>${a}</option>`).join('');
   const selLead   = getLeadTypes().map(t => `<option${v('lead')===t?' selected':''}>${t}</option>`).join('');
-  const selEst    = ESTADOS.map(e => `<option${v('estado')===e?' selected':''}>${e}</option>`).join('');
   const selRes    = RESULTADOS.map(r => `<option${v('resultado')===r?' selected':''}>${r}</option>`).join('');
   const callerField = '';
 
@@ -6127,10 +6117,6 @@ function buildForm(board, lead) {
     <div class="field">
       <label>Lead</label>
       <select id="f_lead"><option value="">— Seleccionar —</option>${selLead}</select>
-    </div>
-    <div class="field">
-      <label>Estado</label>
-      <select id="f_estado"><option value="">— Seleccionar —</option>${selEst}</select>
     </div>
     <div class="field">
       <label>Email</label>
@@ -6238,7 +6224,6 @@ function saveLead() {
     entrada:     get('f_entrada') || 'Solicitud',
     asignado:    asignadoName,
     asignadoId:  asignadoUser ? asignadoUser.id : undefined,
-    estado:      get('f_estado'),
     resultado:   get('f_resultado'),
     notas:       get('f_notas'),
   };
