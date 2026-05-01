@@ -6018,7 +6018,14 @@ function renderRows(board, leads) {
           : `<span style="font-size:12px;color:var(--text2)">${esc(formatDate(l.creacion||''))}</span>`;
         return `<td><div style="display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap">${dateLabel}</div></td>`;
       }
-      if (c.key === 'notas') return `<td class="td-notes"><span title="${esc(l.notas||'')}">${esc(l.notas||'')}</span></td>`;
+      if (c.key === 'notas') {
+        const _structuredNotes = parseNotes(l._notes).filter(n => !n.system);
+        const _lastNote = _structuredNotes.length ? _structuredNotes[_structuredNotes.length - 1].text : '';
+        const _displayNote = _lastNote || l.notas || '';
+        const _count = _structuredNotes.length;
+        const _countBadge = _count > 1 ? ` <span style="font-size:9px;background:var(--accent);color:#fff;border-radius:8px;padding:1px 5px;flex-shrink:0">${_count}</span>` : '';
+        return `<td class="td-notes"><span style="display:flex;align-items:center;gap:4px;"><span title="${esc(_displayNote)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(_displayNote)}</span>${_countBadge}</span></td>`;
+      }
       if (c.key === 'tipo') {
         const tipoVal = l.tipo || 'Presencial';
         const isOnline = tipoVal === 'Online';
