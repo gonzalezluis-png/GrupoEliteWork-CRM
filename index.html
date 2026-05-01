@@ -2288,6 +2288,7 @@ setTimeout(function(){
             <button class="settings-nav-item" data-tab="permisos" id="snav-permisos" onclick="switchSettingsTab('permisos')">
               <span class="sni-icon-wrap">🔐</span>Permisos por Rol
             </button>
+            <button class="settings-nav-item" data-tab="cleanup" id="snav-cleanup" onclick="switchSettingsTab('cleanup')">🧹 Limpieza única</button>
             <button class="settings-nav-item" data-tab="vendidos" id="snav-vendidos" onclick="switchSettingsTab('vendidos')" style="color:#f5c400">
               <span class="sni-icon-wrap">🏆</span>Lead Vendidos
             </button>
@@ -3368,6 +3369,22 @@ setTimeout(function(){
           </div>
 
           <!-- TAB: Lead Vendidos -->
+          <div class="settings-tab" id="stab-cleanup">
+            <div class="st-header">
+              <div>
+                <div class="st-title">🧹 Limpieza única</div>
+                <div class="st-subtitle">Mueve a papelera los leads que quedaron con resultado NO INTERESADO o NÚMERO EQUIVOCADO antes de la corrección del sistema.</div>
+              </div>
+            </div>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px;">
+              <div id="cleanup-preview" style="font-size:12px;color:var(--text2);">Haz clic en "Revisar" para ver cuántos leads aplican.</div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="cleanupPreview()" style="font-size:12px;">🔍 Revisar</button>
+                <button class="btn btn-danger" id="cleanup-run-btn" onclick="cleanupRun()" style="font-size:12px;display:none;">🗑 Mover a papelera</button>
+              </div>
+            </div>
+          </div>
+
           <div class="settings-tab" id="stab-vendidos">
             <div class="st-header">
               <div>
@@ -11265,6 +11282,41 @@ function switchSettingsTab(tab) {
     if (_canUseZoom()) _loadZoomStatus().then(() => _renderZoomCard());
   }
   if (tab === 'vendidos') { renderVendidosSettings(); }
+}
+
+function _cleanupTargets() {
+  const targets = new Set(['NO INTERESADO', 'NÚMERO EQUIVOCADO']);
+  const found = [];
+  BOARDS.forEach(b => {
+    loadLeads(b.id).forEach(l => {
+      if (targets.has(l.resultado)) found.push({ boardId: b.id, boardName: b.name, lead: l });
+    });
+  });
+  return found;
+}
+
+function cleanupPreview() {
+  const found = _cleanupTargets();
+  const el = document.getElementById('cleanup-preview');
+  const btn = document.getElementById('cleanup-run-btn');
+  if (!found.length) {
+    el.innerHTML = '<span style="color:var(--green)">✅ No hay leads pendientes — todo está limpio.</span>';
+    btn.style.display = 'none';
+    return;
+  }
+  el.innerHTML = `Se encontraron <strong style="color:var(--red)">${found.length} leads</strong> con resultado NO INTERESADO o NÚMERO EQUIVOCADO en los boards:<br><br>`
+    + found.map(f => `• <strong>${f.lead.nombre||'Sin nombre'}</strong> — ${f.lead.resultado} (${f.boardName})`).join('<br>');
+  btn.style.display = '';
+}
+
+function cleanupRun() {
+  const found = _cleanupTargets();
+  if (!found.length) { showToast('No hay nada que limpiar'); return; }
+  if (!confirm(`¿Mover ${found.length} leads a la papelera? Esta acción no se puede deshacer.`)) return;
+  found.forEach(f => softDeleteLead(f.lead.id, f.boardId));
+  document.getElementById('cleanup-preview').innerHTML = `<span style="color:var(--green)">✅ ${found.length} leads movidos a la papelera.</span>`;
+  document.getElementById('cleanup-run-btn').style.display = 'none';
+  showToast(`🗑 ${found.length} leads movidos a papelera`, 'success');
 }
 
 function renderVendidosSettings() {
