@@ -107,10 +107,21 @@ function openNotesPanel(leadId, navList) {
     `<span style="background:${ch.bg};border:1px solid ${ch.b};border-radius:20px;padding:4px 12px;font-size:11px;color:${ch.c};font-weight:500">${esc(ch.label)}</span>`
   ).join('');
 
-  // populate resultado dropdown — always starts blank so same value can be re-selected
+  // populate resultado dropdown with usage counts (excluding deletion resultados)
+  const RESULTADO_EXCLUIR = new Set(['NO INTERESADO', 'NÚMERO EQUIVOCADO']);
+  const resCounts = {};
+  parseNotes(lead._notes).forEach(n => {
+    if (n.system && n.text && n.text.startsWith('Resultado: ')) {
+      const r = n.text.slice('Resultado: '.length).trim();
+      if (!RESULTADO_EXCLUIR.has(r)) resCounts[r] = (resCounts[r] || 0) + 1;
+    }
+  });
   const resSel = document.getElementById('notes-resultado-sel');
   resSel.innerHTML = `<option value="">— Seleccionar resultado —</option>` +
-    RESULTADOS.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+    RESULTADOS.map(r => {
+      const cnt = !RESULTADO_EXCLUIR.has(r) && resCounts[r] > 0 ? ` (×${resCounts[r]})` : '';
+      return `<option value="${esc(r)}">${esc(r)}${cnt}</option>`;
+    }).join('');
   resSel.value = '';
 
   // Migrate plain `notas` → `_notes` journal if needed

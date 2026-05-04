@@ -593,6 +593,24 @@ async function submitNote() {
   await saveLeads(_notesBoardId, leads, { isNote: true });
   document.getElementById('notes-new-input').value = '';
   _renderNotesJournal(lead);
+  // Refresh resultado counts in dropdown
+  const RESULTADO_EXCLUIR = new Set(['NO INTERESADO', 'NÚMERO EQUIVOCADO']);
+  const resCounts = {};
+  parseNotes(lead._notes).forEach(n => {
+    if (n.system && n.text && n.text.startsWith('Resultado: ')) {
+      const r = n.text.slice('Resultado: '.length).trim();
+      if (!RESULTADO_EXCLUIR.has(r)) resCounts[r] = (resCounts[r] || 0) + 1;
+    }
+  });
+  const resSel = document.getElementById('notes-resultado-sel');
+  if (resSel) {
+    resSel.innerHTML = `<option value="">— Seleccionar resultado —</option>` +
+      RESULTADOS.map(r => {
+        const cnt = !RESULTADO_EXCLUIR.has(r) && resCounts[r] > 0 ? ` (×${resCounts[r]})` : '';
+        return `<option value="${esc(r)}">${esc(r)}${cnt}</option>`;
+      }).join('');
+    resSel.value = '';
+  }
   if (resSelected) {
     // refresh info grid and tags after resultado change
     document.getElementById('np-info-grid').querySelectorAll('div').forEach((el,i) => {
