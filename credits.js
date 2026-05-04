@@ -606,8 +606,8 @@ async function submitNote() {
     document.getElementById('notes-lead-summary').innerHTML = npChips2.map(ch =>
       `<span style="background:${ch.bg};border:1px solid ${ch.b};border-radius:20px;padding:4px 12px;font-size:11px;color:${ch.c};font-weight:500">${esc(ch.label)}</span>`
     ).join('');
-    renderTableKeepSelection();
   }
+  renderTableKeepSelection();
   showToast('Guardado ✓', 'success');
 }
 
