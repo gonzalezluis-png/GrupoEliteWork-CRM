@@ -3,7 +3,13 @@
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "styles.css", "use": "@vercel/static" },
-    { "src": "app.js", "use": "@vercel/static" }
+    { "src": "app.js", "use": "@vercel/static" },
+    { "src": "tos.js", "use": "@vercel/static" },
+    { "src": "roles.js", "use": "@vercel/static" },
+    { "src": "tour.js", "use": "@vercel/static" },
+    { "src": "hashnav.js", "use": "@vercel/static" },
+    { "src": "vault.js", "use": "@vercel/static" },
+    { "src": "diagnostic.js", "use": "@vercel/static" }
   ],
   "routes": [
     { "handle": "filesystem" },
