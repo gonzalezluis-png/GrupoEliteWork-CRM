@@ -76,7 +76,7 @@ function _applyRealtimeKey(key) {
   if (key === FEEDBACK_KEY) {
     updateFeedbackBadge();
     const inboxOverlay = document.getElementById('feedback-inbox-overlay');
-    if (inboxOverlay && inboxOverlay.style.display !== 'none') renderFeedbackInbox();
+    if (inboxOverlay && inboxOverlay.classList.contains('open')) renderFeedbackInbox();
     return;
   }
 }

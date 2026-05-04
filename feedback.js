@@ -42,13 +42,13 @@ function openFeedbackSubmit() {
   const err = document.getElementById('feedback-submit-err');
   if (txt) txt.value = '';
   if (err) err.style.display = 'none';
-  if (overlay) overlay.style.display = 'flex';
+  if (overlay) overlay.classList.add('open');
   setTimeout(() => txt && txt.focus(), 50);
 }
 
 function closeFeedbackSubmit() {
   const overlay = document.getElementById('feedback-submit-overlay');
-  if (overlay) overlay.style.display = 'none';
+  if (overlay) overlay.classList.remove('open');
 }
 
 async function submitFeedback() {
@@ -83,7 +83,7 @@ async function submitFeedback() {
 // ── Inbox (master only) ──────────────────────
 function openFeedbackInbox() {
   const overlay = document.getElementById('feedback-inbox-overlay');
-  if (overlay) overlay.style.display = 'flex';
+  if (overlay) overlay.classList.add('open');
   renderFeedbackInbox();
   // Mark all as read
   const list = _loadFeedback();
@@ -95,7 +95,7 @@ function openFeedbackInbox() {
 
 function closeFeedbackInbox() {
   const overlay = document.getElementById('feedback-inbox-overlay');
-  if (overlay) overlay.style.display = 'none';
+  if (overlay) overlay.classList.remove('open');
 }
 
 function renderFeedbackInbox() {
