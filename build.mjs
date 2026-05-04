@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
-import { readFileSync, writeFileSync, unlinkSync, cpSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync, cpSync, rmSync, readdirSync } from 'fs';
 import { mkdirSync } from 'fs';
+import { createHash } from 'crypto';
 
 // JS files in execution order (init.js last — it calls everything)
 const JS_FILES = [
@@ -21,48 +22,55 @@ writeFileSync('dist/_temp.js', combined);
 
 await build({
   entryPoints: ['dist/_temp.js'],
-  outfile: 'dist/bundle.min.js',
+  outfile: 'dist/_bundle.js',
   minify: true,
   target: 'es2018',
   bundle: false,
 });
-
 unlinkSync('dist/_temp.js');
 
 // Bundle CSS
 await build({
   entryPoints: ['styles.css'],
-  outfile: 'dist/styles.min.css',
+  outfile: 'dist/_styles.css',
   minify: true,
 });
 
-// Build index.html — replace script/link tags
+// Generate content hashes for cache busting
+const jsContent  = readFileSync('dist/_bundle.js');
+const cssContent = readFileSync('dist/_styles.css');
+const jsHash  = createHash('md5').update(jsContent).digest('hex').slice(0, 8);
+const cssHash = createHash('md5').update(cssContent).digest('hex').slice(0, 8);
+
+const jsFinal  = `bundle.${jsHash}.js`;
+const cssFinal = `styles.${cssHash}.css`;
+
+// Remove old hashed files
+readdirSync('dist').forEach(f => {
+  if ((f.startsWith('bundle.') && f.endsWith('.js')) ||
+      (f.startsWith('styles.') && f.endsWith('.css'))) {
+    rmSync(`dist/${f}`);
+  }
+});
+
+// Write hashed files
+writeFileSync(`dist/${jsFinal}`,  jsContent);
+writeFileSync(`dist/${cssFinal}`, cssContent);
+unlinkSync('dist/_bundle.js');
+unlinkSync('dist/_styles.css');
+
+// Build index.html
 let html = readFileSync('index.html', 'utf8');
 
-// Replace individual CSS link
-html = html.replace(
-  '<link rel="stylesheet" href="styles.css">',
-  '<link rel="stylesheet" href="styles.min.css">'
-);
-
-// Replace all local <script defer src="..."> and <script src="..."> with single bundle
-html = html.replace(
-  /<script defer src="(?!https?:\/\/).*?"><\/script>\n?/g, ''
-);
-html = html.replace(
-  /<script src="(?!https?:\/\/)(?!https:\/\/).*?"><\/script>\n?/g, ''
-);
-
-// Insert bundle before </body>
-html = html.replace('</body>', '<script defer src="bundle.min.js"></script>\n</body>');
+html = html.replace('<link rel="stylesheet" href="styles.css">', `<link rel="stylesheet" href="${cssFinal}">`);
+html = html.replace(/<script defer src="(?!https?:\/\/).*?"><\/script>\n?/g, '');
+html = html.replace(/<script src="(?!https?:\/\/)(?!https:\/\/).*?"><\/script>\n?/g, '');
+html = html.replace('</body>', `<script defer src="${jsFinal}"></script>\n</body>`);
 
 writeFileSync('dist/index.html', html);
 
-// Copy CNAME for custom domain
 try { cpSync('CNAME', 'dist/CNAME'); } catch {}
 
-const size = (readFileSync('dist/bundle.min.js').length / 1024).toFixed(1);
-const cssSize = (readFileSync('dist/styles.min.css').length / 1024).toFixed(1);
-console.log(`✓ bundle.min.js  ${size} KB`);
-console.log(`✓ styles.min.css ${cssSize} KB`);
+console.log(`✓ ${jsFinal}  ${(jsContent.length / 1024).toFixed(1)} KB`);
+console.log(`✓ ${cssFinal}  ${(cssContent.length / 1024).toFixed(1)} KB`);
 console.log('Build complete → dist/');
