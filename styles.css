@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -197,8 +199,6 @@
     user-select: none; white-space: nowrap;
   }
   .theme-toggle-btn:hover { background: rgba(255,255,255,.13); color: var(--text); }
-
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
   html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); font-size: 13px; }
 
