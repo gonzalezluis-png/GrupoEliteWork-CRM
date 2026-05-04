@@ -225,6 +225,9 @@ setTimeout(function(){
     </div>
 
     <div id="toolbar">
+      <button id="mob-filter-toggle" onclick="toggleMobFilters()">
+        <span>⚙ Filtros</span><span class="filter-dot"></span>
+      </button>
       <div class="search-wrap">
         <span class="ico">🔍</span>
         <input type="text" id="search-input" placeholder="Buscar nombre, email, teléfono…" oninput="applyFilters()" />

@@ -294,6 +294,7 @@
   .btn-sm { padding: 4px 10px; font-size: 11px; }
 
   /* toolbar */
+  #mob-filter-toggle { display:none; }
   #toolbar {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 20px 12px;
@@ -1838,24 +1839,45 @@
   #board-title { font-size:15px; }
 
   /* ─── TOPBAR ─── */
-  #topbar { padding:10px 14px; gap:8px; }
+  #topbar { padding:8px 12px; gap:6px; }
   .topbar-user-name { display:none; }
   #btn-scripts-panel { padding:7px 10px !important; font-size:11px !important; }
   #btn-scripts-panel span:not(:first-child) { display:none; }
+  /* Theme toggle: icon only on mobile */
+  .theme-toggle-btn { padding:6px 8px !important; border-radius:50% !important; font-size:15px; }
+  .theme-label { display:none; }
+  /* Export and undo/redo hidden on mobile to save space */
+  #btn-export, #btn-undo, #btn-redo { display:none !important; }
+  #sync-status #sync-label { display:none; }
 
   /* ─── ASSIGN STRIP ─── */
   #assign-strip { padding:0 10px; overflow-x:auto; }
   .assign-tab { padding:10px 14px; font-size:12px; }
 
   /* ─── TOOLBAR ─── */
-  #toolbar {
-    flex-wrap:wrap; padding:10px 14px; gap:6px;
-  }
-  .search-wrap { width:100%; order:-1; }
+  #toolbar { flex-wrap:wrap; padding:8px 12px; gap:6px; }
+  .search-wrap { flex:1; order:-1; min-width:0; }
   .search-wrap input { width:100% !important; }
-  .filter-select { flex:1; min-width:120px; font-size:12px; }
-  #btn-new-lead, #btn-export { font-size:12px; padding:7px 12px; }
+  #btn-new-lead { font-size:12px; padding:7px 12px; order:-2; }
   .toolbar-count { display:none; }
+  /* Filter toggle button (mobile only) */
+  #mob-filter-toggle {
+    display:flex; align-items:center; gap:5px;
+    background:rgba(255,255,255,.07); border:1px solid var(--border);
+    border-radius:8px; padding:6px 10px; color:var(--text2);
+    font-size:11px; font-family:var(--font); cursor:pointer;
+    white-space:nowrap; transition:background .15s, color .15s;
+  }
+  #mob-filter-toggle.active { background:rgba(0,115,234,.15); border-color:var(--accent); color:var(--accent); }
+  #mob-filter-toggle .filter-dot {
+    width:6px; height:6px; border-radius:50%; background:var(--red);
+    display:none; flex-shrink:0;
+  }
+  #mob-filter-toggle.has-filters .filter-dot { display:inline-block; }
+  /* Collapsible filters */
+  #toolbar:not(.filters-open) .filter-select,
+  #toolbar:not(.filters-open) .date-filter-wrap { display:none; }
+  .filter-select { flex:1; min-width:calc(50% - 6px); font-size:12px; }
   #f-fecha-desde, #f-fecha-hasta, #btn-clear-dates { font-size:11px; }
 
   /* ─── TABLE ─── */
@@ -1872,7 +1894,7 @@
 
   /* ─── MODALS ─── */
   .overlay { align-items:flex-end !important; padding:0 !important; }
-  #modal-box, .confirm-box, #reassign-box, #restore-box,
+  .modal, .confirm-box, #reassign-box, #restore-box,
   #notes-panel-box, #user-modal-box, #cita-modal-box,
   #approve-modal-box, #user-action-box, #terms-modal-card,
   .wlc-card {
@@ -1881,7 +1903,9 @@
     max-height:92vh; overflow-y:auto;
   }
   .wlc-card { border-radius:20px !important; width:90vw !important; }
-  #modal-box { max-height:90vh; }
+  #modal { max-height:88vh; }
+  #feedback-submit-overlay .modal,
+  #feedback-inbox-overlay .modal { border-radius:20px 20px 0 0 !important; }
   .form-grid { grid-template-columns:1fr !important; }
   .form-full { grid-column:1 !important; }
 

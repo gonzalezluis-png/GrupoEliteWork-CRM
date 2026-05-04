@@ -74,6 +74,7 @@ function toggleSort(col) {
 }
 
 function applyFilters() {
+  if (typeof updateMobFilterDot === 'function') updateMobFilterDot();
   if (!currentBoardId) return;
   const session = getSession();
   const board   = getBoard(currentBoardId) || BOARDS[0];

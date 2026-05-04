@@ -2,38 +2,70 @@
 // ════════════════════════════════════════════
 function initResizers() {
   document.querySelectorAll('.col-resizer').forEach(handle => {
-    handle.addEventListener('mousedown', e => {
-      e.preventDefault();
+    const startDrag = (startX) => {
       const col  = handle.dataset.col;
       const th   = handle.parentElement;
-      const startX = e.clientX;
       const startW = th.offsetWidth;
       handle.classList.add('dragging');
 
-      const onMove = e => {
-        const newW = Math.max(60, startW + e.clientX - startX);
+      const applyWidth = (clientX) => {
+        const newW = Math.max(60, startW + clientX - startX);
         COL_WIDTHS[col] = newW;
         th.style.width = newW + 'px';
-        // also update all td cells in that column
         const colIdx = Array.from(th.parentElement.children).indexOf(th);
-        document.querySelectorAll(`#leads-table tbody tr`).forEach(row => {
+        document.querySelectorAll('#leads-table tbody tr').forEach(row => {
           const td = row.children[colIdx];
           if (td) td.style.width = newW + 'px';
         });
       };
-      const onUp = () => {
+      const endDrag = () => {
         handle.classList.remove('dragging');
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-        // persist widths
         const cfg = loadColConfig();
         cfg.widths = { ...(cfg.widths||{}), ...COL_WIDTHS };
         saveColConfig(cfg);
       };
+
+      // Mouse
+      const onMove = e => applyWidth(e.clientX);
+      const onUp   = () => {
+        endDrag();
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
-    });
+
+      // Touch
+      const onTMove = e => { e.preventDefault(); applyWidth(e.touches[0].clientX); };
+      const onTEnd  = () => {
+        endDrag();
+        document.removeEventListener('touchmove', onTMove);
+        document.removeEventListener('touchend', onTEnd);
+      };
+      document.addEventListener('touchmove', onTMove, { passive: false });
+      document.addEventListener('touchend', onTEnd);
+    };
+
+    handle.addEventListener('mousedown', e => { e.preventDefault(); startDrag(e.clientX); });
+    handle.addEventListener('touchstart', e => { e.preventDefault(); startDrag(e.touches[0].clientX); }, { passive: false });
   });
+}
+
+// ── Mobile filter toggle ─────────────────────
+function toggleMobFilters() {
+  const toolbar = document.getElementById('toolbar');
+  const btn = document.getElementById('mob-filter-toggle');
+  if (!toolbar) return;
+  toolbar.classList.toggle('filters-open');
+  if (btn) btn.classList.toggle('active', toolbar.classList.contains('filters-open'));
+}
+
+function updateMobFilterDot() {
+  const btn = document.getElementById('mob-filter-toggle');
+  if (!btn) return;
+  const hasFilter = ['f-asignado','f-lead','f-resultado','f-fecha-desde','f-fecha-hasta']
+    .some(id => { const el = document.getElementById(id); return el && el.value; });
+  btn.classList.toggle('has-filters', hasFilter);
 }
 
 // ════════════════════════════════════════════

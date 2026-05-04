@@ -185,7 +185,7 @@ function applyTheme(mode) {
   const isLight = mode === 'light';
   document.documentElement.classList.toggle('light-mode', isLight);
   const btn = document.getElementById('btn-theme');
-  if (btn) btn.innerHTML = isLight ? '🌙 Oscuro' : '☀️ Claro';
+  if (btn) btn.innerHTML = isLight ? '🌙<span class="theme-label"> Oscuro</span>' : '☀️<span class="theme-label"> Claro</span>';
 }
 function toggleTheme() {
   const current = localStorage.getItem('gew_theme') || 'dark';
