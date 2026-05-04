@@ -33,6 +33,7 @@
     document.getElementById('login-screen').classList.add('hidden');
     initApp(_session);
     updatePendingBadge();
+    updateFeedbackBadge();
     // Handle Zoom OAuth callback if redirected back from Zoom
     if (window.location.search.includes('code=')) _handleZoomOAuthCallback();
     // Pre-load Zoom status for call buttons

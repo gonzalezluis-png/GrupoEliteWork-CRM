@@ -1,5 +1,6 @@
 //  SUPABASE
 // ════════════════════════════════════════════
+const FEEDBACK_KEY = 'gew_feedback';
 const SUPA_URL = 'https://vpwbczzmonboirjckpmy.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwd2Jjenptb25ib2lyamNrcG15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MjAwMDUsImV4cCI6MjA5MjI5NjAwNX0._JCs7b6xMKgqskbCAdg6j9nW6UdMfPRPcwScLp9YCZM';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -70,6 +71,12 @@ function _applyRealtimeKey(key) {
     updatePendingBadge();
     const reqTab = document.getElementById('stab-requests');
     if (reqTab && reqTab.classList.contains('active')) renderPendingList();
+    return;
+  }
+  if (key === FEEDBACK_KEY) {
+    updateFeedbackBadge();
+    const inboxOverlay = document.getElementById('feedback-inbox-overlay');
+    if (inboxOverlay && inboxOverlay.style.display !== 'none') renderFeedbackInbox();
     return;
   }
 }

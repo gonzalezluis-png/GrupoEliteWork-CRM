@@ -11,6 +11,7 @@ const JS_FILES = [
   'terms.js', 'notes-chat.js', 'conversations.js', 'credits.js',
   'backup.js', 'supabase.js',
   'tos.js', 'roles.js', 'tour.js', 'hashnav.js', 'vault.js', 'diagnostic.js',
+  'feedback.js',
   'init.js',
 ];
 
