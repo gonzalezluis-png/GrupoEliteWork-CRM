@@ -224,8 +224,18 @@ function renderRows(board, leads) {
           ? `display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;cursor:pointer;letter-spacing:.2px`
           : `display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:5px;padding:6px 12px;font-size:11px;font-weight:500;color:var(--text2);white-space:nowrap;cursor:pointer`;
         const _resDot = `<span style="width:7px;height:7px;border-radius:50%;background:${_resDotColor};flex-shrink:0;display:inline-block"></span>`;
+        const _EXCLUIR_CNT = new Set(['NO INTERESADO','NÚMERO EQUIVOCADO']);
+        let _resCnt = 0;
+        if (displayVal && !_EXCLUIR_CNT.has(displayVal)) {
+          try {
+            JSON.parse(l._notes || '[]').forEach(n => {
+              if (n.system && n.text === `Resultado: ${displayVal}`) _resCnt++;
+            });
+          } catch(e) {}
+        }
+        const _resCntBadge = _resCnt > 1 ? `<span style="background:rgba(255,255,255,.12);border-radius:10px;padding:1px 5px;font-size:9px;font-weight:700;color:var(--text2);margin-left:2px">×${_resCnt}</span>` : '';
         return `<td style="text-align:center;vertical-align:middle" class="td-inline" onclick="event.stopPropagation()">
-          <div style="${_resTag}" onclick="openInlineSel(this)">${_resDot}${esc(displayVal||'Sin resultado')} <span style="opacity:.4;font-size:9px;margin-left:2px">▾</span></div>
+          <div style="${_resTag}" onclick="openInlineSel(this)">${_resDot}${esc(displayVal||'Sin resultado')}${_resCntBadge} <span style="opacity:.4;font-size:9px;margin-left:2px">▾</span></div>
           <select class="inline-select" style="display:none"
             onchange="saveInlineField(this,'${l.id}','resultado')"
             onblur="closeInlineSel(this)">${resOpts}</select>
