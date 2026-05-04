@@ -340,7 +340,7 @@ function renderRows(board, leads) {
       if (c.key === 'telefono') {
         const ph = l.telefono || '';
         const _zoomPhone = ph.replace(/\D/g,'').replace(/^(\d{10})$/,'+1$1').replace(/^1(\d{10})$/,'+1$1') || ph;
-        const callBtn = ph ? `<a href="zoomus://zoom.us/call?callee=${encodeURIComponent(_zoomPhone)}" onclick="event.stopPropagation()" title="Llamar por Zoom" style="background:none;border:none;color:var(--text2);padding:1px 4px;font-size:15px;cursor:pointer;flex-shrink:0;line-height:1;text-decoration:none;display:inline-flex;align-items:center;opacity:.5;transition:opacity .15s" onmouseover="this.style.opacity='1';this.style.color='#2D8CFF'" onmouseout="this.style.opacity='.5';this.style.color='var(--text2)'">&#9990;</a>` : '';
+        const callBtn = ph ? `<a href="zoomus://zoom.us/call?callee=${encodeURIComponent(_zoomPhone)}" onclick="event.stopPropagation()" title="Llamar por Zoom" style="background:none;border:none;color:var(--text2);padding:1px 4px;font-size:30px;cursor:pointer;flex-shrink:0;line-height:1;text-decoration:none;display:inline-flex;align-items:center;opacity:.5;transition:opacity .15s" onmouseover="this.style.opacity='1';this.style.color='#2D8CFF'" onmouseout="this.style.opacity='.5';this.style.color='var(--text2)'">&#9990;</a>` : '';
         return `<td><div style="display:flex;align-items:center;gap:5px;white-space:nowrap">${esc(ph)}${callBtn}</div></td>`;
       }
       return `<td>${esc(l[c.key]||'')}</td>`;
