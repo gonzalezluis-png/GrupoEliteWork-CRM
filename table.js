@@ -233,7 +233,7 @@ function renderRows(board, leads) {
             });
           } catch(e) {}
         }
-        const _resCntBadge = _resCnt > 1 ? `<span style="background:rgba(255,255,255,.12);border-radius:10px;padding:1px 5px;font-size:9px;font-weight:700;color:var(--text2);margin-left:2px">×${_resCnt}</span>` : '';
+        const _resCntBadge = _resCnt > 1 ? `<span style="background:rgba(253,171,61,.18);border-radius:10px;padding:1px 5px;font-size:9px;font-weight:700;color:#fdab3d;margin-left:2px">×${_resCnt}</span>` : '';
         return `<td style="text-align:center;vertical-align:middle" class="td-inline" onclick="event.stopPropagation()">
           <div style="${_resTag}" onclick="openInlineSel(this)">${_resDot}${esc(displayVal||'Sin resultado')}${_resCntBadge} <span style="opacity:.4;font-size:9px;margin-left:2px">▾</span></div>
           <select class="inline-select" style="display:none"
