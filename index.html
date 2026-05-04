@@ -141,9 +141,9 @@ setTimeout(function(){
     </div>
 
     <!-- Buzón de Recomendaciones (visible to all) -->
-    <div style="padding:10px 10px 14px;margin-top:auto">
-      <button id="feedback-btn" onclick="openFeedbackSubmit()" style="width:100%;background:none;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 12px;color:var(--text2);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:var(--font);transition:all .2s;text-align:left" onmouseover="this.style.borderColor='rgba(253,171,61,.3)';this.style.color='#fdab3d'" onmouseout="this.style.borderColor='rgba(255,255,255,.08)';this.style.color='var(--text2)'">
-        <span style="font-size:14px;opacity:.7">📬</span>
+    <div style="padding:4px 12px 12px">
+      <button id="feedback-btn" onclick="openFeedbackSubmit()" style="width:100%;background:none;border:none;border-top:1px solid rgba(255,255,255,.06);padding:8px 4px 0;color:rgba(255,255,255,.3);font-size:10px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--font);transition:color .2s;text-align:left" onmouseover="this.style.color='#fdab3d'" onmouseout="this.style.color='rgba(255,255,255,.3)'">
+        <span style="font-size:12px">📬</span>
         <span style="flex:1">Buzón de Recomendaciones</span>
         <span id="feedback-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;min-width:16px;text-align:center"></span>
       </button>
