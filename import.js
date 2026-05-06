@@ -288,8 +288,8 @@ function impToggleAI(ri, useAI) {
   if (useAI && row.aiAddress) {
     setRowField(ri, 'direccion', row.aiAddress);
   } else {
-    // Restore the original address the lead had before AI ran
-    const original = row.originalDireccion !== undefined ? row.originalDireccion : getRowField(ri, 'direccion');
+    // Restore the original address — pass row object, not index
+    const original = row.originalDireccion !== undefined ? row.originalDireccion : getRowField(row, 'direccion');
     setRowField(ri, 'direccion', original);
   }
   renderImportEditTable();
@@ -550,10 +550,10 @@ async function aiCompleteAddresses() {
     data.result.forEach(r => {
       const row = pastedRows[r.idx];
       if (!row || !r.direccion_completa) return;
-      // Store original before touching anything
-      if (row.originalDireccion === undefined) row.originalDireccion = getRowField(r.idx, 'direccion');
+      // Store original before touching anything — pass row object, not index
+      if (row.originalDireccion === undefined) row.originalDireccion = getRowField(row, 'direccion');
       row.aiAddress    = r.direccion_completa;
-      row.useAiAddress = false; // user must explicitly choose IA
+      row.useAiAddress = false; // user must explicitly choose IA — never auto-apply
       count++;
     });
 

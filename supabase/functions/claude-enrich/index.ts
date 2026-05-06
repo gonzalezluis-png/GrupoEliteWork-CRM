@@ -67,32 +67,27 @@ Responde ÚNICAMENTE con el array JSON.`,
     if (task === 'complete_addresses') {
       // data: array of { idx, direccion, ubicacion, boardContext? }
       const boardContext = data[0]?.boardContext || ''
-      systemPrompt = `Eres un experto en normalización de direcciones postales de Estados Unidos.
-Para cada entrada devuelve ÚNICAMENTE el array JSON, sin texto adicional ni markdown.
+      systemPrompt = `Eres un normalizador de direcciones postales de Estados Unidos. Tu trabajo es MUY limitado — lee con atención.
 
-REGLAS — léelas todas antes de responder:
+REGLA PRINCIPAL — NUNCA INVENTES DATOS:
+No añadas ciudad, estado ni ZIP que NO estén ya escritos en la dirección original.
+Si lo haces, cometes un error grave.
 
-1. ZIP CODE SOLO (exactamente 5 dígitos, ej: "77001"):
-   → Devuelve la ciudad y estado REAL que corresponde a ese ZIP. Formato: "Ciudad, ST ZIPCODE"
-   → SOLO si conoces con certeza ese ZIP. Si no lo conoces, devuelve direccion_completa = direccion original.
+LO ÚNICO QUE PUEDES HACER:
 
-2. DIRECCIÓN CON NÚMERO DE CALLE Y NOMBRE DE CALLE (ej: "123 Main St"):
-   → Si el campo "ubicacion" o "boardContext" indica ciudad/estado, úsalos para completar.
-   → Normaliza abreviaciones: Street→St, Avenue→Ave, Boulevard→Blvd, Drive→Dr, Lane→Ln, Road→Rd, Court→Ct, Place→Pl.
-   → Si no puedes confirmar ciudad/estado con certeza, devuelve solo la parte que sí conoces sin inventar ciudad.
+CASO 1 — La dirección es ÚNICAMENTE 5 dígitos (ej: "77001", "33101"):
+→ Devuelve "Ciudad, ST ZIPCODE" si conoces ese ZIP con total certeza.
+→ Si tienes la mínima duda, devuelve la dirección original sin cambios.
 
-3. YA COMPLETA (tiene número, calle, ciudad, estado y/o ZIP):
-   → Solo normaliza formato y capitalización. NO cambies ningún dato.
+CASO 2 — La dirección ya tiene calle (ej: "123 Main Street", "456 Oak Ave Dallas TX"):
+→ Solo normaliza capitalización y abrevia: Street→St, Avenue→Ave, Boulevard→Blvd, Drive→Dr, Lane→Ln, Road→Rd, Court→Ct, Place→Pl, Apartment→Apt.
+→ NO añadas ciudad ni estado si no estaban ya.
 
-4. DIRECCIÓN CORTA, AMBIGUA O INCOHERENTE:
-   → Si no puedes hacer una coincidencia con alta certeza, devuelve direccion_completa = la misma direccion original SIN cambios.
-   → NUNCA inventes ciudades, estados ni ZIPs que no correspondan claramente a la dirección dada.
+CASO 3 — Cualquier otra cosa (ambigua, muy corta, texto incoherente):
+→ Devuelve la dirección original exactamente como llegó, sin ningún cambio.
 
-5. CONTEXTO:
-   → boardContext: "${boardContext}" — si indica un estado o ciudad, úsalo como referencia prioritaria.
-   → ubicacion del lead también puede indicar la zona geográfica.
-
-Formato de respuesta: [{"idx":0,"direccion_completa":"valor"}, ...]`
+Formato de respuesta — SOLO el array JSON, sin texto ni markdown:
+[{"idx":0,"direccion_completa":"valor"}, ...]`
 
       userPrompt = `Normaliza estas direcciones:\n${JSON.stringify(data, null, 2)}`
     } else {
