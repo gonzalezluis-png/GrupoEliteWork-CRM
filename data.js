@@ -78,7 +78,6 @@ const DEFAULT_BOARDS = [
   { id: 'virginia',   name: 'LEAD VIRGINIA',             icon: '🌿',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Virginia'] },
   { id: 'washington', name: 'LEAD WASHINGTON',           icon: '🌲',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Washington'] },
   { id: 'nebraska',        name: 'LEAD NEBRASKA',        icon: '🌾',  hasCaller: false, hasSolicitudes: false, ubicaciones: ['Nebraska'] },
-  { id: 'postulados-meta', name: 'POSTULADOS POR META',  icon: '📣',  hasCaller: false, hasSolicitudes: false, ubicaciones: [] },
 ];
 let BOARDS = [...DEFAULT_BOARDS];
 const VENDIDOS_BOARD = { id: 'vendidos', name: 'LEAD VENDIDOS', icon: '🏆', hidden: true };
