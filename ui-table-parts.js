@@ -221,6 +221,11 @@ function applyBulkEdit() {
   const _bulkAsignadoId   = _bulkAsignadoUser ? _bulkAsignadoUser.id : null;
 
   const doApply = (mode) => {
+    const prevAgents = asignado
+      ? [...new Set(leads.filter(l => snapshotIds.has(l.id)).map(l => l.asignado).filter(Boolean))]
+      : [];
+    const leadNames = [...leads.filter(l => snapshotIds.has(l.id)).map(l => l.nombre || l.email || l.id)];
+
     let changed = 0;
     leads.forEach(l => {
       if (!snapshotIds.has(l.id)) return;
@@ -237,6 +242,12 @@ function applyBulkEdit() {
     saveLeads(boardId, leads);
     renderTableKeepSelection();
     showToast(`${changed} lead${changed !== 1 ? 's' : ''} actualizados ✓`, 'success');
+    if (asignado) {
+      const fromLabel = prevAgents.length === 1 ? prevAgents[0]
+                      : prevAgents.length > 1   ? `${prevAgents.length} agentes anteriores`
+                      : 'Sin asignar';
+      showTransferReceipt({ fromAgent: fromLabel, toAgent: asignado, count: changed, leadNames });
+    }
   };
 
   if (asignado) {

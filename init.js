@@ -20,8 +20,6 @@
   const _isPreview = await _initPreviewMode();
 
   await seedDefaultAdmin();
-  await seedAlexanderAgents();
-  await seedAlexanderAgentsV2();
   refreshBoards();
   seedTestLeads();
   // show org name on login screen

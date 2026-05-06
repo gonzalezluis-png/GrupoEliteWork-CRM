@@ -172,6 +172,56 @@ function cancelReassign() {
   document.getElementById('reassign-modal-overlay').classList.remove('open');
 }
 
+// ── Transfer receipt modal ────────────────────────────────────────────────────
+function showTransferReceipt({ fromAgent, toAgent, count, leadNames = [] }) {
+  const existing = document.getElementById('transfer-receipt-overlay');
+  if (existing) existing.remove();
+
+  const fromLabel = fromAgent || 'Sin asignar';
+  const toLabel   = toAgent   || 'Sin asignar';
+  const title     = count === 1
+    ? `✅ Lead trasladado`
+    : `✅ ${count} leads trasladados`;
+  const subtitle  = count === 1
+    ? `<strong>${esc(leadNames[0] || 'Lead')}</strong> fue trasladado`
+    : `${count} leads fueron trasladados`;
+  const namesHtml = leadNames.length
+    ? `<div style="margin-top:10px;max-height:120px;overflow-y:auto;background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;">
+        ${leadNames.slice(0, 20).map(n => `<div style="font-size:12px;color:var(--text2);padding:2px 0">· ${esc(n)}</div>`).join('')}
+        ${leadNames.length > 20 ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">…y ${leadNames.length - 20} más</div>` : ''}
+       </div>` : '';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'transfer-receipt-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;animation:fadein .2s ease';
+  overlay.innerHTML = `
+    <div style="background:#1a1d2e;border:1px solid rgba(0,200,117,.3);border-radius:16px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.7);font-family:var(--font,sans-serif);">
+      <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">${title}</div>
+      <div style="font-size:13px;color:var(--text2,#8890a4);margin-bottom:20px">${subtitle}</div>
+
+      <div style="display:flex;align-items:center;gap:0;border-radius:10px;overflow:hidden;border:1px solid var(--border,#2a2d3e);">
+        <div style="flex:1;padding:14px 16px;background:rgba(226,68,92,.08);">
+          <div style="font-size:10px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">De</div>
+          <div style="font-size:14px;font-weight:700;color:#fff">${esc(fromLabel)}</div>
+        </div>
+        <div style="padding:0 10px;font-size:20px;color:var(--text3,#676a82)">→</div>
+        <div style="flex:1;padding:14px 16px;background:rgba(0,200,117,.08);">
+          <div style="font-size:10px;font-weight:700;color:#00c875;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Para</div>
+          <div style="font-size:14px;font-weight:700;color:#fff">${esc(toLabel)}</div>
+        </div>
+      </div>
+
+      ${namesHtml}
+
+      <button onclick="document.getElementById('transfer-receipt-overlay').remove()"
+        style="margin-top:20px;width:100%;padding:10px;background:rgba(0,200,117,.15);border:1px solid rgba(0,200,117,.3);border-radius:8px;color:#00c875;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+        Entendido ✓
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
 // ── Assign undo snackbar ──
 let _assignUndoTimer = null;
 let _assignUndoData  = null;

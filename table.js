@@ -65,11 +65,11 @@ function renderTable() {
   applyFilters();
 }
 
-let _sortCol = null;
-let _sortDir = 'asc';
+let _sortCol = 'creacion';
+let _sortDir = 'desc';
 function toggleSort(col) {
   if (_sortCol === col) { _sortDir = _sortDir === 'asc' ? 'desc' : 'asc'; }
-  else { _sortCol = col; _sortDir = 'asc'; }
+  else { _sortCol = col; _sortDir = 'desc'; }
   renderTable();
 }
 
@@ -554,7 +554,7 @@ function saveLead() {
         saveLeads(saveBoardId, leads);
         closeModal();
         renderTable();
-        showToast('Lead transferido ✓', 'success');
+        showTransferReceipt({ fromAgent: oldLead.asignado, toAgent: newAgent, count: 1, leadNames: [oldLead.nombre || oldLead.email || oldLead.id] });
       });
       return;
     }

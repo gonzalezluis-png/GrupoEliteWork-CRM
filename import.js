@@ -286,8 +286,11 @@ function impToggleAI(ri, useAI) {
   const row = pastedRows[ri];
   row.useAiAddress = useAI;
   if (useAI && row.aiAddress) {
-    // Apply AI address to direccion field only — ubicacion is chosen by the user
     setRowField(ri, 'direccion', row.aiAddress);
+  } else {
+    // Restore the original address the lead had before AI ran
+    const original = row.originalDireccion !== undefined ? row.originalDireccion : getRowField(ri, 'direccion');
+    setRowField(ri, 'direccion', original);
   }
   renderImportEditTable();
 }
@@ -529,11 +532,16 @@ async function aiCompleteAddresses() {
   status.textContent = `Enviando ${payload.length} direcciones a Claude…`;
   status.style.color = 'var(--text2)';
 
+  // Pass board context so Claude can infer state/city from the board name
+  const globalDest = document.getElementById('global-dest')?.value || '';
+  const boardCtx   = getBoard(globalDest)?.name || '';
+  const payloadWithCtx = payload.map(p => ({ ...p, boardContext: boardCtx }));
+
   try {
     const res = await fetch(`${SUPA_FN_URL}/claude-enrich`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPA_KEY}` },
-      body: JSON.stringify({ task: 'complete_addresses', data: payload }),
+      body: JSON.stringify({ task: 'complete_addresses', data: payloadWithCtx }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Error de IA');
@@ -542,10 +550,10 @@ async function aiCompleteAddresses() {
     data.result.forEach(r => {
       const row = pastedRows[r.idx];
       if (!row || !r.direccion_completa) return;
+      // Store original before touching anything
+      if (row.originalDireccion === undefined) row.originalDireccion = getRowField(r.idx, 'direccion');
       row.aiAddress    = r.direccion_completa;
-      row.useAiAddress = true;
-      // Auto-apply to direccion field only — ubicacion is chosen by the user
-      setRowField(r.idx, 'direccion', r.direccion_completa);
+      row.useAiAddress = false; // user must explicitly choose IA
       count++;
     });
 

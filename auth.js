@@ -231,43 +231,9 @@ async function seedDefaultAdmin() {
   // Seed removed — real users exist; admin@grupoelitework.com with plain-text password was a security vector
 }
 
-async function seedAlexanderAgentsV2() {
-  if (localStorage.getItem('gew_seed_alexander_agents_v2')) return;
-  const users = loadUsers();
-  const deletedEmails = new Set(loadDeletedUsers().map(u => (u.email||'').toLowerCase()));
-  const alexander = users.find(u => u.email === 'alexander@gmail.com') || users.find(u => u.name && u.name.toLowerCase().includes('alexander'));
-  if (!alexander) { localStorage.setItem('gew_seed_alexander_agents_v2', '1'); supaSync('gew_seed_alexander_agents_v2', '1'); return; }
-  const names = ['Orlando','Lianet','Edgar','Christopher','Cecilia'];
-  let changed = false;
-  names.forEach(name => {
-    const emailName = name.toLowerCase().replace(/\s+/g, '') + '@gmail.com';
-    if (users.find(u => u.email === emailName) || deletedEmails.has(emailName)) return;
-    users.push({ id: uid(), name: name, email: emailName, password: '123456', role: 'agent', orgManagerId: alexander.id, termsAccepted: true, mustChangePassword: true, createdAt: today() });
-    changed = true;
-  });
-  if (changed) { await saveUsers(users); showToast('5 agentes adicionales de Alexander agregados ✓', 'success'); }
-  localStorage.setItem('gew_seed_alexander_agents_v2', '1');
-  supaSync('gew_seed_alexander_agents_v2', '1');
-}
+async function seedAlexanderAgentsV2() {}
 
-async function seedAlexanderAgents() {
-  if (localStorage.getItem('gew_seed_alexander_agents_v1')) return;
-  const users = loadUsers();
-  const deletedEmails = new Set(loadDeletedUsers().map(u => (u.email||'').toLowerCase()));
-  const alexander = users.find(u => u.email === 'alexander@gmail.com') || users.find(u => u.name && u.name.toLowerCase().includes('alexander'));
-  if (!alexander) { localStorage.setItem('gew_seed_alexander_agents_v1', '1'); supaSync('gew_seed_alexander_agents_v1', '1'); return; }
-  const names = ['Harold','Kenia','Lisbeth','Chacha','Barbara','Augusto','Bryan','Yarlys','Yarisleidy','Madison','Marta','Guadalupe','Neyda','Maria Lugo','Elizabeth'];
-  let changed = false;
-  names.forEach(name => {
-    const emailName = name.toLowerCase().replace(/\s+/g, '') + '@gmail.com';
-    if (users.find(u => u.email === emailName) || deletedEmails.has(emailName)) return;
-    users.push({ id: uid(), name: name, email: emailName, password: '123456', role: 'agent', orgManagerId: alexander.id, termsAccepted: true, mustChangePassword: true, createdAt: today() });
-    changed = true;
-  });
-  if (changed) { await saveUsers(users); showToast('15 agentes de Alexander agregados ✓', 'success'); }
-  localStorage.setItem('gew_seed_alexander_agents_v1', '1');
-  supaSync('gew_seed_alexander_agents_v1', '1');
-}
+async function seedAlexanderAgents() {}
 
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
