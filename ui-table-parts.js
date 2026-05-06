@@ -240,7 +240,8 @@ function applyBulkEdit() {
       changed++;
     });
     saveLeads(boardId, leads);
-    renderTableKeepSelection();
+    selectedIds.clear();
+    renderTable();
     showToast(`${changed} lead${changed !== 1 ? 's' : ''} actualizados ✓`, 'success');
     if (asignado) {
       const fromLabel = prevAgents.length === 1 ? prevAgents[0]
