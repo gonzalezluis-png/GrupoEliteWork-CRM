@@ -10,8 +10,40 @@ const SUPA_SVC_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const VERIFY_TOKEN = Deno.env.get('META_VERIFY_TOKEN') || 'grupoelite2026'
 const APP_SECRET   = Deno.env.get('META_APP_SECRET')   || ''
 const ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN') || ''
+const RAILWAY_URL  = Deno.env.get('RAILWAY_URL') || 'https://elite-reclutamiento-production.up.railway.app'
 const BOARD_ID     = 'postulados-meta'
 const KV_KEY       = `gew_leads_${BOARD_ID}`
+
+// ── Office hours check (America/Chicago = Central Time) ───────────────────────
+function isOfficeHours(): boolean {
+  const now = new Date()
+  // Convert to Central Time
+  const ct  = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }))
+  const day  = ct.getDay()   // 0=Sun, 1=Mon, ..., 6=Sat
+  const hour = ct.getHours()
+  const min  = ct.getMinutes()
+  const timeVal = hour * 60 + min  // minutes since midnight
+
+  if (day >= 1 && day <= 5) return timeVal >= 9 * 60 && timeVal < 18 * 60  // Mon-Fri 9am-6pm
+  if (day === 6)             return timeVal >= 9 * 60 && timeVal < 12 * 60  // Sat 9am-12pm
+  return false
+}
+
+// ── Send WhatsApp welcome via Railway ─────────────────────────────────────────
+async function sendWelcome(telefono: string, nombre: string) {
+  if (!telefono || !isOfficeHours()) return
+  const firstName = nombre.split(' ')[0] || nombre
+  const msg = `Hola ${firstName}, hemos recibido tu solicitud para Grupo Elite, es un placer. En breve te estaremos llamando para darte más información.`
+  try {
+    await fetch(`${RAILWAY_URL}/meta/wa-send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: telefono, body: msg }),
+    })
+  } catch (e) {
+    console.error('Welcome WA send failed:', e)
+  }
+}
 
 // ── Supabase kv_store helpers ─────────────────────────────────────────────────
 async function kvGet(key: string): Promise<any[]> {
@@ -126,12 +158,58 @@ serve(async (req) => {
     const rawBody = await req.text()
     const sig     = req.headers.get('x-hub-signature-256') || ''
 
+    let body: any
+    try { body = JSON.parse(rawBody) } catch { return new Response('Bad JSON', { status: 400 }) }
+
+    // ── Make.com direct lead format ───────────────────────────────────────────
+    if (url.searchParams.get('source') === 'make' || body._source === 'make') {
+      const id      = `meta_${body.id || crypto.randomUUID()}`
+      const creacion = body.created_time
+        ? new Date(body.created_time).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0]
+
+      const lead: Record<string, any> = {
+        id,
+        nombre:    body.full_name || body.nombre || body.name || '',
+        email:     body.email || '',
+        telefono:  body.phone_number || body.phone || body.telefono || '',
+        ubicacion: body.city || body.ubicacion || body.location || '',
+        hijos:     body.hijos || body.children || body.dependents || '',
+        direccion: body.street_address || body.address || body.direccion || '',
+        notas:     [
+          body.ad_name       ? `Anuncio: ${body.ad_name}`      : '',
+          body.adset_name    ? `Conjunto: ${body.adset_name}`   : '',
+          body.campaign_name ? `Campaña: ${body.campaign_name}` : '',
+        ].filter(Boolean).join(' | '),
+        lead:      'GUÍA DE INFORMACIÓN',
+        entrada:   'Meta Lead Ads',
+        resultado: 'SIN RESULTADO',
+        asignado:  '',
+        estado:    '',
+        tipo:      'Presencial',
+        creacion,
+        _updatedAt:     new Date().toISOString(),
+        _metaLeadgenId: body.id || '',
+        _metaFormId:    body.form_id || '',
+        _metaAdId:      body.ad_id   || '',
+      }
+
+      const existingLeads = await kvGet(KV_KEY)
+      const alreadyExists = existingLeads.some((l: any) => l._metaLeadgenId && l._metaLeadgenId === body.id)
+      if (!alreadyExists) {
+        existingLeads.unshift(lead)
+        await kvSet(KV_KEY, existingLeads)
+        sendWelcome(lead.telefono, lead.nombre) // fire-and-forget
+      }
+      return new Response(JSON.stringify({ ok: true, added: alreadyExists ? 0 : 1 }), {
+        headers: { ...CORS, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // ── Meta webhook format ───────────────────────────────────────────────────
     if (!(await verifySignature(rawBody, sig))) {
       return new Response('Invalid signature', { status: 403 })
     }
-
-    let body: any
-    try { body = JSON.parse(rawBody) } catch { return new Response('Bad JSON', { status: 400 }) }
 
     // Extract leadgen_id(s) from the event
     const leadgenIds: string[] = []
