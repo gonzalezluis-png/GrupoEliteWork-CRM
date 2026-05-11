@@ -66,7 +66,7 @@ function saveLeadTypes(arr) { localStorage.setItem('gew_lead_types', JSON.string
 const LEAD_TYPES = DEFAULT_LEAD_TYPES; // legacy alias — use getLeadTypes() for live data
 const RESULTADOS = [
   'INTERESADO','NO INTERESADO','NO CONTESTA','NÚMERO EQUIVOCADO',
-  'BUZÓN DE VOZ','CITA AGENDADA','CLIENTE ACTIVO','PENDIENTE','SIN RESULTADO','VENDIDO! 🏆'
+  'BUZÓN DE VOZ','CITA AGENDADA','CITA REAGENDADA','CLIENTE ACTIVO','PENDIENTE','SIN RESULTADO','VENDIDO! 🏆'
 ];
 
 const DEFAULT_BOARDS = [
@@ -85,6 +85,7 @@ const VENDIDOS_BOARD = { id: 'vendidos', name: 'LEAD VENDIDOS', icon: '🏆', hi
 const RESULT_PILL = {
   'INTERESADO':       'pill-green',
   'CITA AGENDADA':    'pill-teal',
+  'CITA REAGENDADA':  'pill-yellow',
   'CLIENTE ACTIVO':   'pill-purple',
   'NO INTERESADO':    'pill-red',
   'NO CONTESTA':      'pill-gray',
