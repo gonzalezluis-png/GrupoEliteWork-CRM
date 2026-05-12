@@ -485,6 +485,7 @@ function toggleBoardsCollapse() {
 function selectBoard(id) {
   showBoardView();
   currentBoardId = id;
+  if (typeof selectedIds !== 'undefined') selectedIds.clear(); // prevent cross-board ghost selections
   clearNewLeads(id); // dismiss new-leads indicator
   document.querySelectorAll('.board-item').forEach(el => {
     el.classList.toggle('active', el.dataset.id === id);

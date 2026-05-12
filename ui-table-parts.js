@@ -248,6 +248,13 @@ function applyBulkEdit() {
                       : prevAgents.length > 1   ? `${prevAgents.length} agentes anteriores`
                       : 'Sin asignar';
       showTransferReceipt({ fromAgent: fromLabel, toAgent: asignado, count: changed, leadNames });
+      // Log each assignment to activity so it's traceable
+      leadNames.forEach(name => logActivity('assign', `Lead asignado a ${asignado}`, name));
+    }
+    // Warn if selectedIds had leads from other boards that were silently skipped
+    const skipped = snapshotIds.size - changed;
+    if (skipped > 0) {
+      showToast(`⚠️ ${skipped} lead${skipped!==1?'s':''} de otro board no fueron procesados — aplica el cambio desde ese board también`, 'warning');
     }
   };
 
