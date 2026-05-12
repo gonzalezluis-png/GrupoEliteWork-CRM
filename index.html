@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Grupo Elite Work — CRM</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
 <link rel="stylesheet" href="styles.css">
@@ -324,6 +325,13 @@ setTimeout(function(){
             <button class="settings-nav-item" data-tab="requests" id="snav-requests" onclick="switchSettingsTab('requests')">
               <span class="sni-icon-wrap">🔔</span>Solicitudes
               <span class="sni-badge" id="pending-badge" style="display:none"></span>
+            </button>
+          </div>
+
+          <div class="settings-nav-group" id="snav-sec-marketing" style="display:none">
+            <span class="settings-nav-group-label">Analytics</span>
+            <button class="settings-nav-item" data-tab="marketing-stats" id="snav-marketing-stats" onclick="switchSettingsTab('marketing-stats')">
+              <span class="sni-icon-wrap">📊</span>Marketing Stats
             </button>
           </div>
 
@@ -1440,6 +1448,89 @@ setTimeout(function(){
               </div>
             </div>
             <div id="vendidos-settings-list" style="display:flex;flex-direction:column;gap:8px;margin-top:4px"></div>
+          </div>
+
+          <!-- TAB: Marketing Stats -->
+          <div class="settings-tab" id="stab-marketing-stats">
+            <div class="st-header">
+              <div>
+                <div class="st-title">📊 Marketing Stats</div>
+                <div class="st-subtitle">Rendimiento de campañas, anuncios y formularios de Meta.</div>
+              </div>
+              <button onclick="loadMarketingStats()" style="background:var(--accent);color:#fff;border:none;padding:7px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;">↻ Actualizar</button>
+            </div>
+            <div id="mstats-loading" style="text-align:center;padding:40px;color:var(--text2);">Cargando estadísticas...</div>
+            <div id="mstats-content" style="display:none;">
+
+              <!-- KPIs -->
+              <div id="mstats-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;"></div>
+
+              <!-- Charts row -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+                  <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text2);margin-bottom:12px;">Leads por día (últimos 30 días)</div>
+                  <canvas id="mstats-chart-daily" height="160"></canvas>
+                </div>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+                  <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text2);margin-bottom:12px;">Funnel de conversión</div>
+                  <div id="mstats-funnel"></div>
+                </div>
+              </div>
+
+              <!-- Campaign chart -->
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;">
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text2);margin-bottom:12px;">Leads por campaña (Top 10)</div>
+                <canvas id="mstats-chart-campaigns" height="200"></canvas>
+              </div>
+
+              <!-- Campaigns table -->
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;overflow-x:auto;">
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text2);margin-bottom:12px;">Campañas — detalle</div>
+                <table style="width:100%;border-collapse:collapse;" id="mstats-tbl-campaigns">
+                  <thead>
+                    <tr style="border-bottom:1px solid var(--border);">
+                      <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--text2);font-weight:600;">Campaña</th>
+                      <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--text2);font-weight:600;cursor:pointer;" onclick="mstatsSortCampaigns('total')">Leads ↕</th>
+                      <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--text2);font-weight:600;cursor:pointer;" onclick="mstatsSortCampaigns('webinar')">Webinar ↕</th>
+                      <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--text2);font-weight:600;">% Web.</th>
+                      <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--text2);font-weight:600;cursor:pointer;" onclick="mstatsSortCampaigns('entrevista')">Entrevista ↕</th>
+                      <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--text2);font-weight:600;">% Entr.</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mstats-body-campaigns"></tbody>
+                </table>
+              </div>
+
+              <!-- Ads + Forms row -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px;">
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto;">
+                  <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text2);margin-bottom:12px;">Anuncios (Top 15)</div>
+                  <table style="width:100%;border-collapse:collapse;">
+                    <thead><tr style="border-bottom:1px solid var(--border);">
+                      <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--text2);">Anuncio</th>
+                      <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--text2);">Leads</th>
+                      <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--text2);">Webinar</th>
+                      <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--text2);">%</th>
+                    </tr></thead>
+                    <tbody id="mstats-body-ads"></tbody>
+                  </table>
+                </div>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto;">
+                  <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text2);margin-bottom:12px;">Formularios Meta</div>
+                  <table style="width:100%;border-collapse:collapse;">
+                    <thead><tr style="border-bottom:1px solid var(--border);">
+                      <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--text2);">Formulario</th>
+                      <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--text2);">Leads</th>
+                      <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--text2);">Webinar</th>
+                      <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--text2);">%</th>
+                    </tr></thead>
+                    <tbody id="mstats-body-forms"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div id="mstats-generated-at" style="color:var(--text3);font-size:11px;text-align:right;margin-top:12px;"></div>
+            </div>
           </div>
 
         </div><!-- /.settings-content -->
@@ -2614,7 +2705,20 @@ setTimeout(function(){
         <textarea id="msg-body-inp" placeholder="Escribe el mensaje…" style="width:100%;min-height:80px;resize:vertical;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-family:var(--font);font-size:13px;line-height:1.5"></textarea>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
           <span id="msg-status" style="font-size:11px;color:var(--text2)"></span>
-          <button class="btn btn-primary" onclick="sendLeadMessage()" id="msg-send-btn">Enviar mensaje</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn" style="background:rgba(37,211,102,.12);color:#25d366;border:1px solid rgba(37,211,102,.3);font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer" onclick="toggleVideoPanel()">📹 Video</button>
+            <button class="btn btn-primary" onclick="sendLeadMessage()" id="msg-send-btn">Enviar mensaje</button>
+          </div>
+        </div>
+        <!-- Video send panel -->
+        <div id="msg-video-panel" style="display:none;margin-top:10px;background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.25);border-radius:8px;padding:10px 12px">
+          <div style="font-size:11px;color:#25d366;font-weight:600;margin-bottom:8px">📹 Enviar video por WhatsApp</div>
+          <input id="msg-video-url" type="url" placeholder="URL del video (https://...mp4)" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:6px" value="https://f005.backblazeb2.com/file/elite-webinar/Webinar+mayo+2026.mp4"/>
+          <input id="msg-video-caption" type="text" placeholder="Descripción opcional" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:8px"/>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span id="msg-video-status" style="font-size:11px;color:var(--text2)"></span>
+            <button onclick="sendLeadVideo()" style="background:#25d366;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer" id="msg-video-btn">Enviar video</button>
+          </div>
         </div>
       </div>
     </div>

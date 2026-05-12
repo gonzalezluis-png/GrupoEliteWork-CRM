@@ -498,6 +498,54 @@ async function sendLeadMessage() {
   btn.disabled = false;
 }
 
+function toggleVideoPanel() {
+  const p = document.getElementById('msg-video-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+async function sendLeadVideo() {
+  const videoUrl = document.getElementById('msg-video-url').value.trim();
+  const caption  = document.getElementById('msg-video-caption').value.trim();
+  const status   = document.getElementById('msg-video-status');
+  const btn      = document.getElementById('msg-video-btn');
+  const phone    = document.getElementById('msg-phone-inp').value.trim();
+
+  if (!videoUrl) { status.textContent = 'Ingresa la URL del video.'; status.style.color = '#e2445c'; return; }
+  if (!phone)    { status.textContent = 'Ingresa el número de teléfono arriba.'; status.style.color = '#e2445c'; return; }
+
+  btn.disabled = true;
+  status.textContent = 'Enviando video…';
+  status.style.color = 'var(--text2)';
+
+  try {
+    const res = await fetch('https://elite-reclutamiento-production.up.railway.app/meta/wa-send-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: phone, videoUrl, caption: caption || undefined, leadId: _notesLeadId }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error desconocido');
+
+    const leads = loadLeads(_notesBoardId);
+    const lead  = leads.find(l => l.id === _notesLeadId);
+    if (lead) {
+      const session = getSession();
+      const msgs = JSON.parse(lead._messages || '[]');
+      msgs.push({ to: phone, from: '', body: `[VIDEO] ${caption || videoUrl}`, channel: 'whatsapp', date: new Date().toISOString(), author: session?.name || '?', sid: data.messageId || '' });
+      lead._messages = JSON.stringify(msgs);
+      saveLeads(_notesBoardId, leads);
+      _renderMsgJournal(lead);
+    }
+
+    status.textContent = '✓ Video enviado';
+    status.style.color = '#25d366';
+  } catch(e) {
+    status.textContent = '⚠️ ' + e.message;
+    status.style.color = '#e2445c';
+  }
+  btn.disabled = false;
+}
+
 // ════════════════════════════════════════════
 //  CHAT POPUP
 // ════════════════════════════════════════════
