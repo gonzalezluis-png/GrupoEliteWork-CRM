@@ -225,4 +225,50 @@ async function sendConvMessage() {
   input.focus();
 }
 
+function toggleConvVideoPanel() {
+  const p = document.getElementById('conv-video-panel');
+  if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+async function sendConvVideo() {
+  if (!_convLeadId || !_convBoardId) return;
+  const videoUrl = document.getElementById('conv-video-url').value.trim();
+  const caption  = document.getElementById('conv-video-caption').value.trim();
+  const status   = document.getElementById('conv-video-status');
+  const btn      = document.getElementById('conv-video-btn');
+  if (!videoUrl) { status.textContent = 'Ingresa la URL del video.'; status.style.color = '#e2445c'; return; }
+
+  const leads = loadLeads(_convBoardId);
+  const lead  = leads.find(l => l.id === _convLeadId);
+  if (!lead?.telefono) { status.textContent = '⚠️ El lead no tiene teléfono.'; status.style.color = '#e2445c'; return; }
+
+  btn.disabled = true;
+  status.textContent = 'Enviando…';
+  status.style.color = 'var(--text2)';
+
+  try {
+    const res = await fetch('https://elite-reclutamiento-production.up.railway.app/meta/wa-send-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: lead.telefono, videoUrl, caption: caption || undefined, leadId: _convLeadId }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error desconocido');
+
+    const session = getSession();
+    const msgs = JSON.parse(lead._messages || '[]');
+    msgs.push({ to: lead.telefono, body: `[VIDEO] ${caption || videoUrl}`, channel: 'whatsapp', date: new Date().toISOString(), author: session?.name || '?', sid: data.messageId || '', direction: 'outbound' });
+    lead._messages = JSON.stringify(msgs);
+    saveLeads(_convBoardId, leads);
+    renderConvThread();
+
+    status.textContent = '✓ Video enviado';
+    status.style.color = '#25d366';
+  } catch(e) {
+    status.textContent = '⚠️ ' + e.message;
+    status.style.color = '#e2445c';
+  }
+  btn.disabled = false;
+}
+
 // ════════════════════════════════════════════

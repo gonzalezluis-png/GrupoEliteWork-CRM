@@ -1713,7 +1713,20 @@ setTimeout(function(){
               <textarea id="conv-msg-input" placeholder="Escribe un mensaje…" rows="2"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendConvMessage()}"
                 style="flex:1;resize:none;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;font-family:var(--font);font-size:13px;line-height:1.5"></textarea>
-              <button onclick="sendConvMessage()" style="padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;height:42px">Enviar</button>
+              <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+                <button onclick="sendConvMessage()" style="padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;height:42px">Enviar</button>
+                <button onclick="toggleConvVideoPanel()" style="padding:6px 10px;background:rgba(37,211,102,.12);color:#25d366;border:1px solid rgba(37,211,102,.3);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer">📹 Video</button>
+              </div>
+            </div>
+            <!-- Video panel -->
+            <div id="conv-video-panel" style="display:none;margin-top:8px;background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.25);border-radius:8px;padding:10px 12px">
+              <div style="font-size:11px;color:#25d366;font-weight:600;margin-bottom:8px">📹 Enviar video por WhatsApp</div>
+              <input id="conv-video-url" type="url" placeholder="URL del video" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:6px" value="https://elite-webinar.b-cdn.net/file/elite-webinar/Webinar+mayo+2026.mp4"/>
+              <input id="conv-video-caption" type="text" placeholder="Descripción opcional" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:8px"/>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span id="conv-video-status" style="font-size:11px;color:var(--text2)"></span>
+                <button onclick="sendConvVideo()" style="background:#25d366;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer" id="conv-video-btn">Enviar video</button>
+              </div>
             </div>
             <div id="conv-send-status" style="font-size:11px;color:var(--text2);margin-top:6px;height:14px"></div>
           </div>
