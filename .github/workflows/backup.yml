@@ -1,8 +1,8 @@
-name: Daily Database Backup
+name: Hourly Database Backup
 
 on:
   schedule:
-    - cron: '0 8 * * *'   # 3:00 AM Colombia (UTC-5 → 08:00 UTC)
+    - cron: '0 * * * *'   # Cada hora (UTC)
   workflow_dispatch:
 
 jobs:

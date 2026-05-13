@@ -227,6 +227,29 @@ async function saveLeads(boardId, leads, opts = {}) {
 
   if (!opts.isNote || isMaster) _pushHistory(boardId, prev, leads);
 
+  // Log large board overwrites (drop of 10+ leads) for audit trail
+  const prevCount = prev.length;
+  const newCount  = leads.length;
+  if (prevCount > 0 && newCount < prevCount - 9) {
+    const entry = {
+      id: Date.now() + '_bw',
+      ts: new Date().toISOString(),
+      userId:   session?.id   || 'unknown',
+      userName: session?.name || 'unknown',
+      userRole: session?.role || 'unknown',
+      type:  'board_overwrite',
+      label: 'Tablero sobreescrito',
+      detail: `${boardId}: ${prevCount} → ${newCount} leads`,
+    };
+    try {
+      const log = JSON.parse(localStorage.getItem('gew_activity_log') || '[]');
+      log.unshift(entry);
+      if (log.length > 2000) log.splice(2000);
+      localStorage.setItem('gew_activity_log', JSON.stringify(log));
+      supaSync('gew_activity_log', JSON.stringify(log));
+    } catch(_) {}
+  }
+
   // Update local state immediately so UI is responsive
   localStorage.setItem(key, JSON.stringify(leads));
   _boardCountCache.set(boardId, leads.length); // #4
