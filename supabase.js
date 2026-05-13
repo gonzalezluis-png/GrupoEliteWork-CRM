@@ -21,8 +21,10 @@ async function supaSync(key, value) {
 }
 
 // ── Real-time live sync ──────────────────────
+let _realtimeCh = null;
 function initRealtimeSync() {
-  const ch = supa.channel('crm_live')
+  if (_realtimeCh) return; // already subscribed
+  _realtimeCh = supa.channel('crm_live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'kv_store' }, payload => {
       const key = payload.new?.key;
       const val = payload.new?.value;
@@ -34,7 +36,7 @@ function initRealtimeSync() {
       _applyRealtimeKey(key);
     })
     .subscribe();
-  window.addEventListener('beforeunload', () => supa.removeChannel(ch), { once: true });
+  window.addEventListener('beforeunload', () => { supa.removeChannel(_realtimeCh); _realtimeCh = null; }, { once: true });
 }
 
 function _applyRealtimeKey(key) {
