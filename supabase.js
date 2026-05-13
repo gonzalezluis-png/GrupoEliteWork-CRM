@@ -32,7 +32,23 @@ function initRealtimeSync() {
       // Skip changes this client wrote within the last 4 s
       const own = _ownWrites.get(key);
       if (own && Date.now() - own < 4000) return;
-      localStorage.setItem(key, val);
+      // Filter deleted leads from incoming board updates
+      if (key.startsWith('gew_leads_')) {
+        try {
+          const trash = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]');
+          const deletedIds = new Set(trash.map(l => l.id).filter(Boolean));
+          if (deletedIds.size > 0) {
+            const leads    = JSON.parse(val) || [];
+            const filtered = leads.filter(l => !deletedIds.has(l.id));
+            localStorage.setItem(key, JSON.stringify(filtered));
+            if (filtered.length !== leads.length) supaSync(key, JSON.stringify(filtered));
+          } else {
+            localStorage.setItem(key, val);
+          }
+        } catch { localStorage.setItem(key, val); }
+      } else {
+        localStorage.setItem(key, val);
+      }
       _applyRealtimeKey(key);
     })
     .subscribe();
@@ -104,6 +120,17 @@ async function loadFromSupabase() {
         deletedLocal.forEach(u => { if (u.id) deletedUserIds.add(u.id); });
       } catch(_) {}
 
+      // Collect deleted lead IDs from trash to prevent lead resurrection
+      const deletedLeadIds = new Set();
+      try {
+        const trashRemote = JSON.parse(remoteMap[TRASH_KEY] || '[]');
+        trashRemote.forEach(l => { if (l.id) deletedLeadIds.add(l.id); });
+      } catch(_) {}
+      try {
+        const trashLocal = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]');
+        trashLocal.forEach(l => { if (l.id) deletedLeadIds.add(l.id); });
+      } catch(_) {}
+
       data.forEach(row => {
         if (row.key === USERS_KEY) {
           try {
@@ -118,6 +145,17 @@ async function loadFromSupabase() {
               }
             });
             localStorage.setItem(row.key, JSON.stringify(merged));
+          } catch { localStorage.setItem(row.key, row.value); }
+        } else if (row.key.startsWith('gew_leads_') && deletedLeadIds.size > 0) {
+          // Filter out leads that are in the trash to prevent resurrection
+          try {
+            const leads    = JSON.parse(row.value) || [];
+            const filtered = leads.filter(l => !deletedLeadIds.has(l.id));
+            localStorage.setItem(row.key, JSON.stringify(filtered));
+            if (filtered.length !== leads.length) {
+              // Clean up Supabase so it stays in sync
+              supaSync(row.key, JSON.stringify(filtered));
+            }
           } catch { localStorage.setItem(row.key, row.value); }
         } else {
           localStorage.setItem(row.key, row.value);
