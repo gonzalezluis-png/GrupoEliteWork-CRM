@@ -189,7 +189,7 @@ document.addEventListener('keydown', e => {
 
 // Hash of all meaningful fields for change detection (excludes _updatedAt itself)
 function _leadHash(l) {
-  return `${l.asignado}|${l.asignadoId}|${l.resultado}|${l.notas}|${l.nombre}|${l.telefono}|${l.email}|${l.direccion}|${l.ubicacion}|${l.estado}|${l.lead}|${l.hijos}`;
+  return `${l.asignado}|${l.asignadoId}|${l.resultado}|${l.notas}|${l._notes}|${l.nombre}|${l.telefono}|${l.email}|${l.direccion}|${l.ubicacion}|${l.estado}|${l.lead}|${l.hijos}`;
 }
 
 // #4 — In-memory cache for board lead counts (avoids JSON.parse on every sidebar update)
@@ -212,6 +212,10 @@ async function saveLeads(boardId, leads, opts = {}) {
   const session = getSession();
   const isMaster = session && session.role === 'master';
   const key = 'gew_leads_' + boardId;
+
+  // Mark this key as "owned by this client" immediately so the real-time
+  // listener won't overwrite our localStorage during the debounce window.
+  if (typeof _ownWrites !== 'undefined') _ownWrites.set(key, Date.now());
 
   // Stamp changed/new leads with _updatedAt before anything else
   const prevRaw = localStorage.getItem(key);
