@@ -61,23 +61,28 @@ async function submitFeedback() {
     return;
   }
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
-  const session = getSession();
-  const item = {
-    id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-    author: session ? session.name : 'Desconocido',
-    role: session ? session.role : '',
-    text,
-    date: new Date().toISOString(),
-    read: false,
-    reply: null,
-    reply_date: null,
-  };
-  const list = _loadFeedback();
-  list.unshift(item);
-  await _saveFeedback(list);
-  closeFeedbackSubmit();
-  if (btn) { btn.disabled = false; btn.textContent = 'Enviar'; }
-  showToast && showToast('Recomendación enviada. ¡Gracias!');
+  try {
+    const session = getSession();
+    const item = {
+      id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      author: session ? session.name : 'Desconocido',
+      role: session ? session.role : '',
+      text,
+      date: new Date().toISOString(),
+      read: false,
+      reply: null,
+      reply_date: null,
+    };
+    const list = _loadFeedback();
+    list.unshift(item);
+    await _saveFeedback(list);
+    closeFeedbackSubmit();
+    showToast && showToast('Recomendación enviada. ¡Gracias!');
+  } catch(e) {
+    if (err) { err.textContent = 'Error al enviar. Intenta de nuevo.'; err.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar'; }
+  }
 }
 
 // ── Inbox (master only) ──────────────────────
