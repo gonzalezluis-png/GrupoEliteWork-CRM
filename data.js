@@ -217,6 +217,15 @@ async function saveLeads(boardId, leads, opts = {}) {
   // listener won't overwrite our localStorage during the debounce window.
   if (typeof _ownWrites !== 'undefined') _ownWrites.set(key, Date.now());
 
+  // Prevent resurrection: strip leads in trash or vendidos from non-vendidos boards
+  if (boardId !== VENDIDOS_BOARD.id) {
+    try {
+      const trashIds    = new Set(loadDeletedLeads().map(l => l.id).filter(Boolean));
+      const vendidosIds = new Set(loadLeads(VENDIDOS_BOARD.id).map(l => l.id).filter(Boolean));
+      leads = leads.filter(l => !trashIds.has(l.id) && !vendidosIds.has(l.id));
+    } catch(_) {}
+  }
+
   // Stamp changed/new leads with _updatedAt before anything else
   const prevRaw = localStorage.getItem(key);
   const prev = prevRaw ? JSON.parse(prevRaw) : [];
@@ -551,9 +560,10 @@ function selectBoard(id) {
       const deletedIds = new Set();
       try { (JSON.parse(deletedRow?.value || '[]')).forEach(u => u.id && deletedIds.add(u.id)); } catch(_) {}
       try { (JSON.parse(localStorage.getItem(DELETED_USERS_KEY) || '[]')).forEach(u => u.id && deletedIds.add(u.id)); } catch(_) {}
-      const merged = [...remote];
+      const merged = remote.filter(ru => !deletedIds.has(ru.id));
+      const mergedIds = new Set(merged.map(ru => ru.id));
       local.forEach(lu => {
-        if (!merged.find(ru => ru.id === lu.id) && !deletedIds.has(lu.id)) merged.push(lu);
+        if (!mergedIds.has(lu.id) && !deletedIds.has(lu.id)) merged.push(lu);
       });
       localStorage.setItem(USERS_KEY, JSON.stringify(merged));
     } catch(_) {}
