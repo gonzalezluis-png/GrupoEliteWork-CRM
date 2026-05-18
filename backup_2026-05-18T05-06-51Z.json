@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-18T00-04-26Z",
+  "timestamp": "2026-05-18T05-06-51Z",
   "records": 42,
   "data": [
     {
@@ -96,7 +96,7 @@
     },
     {
       "key": "gew_new_leads",
-      "value": "{\"custom_el_paso___texas_mp5mprdn\":{\"boardName\":\"EL PASO - TEXAS\",\"count\":7}}"
+      "value": "{}"
     },
     {
       "key": "gew_feedback",
