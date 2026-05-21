@@ -32,16 +32,11 @@ function initRealtimeSync() {
       // Skip changes this client wrote within the last 4 s
       const own = _ownWrites.get(key);
       if (own && Date.now() - own < 4000) return;
-      // Filter deleted/vendidos leads from incoming board updates
+      // Filter trashed leads from incoming board updates
       if (key.startsWith('gew_leads_')) {
         try {
           const trash = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]');
           const deletedIds = new Set(trash.map(l => l.id).filter(Boolean));
-          // Also filter vendidos leads from non-vendidos boards
-          if (key !== 'gew_leads_vendidos') {
-            const vendidos = JSON.parse(localStorage.getItem('gew_leads_vendidos') || '[]');
-            vendidos.forEach(l => { if (l.id) deletedIds.add(l.id); });
-          }
           if (deletedIds.size > 0) {
             const leads    = JSON.parse(val) || [];
             const filtered = leads.filter(l => !deletedIds.has(l.id));
@@ -136,23 +131,11 @@ async function loadFromSupabase() {
         trashLocal.forEach(l => { if (l.id) deletedLeadIds.add(l.id); });
       } catch(_) {}
 
-      // Collect vendidos lead IDs to prevent resurrection from source boards
-      const vendidosLeadIds = new Set();
-      try {
-        const vendidosRemote = JSON.parse(remoteMap['gew_leads_vendidos'] || '[]');
-        vendidosRemote.forEach(l => { if (l.id) vendidosLeadIds.add(l.id); });
-      } catch(_) {}
-      try {
-        const vendidosLocal = JSON.parse(localStorage.getItem('gew_leads_vendidos') || '[]');
-        vendidosLocal.forEach(l => { if (l.id) vendidosLeadIds.add(l.id); });
-      } catch(_) {}
-
       data.forEach(row => {
         if (row.key === USERS_KEY) {
           try {
             const remote = JSON.parse(row.value) || [];
             const local  = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
-            // Filter deleted users from remote before using as base (prevents stale-fetch resurrection)
             const merged = remote.filter(ru => !deletedUserIds.has(ru.id));
             const mergedIds = new Set(merged.map(ru => ru.id));
             local.forEach(lu => {
@@ -162,11 +145,11 @@ async function loadFromSupabase() {
             });
             localStorage.setItem(row.key, JSON.stringify(merged));
           } catch { localStorage.setItem(row.key, row.value); }
-        } else if (row.key.startsWith('gew_leads_') && row.key !== 'gew_leads_vendidos') {
-          // Filter out leads in trash or already vendidos to prevent resurrection
+        } else if (row.key.startsWith('gew_leads_')) {
+          // Filter only trashed leads — vendidos remain visible in their source board
           try {
             const leads    = JSON.parse(row.value) || [];
-            const filtered = leads.filter(l => !deletedLeadIds.has(l.id) && !vendidosLeadIds.has(l.id));
+            const filtered = leads.filter(l => !deletedLeadIds.has(l.id));
             localStorage.setItem(row.key, JSON.stringify(filtered));
             if (filtered.length !== leads.length) {
               supaSync(row.key, JSON.stringify(filtered));

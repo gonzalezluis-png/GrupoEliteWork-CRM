@@ -217,12 +217,11 @@ async function saveLeads(boardId, leads, opts = {}) {
   // listener won't overwrite our localStorage during the debounce window.
   if (typeof _ownWrites !== 'undefined') _ownWrites.set(key, Date.now());
 
-  // Prevent resurrection: strip leads in trash or vendidos from non-vendidos boards
+  // Strip only trashed leads — vendidos leads remain visible in their source board
   if (boardId !== VENDIDOS_BOARD.id) {
     try {
-      const trashIds    = new Set(loadDeletedLeads().map(l => l.id).filter(Boolean));
-      const vendidosIds = new Set(loadLeads(VENDIDOS_BOARD.id).map(l => l.id).filter(Boolean));
-      leads = leads.filter(l => !trashIds.has(l.id) && !vendidosIds.has(l.id));
+      const trashIds = new Set(loadDeletedLeads().map(l => l.id).filter(Boolean));
+      leads = leads.filter(l => !trashIds.has(l.id));
     } catch(_) {}
   }
 
