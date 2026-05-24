@@ -159,6 +159,8 @@ async function loadFromSupabase() {
           localStorage.setItem(row.key, row.value);
         }
       });
+      // Re-render sidebar after Supabase data lands so agents see their boards
+      if (typeof renderSidebar === 'function') renderSidebar();
     }
   } catch(e) {
     console.error('Supabase unreachable:', e);
