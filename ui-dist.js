@@ -389,8 +389,12 @@ function populateLeadFilter() {
 function populateAgentFilter() {
   const session = getSession();
   const sel = document.getElementById('f-asignado');
-  sel.innerHTML = '<option value="">Agente: Todos</option>';
   const isFullOrg = !session || session.role === 'master' || session.role === 'admin';
+  const _lineViewRoles = ['manager','master_manager','supervisor_agent','caller'];
+  const isLineView = session && _lineViewRoles.includes(session.role);
+
+  sel.innerHTML = isLineView ? '' : '<option value="">Agente: Todos</option>';
+
   const names = isFullOrg
     ? loadUsers().filter(u => !u.inactive).map(u => u.name)
     : _getLineUsers(session).filter(u => !u.inactive).map(u => u.name);
@@ -399,6 +403,12 @@ function populateAgentFilter() {
     o.value = a; o.textContent = a;
     sel.appendChild(o);
   });
+
+  // For line-view roles, ensure their own name is selected by default
+  if (isLineView && session.name) {
+    sel.value = session.name;
+    if (!sel.value) sel.selectedIndex = 0; // fallback to first if name not in list
+  }
 }
 
 // ════════════════════════════════════════════

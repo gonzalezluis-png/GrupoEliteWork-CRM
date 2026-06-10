@@ -597,10 +597,8 @@ function selectBoard(id) {
   });
   clearDateFilter(false);
   const _sb = getSession();
-  const _lineViewRoles = ['manager','master_manager','supervisor_agent','caller'];
-  const _isLineView = _sb && _lineViewRoles.includes(_sb.role);
-  // Default: line-view roles see only their own leads so the full line doesn't load
-  document.getElementById('f-asignado').value = _isLineView ? (_sb.name || '') : '';
+  // f-asignado is set by populateAgentFilter() below
+  document.getElementById('f-asignado').value = '';
   const _isLimitedRole = _sb && ['agent','supervisor_agent','manager','master_manager','caller'].includes(_sb.role);
   assignFilter = _isLimitedRole ? 'all' : 'unassigned';
   document.querySelectorAll('.assign-tab').forEach(t => t.classList.remove('active'));
