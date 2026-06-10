@@ -269,11 +269,12 @@ function _syncLeadsDiff(boardId, prev, current) {
     }
 
     let allOk = true;
+    let failCount = 0;
     for (const lead of toWrite) {
       const ldKey = 'gew_ld_' + lead.id;
       _ownWrites.set(ldKey, Date.now());
       const ok = await supaSync(ldKey, JSON.stringify({ ...lead, _boardId: boardId }));
-      if (!ok) allOk = false;
+      if (!ok) { allOk = false; failCount++; }
     }
     for (const id of toDelete) {
       const ok = await supaDelete('gew_ld_' + id);
@@ -281,6 +282,20 @@ function _syncLeadsDiff(boardId, prev, current) {
     }
 
     setSyncStatus(allOk ? 'saved' : 'error');
+
+    // Confirmation toast for batch assignments (≥2 leads changed)
+    if (toWrite.length >= 2 && typeof showToast === 'function') {
+      // Detect if it was an assignment batch — all changed leads share the same asignado
+      const assignedAgents = [...new Set(toWrite.map(l => l.asignado).filter(Boolean))];
+      if (assignedAgents.length === 1) {
+        const msg = allOk
+          ? `✅ ${toWrite.length} leads → ${assignedAgents[0]}`
+          : `⚠️ ${toWrite.length - failCount}/${toWrite.length} leads guardados → ${assignedAgents[0]}`;
+        showToast(msg, allOk ? 'success' : 'error');
+      } else if (!allOk) {
+        showToast(`⚠️ ${failCount} leads no se pudieron sincronizar`, 'error');
+      }
+    }
   }, _SAVE_DEBOUNCE_MS));
 }
 
