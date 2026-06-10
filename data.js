@@ -73,7 +73,8 @@ const DEFAULT_BOARDS = [
   { id: 'dallas',     name: 'LEAD DALLAS',              icon: '🏙️',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Dallas'] },
   { id: 'austin',     name: 'LEAD AUSTIN - SAN ANTONIO', icon: '🤠',  hasCaller: false,  hasSolicitudes: false,  ubicaciones: ['Austin','San Antonio'] },
   { id: 'connecticut',name: 'LEAD CONNECTICUT',          icon: '🏛️',  hasCaller: false, hasSolicitudes: false, ubicaciones: ['Connecticut'] },
-  { id: 'florida',    name: 'LEAD FLORIDA',              icon: '🌴',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Miami','Orlando','Tampa','Jacksonville','Fort Lauderdale'] },
+  { id: 'florida',    name: 'LEAD FLORIDA',              icon: '🌴',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Miami','Orlando','Tampa','Fort Lauderdale'] },
+  { id: 'jacksonville', name: 'LEAD JACKSONVILLE',       icon: '🌊',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Jacksonville'] },
   { id: 'georgia',    name: 'LEAD GEORGIA',              icon: '🍑',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Atlanta','Savannah','Augusta','Columbus'] },
   { id: 'virginia',   name: 'LEAD VIRGINIA',             icon: '🌿',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Virginia'] },
   { id: 'washington', name: 'LEAD WASHINGTON',           icon: '🌲',  hasCaller: false,  hasSolicitudes: false, ubicaciones: ['Washington'] },
@@ -199,12 +200,73 @@ const _boardCountCache = new Map();
 const _saveDebounceTimers = new Map();
 const _SAVE_DEBOUNCE_MS = 500;
 
-function _scheduledSync(key, leads) {
-  if (_saveDebounceTimers.has(key)) clearTimeout(_saveDebounceTimers.get(key));
-  _saveDebounceTimers.set(key, setTimeout(async () => {
-    _saveDebounceTimers.delete(key);
-    const ok = await supaSync(key, JSON.stringify(leads));
+// Fast path for single-lead field updates (resultado, notas, _messages, etc.)
+// 200ms per-lead debounce — no board diff, no full-array serialization overhead.
+async function patchLead(boardId, lead, opts = {}) {
+  const key  = 'gew_leads_' + boardId;
+  const prev = JSON.parse(localStorage.getItem(key) || '[]');
+  const idx  = prev.findIndex(l => l.id === lead.id);
+  if (idx < 0) return false;
+
+  lead._updatedAt = new Date().toISOString();
+  const next = prev.slice();
+  next[idx] = lead;
+
+  if (!opts.isNote) _pushHistory(boardId, prev, next);
+
+  localStorage.setItem(key, JSON.stringify(next));
+  setSyncStatus('saving');
+
+  const timerKey = 'patch_' + lead.id;
+  if (_saveDebounceTimers.has(timerKey)) clearTimeout(_saveDebounceTimers.get(timerKey));
+  _saveDebounceTimers.set(timerKey, setTimeout(async () => {
+    _saveDebounceTimers.delete(timerKey);
+    const ldKey = 'gew_ld_' + lead.id;
+    _ownWrites.set(ldKey, Date.now());
+    const ok = await supaSync(ldKey, JSON.stringify({ ...lead, _boardId: boardId }));
     setSyncStatus(ok ? 'saved' : 'error');
+  }, 200));
+
+  return true;
+}
+
+function _syncLeadsDiff(boardId, prev, current) {
+  const timerKey = 'diff_' + boardId;
+  if (_saveDebounceTimers.has(timerKey)) clearTimeout(_saveDebounceTimers.get(timerKey));
+  _saveDebounceTimers.set(timerKey, setTimeout(async () => {
+    _saveDebounceTimers.delete(timerKey);
+
+    const prevMap = new Map((prev || []).map(l => [l.id, l]));
+    const currMap = new Map((current || []).map(l => [l.id, l]));
+
+    // Leads changed or new in current
+    const toWrite = [];
+    for (const [id, lead] of currMap) {
+      const p = prevMap.get(id);
+      if (!p || (lead._updatedAt || '') !== (p._updatedAt || '')) {
+        toWrite.push(lead);
+      }
+    }
+
+    // Leads removed from current (in prev but not in current)
+    const toDelete = [];
+    for (const [id] of prevMap) {
+      if (!currMap.has(id)) toDelete.push(id);
+    }
+
+    let allOk = true;
+    for (const lead of toWrite) {
+      const ldKey = 'gew_ld_' + lead.id;
+      _ownWrites.set(ldKey, Date.now());
+      const ok = await supaSync(ldKey, JSON.stringify({ ...lead, _boardId: boardId }));
+      if (!ok) allOk = false;
+    }
+    for (const id of toDelete) {
+      const ok = await supaDelete('gew_ld_' + id);
+      if (!ok) allOk = false;
+    }
+
+    setSyncStatus(allOk ? 'saved' : 'error');
   }, _SAVE_DEBOUNCE_MS));
 }
 
@@ -269,8 +331,8 @@ async function saveLeads(boardId, leads, opts = {}) {
   renderSidebar();
   setSyncStatus('saving');
 
-  // #2 + #6 — Direct debounced write, no SELECT round-trip
-  _scheduledSync(key, leads);
+  // #2 + #6 — Per-lead diff sync, no SELECT round-trip, no race conditions
+  _syncLeadsDiff(boardId, prev, leads);
 }
 function allBoards() {
   BOARDS.forEach(b => updateSidebarCount(b.id));

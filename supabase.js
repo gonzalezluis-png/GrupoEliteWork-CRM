@@ -20,31 +20,106 @@ async function supaSync(key, value) {
   }
 }
 
+async function supaDelete(key) {
+  try {
+    _ownWrites.set(key, Date.now());
+    const { error } = await supa.from('kv_store').delete().eq('key', key);
+    if (error) { console.error('supaDelete error:', key, error.message); return false; }
+    return true;
+  } catch(e) {
+    console.error('supaDelete exception:', key, e);
+    return false;
+  }
+}
+
 // ── Real-time live sync ──────────────────────
 let _realtimeCh = null;
 function initRealtimeSync() {
   if (_realtimeCh) return; // already subscribed
   _realtimeCh = supa.channel('crm_live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'kv_store' }, payload => {
-      const key = payload.new?.key;
+      const key = payload.new?.key || payload.old?.key;
       const val = payload.new?.value;
       if (!key || !key.startsWith('gew_')) return;
       // Skip changes this client wrote within the last 4 s
       const own = _ownWrites.get(key);
       if (own && Date.now() - own < 4000) return;
-      // Filter trashed leads from incoming board updates
+
+      // Per-lead row change (new format)
+      if (key.startsWith('gew_ld_')) {
+        try {
+          const eventType = payload.eventType;
+          const trash = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]');
+          const deletedIds = new Set(trash.map(l => l.id).filter(Boolean));
+          if (typeof _deletedLeadIds !== 'undefined') _deletedLeadIds.forEach(id => deletedIds.add(id));
+
+          if (eventType === 'DELETE') {
+            const leadId = (payload.old?.key || '').replace('gew_ld_', '');
+            if (leadId) {
+              const allBoards = (typeof BOARDS !== 'undefined' ? BOARDS : []).concat(
+                typeof VENDIDOS_BOARD !== 'undefined' ? [VENDIDOS_BOARD] : []
+              );
+              allBoards.forEach(b => {
+                const bkey = 'gew_leads_' + b.id;
+                try {
+                  const arr = JSON.parse(localStorage.getItem(bkey) || '[]');
+                  const next = arr.filter(l => l.id !== leadId);
+                  if (next.length !== arr.length) {
+                    localStorage.setItem(bkey, JSON.stringify(next));
+                    _boardCountCache.delete(b.id);
+                    _applyRealtimeKey(bkey);
+                  }
+                } catch(_) {}
+              });
+            }
+          } else if (val) {
+            const lead = JSON.parse(val);
+            if (lead && lead.id && lead._boardId && !deletedIds.has(lead.id)) {
+              const bkey = 'gew_leads_' + lead._boardId;
+              const arr = JSON.parse(localStorage.getItem(bkey) || '[]');
+              const idx = arr.findIndex(l => l.id === lead.id);
+              if (idx >= 0) {
+                if ((lead._updatedAt || '') >= (arr[idx]._updatedAt || '')) arr[idx] = lead;
+              } else {
+                arr.push(lead);
+              }
+              localStorage.setItem(bkey, JSON.stringify(arr));
+              _boardCountCache.delete(lead._boardId);
+              _applyRealtimeKey(bkey);
+            }
+          }
+        } catch(_) {}
+        return;
+      }
+
+      // Smart per-lead merge for board updates — prevents stale client from overwriting newer assignments
       if (key.startsWith('gew_leads_')) {
         try {
           const trash = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]');
           const deletedIds = new Set(trash.map(l => l.id).filter(Boolean));
-          if (deletedIds.size > 0) {
-            const leads    = JSON.parse(val) || [];
-            const filtered = leads.filter(l => !deletedIds.has(l.id));
-            localStorage.setItem(key, JSON.stringify(filtered));
-            if (filtered.length !== leads.length) supaSync(key, JSON.stringify(filtered));
-          } else {
-            localStorage.setItem(key, val);
+          if (typeof _deletedLeadIds !== 'undefined') _deletedLeadIds.forEach(id => deletedIds.add(id));
+
+          const remoteLeads = JSON.parse(val) || [];
+          const localLeads  = JSON.parse(localStorage.getItem(key) || '[]');
+
+          const localMap  = new Map(localLeads.map(l => [l.id, l]));
+          const remoteMap = new Map(remoteLeads.map(l => [l.id, l]));
+          const allIds    = new Set([...localMap.keys(), ...remoteMap.keys()]);
+
+          const merged = [];
+          for (const id of allIds) {
+            if (deletedIds.has(id)) continue;
+            const loc = localMap.get(id);
+            const rem = remoteMap.get(id);
+            if (!loc) { merged.push(rem); continue; }
+            if (!rem) { merged.push(loc); continue; }
+            // Both exist — keep the version with the newer _updatedAt
+            merged.push((loc._updatedAt || '') >= (rem._updatedAt || '') ? loc : rem);
           }
+
+          localStorage.setItem(key, JSON.stringify(merged));
+          // Re-sync only if remote had trashed leads that were stripped
+          if (remoteLeads.some(l => deletedIds.has(l.id))) supaSync(key, JSON.stringify(merged));
         } catch { localStorage.setItem(key, val); }
       } else {
         localStorage.setItem(key, val);
@@ -101,8 +176,13 @@ function _applyRealtimeKey(key) {
 
 async function loadFromSupabase() {
   try {
-    const { data, error } = await supa.from('kv_store').select('key, value');
-    if (error) { console.error('Supabase load error:', error.message); return; }
+    const [p0, p1, p2] = await Promise.all([
+      supa.from('kv_store').select('key, value').order('key').range(0,    999),
+      supa.from('kv_store').select('key, value').order('key').range(1000, 1999),
+      supa.from('kv_store').select('key, value').order('key').range(2000, 2999),
+    ]);
+    if (p0.error) { console.error('Supabase load error:', p0.error.message); return; }
+    const data = [...(p0.data || []), ...(p1.data || []), ...(p2.data || [])];
     if (data && data.length > 0) {
       // Build a map of all remote data first so we can cross-reference during merge
       const remoteMap = {};
@@ -159,6 +239,38 @@ async function loadFromSupabase() {
           localStorage.setItem(row.key, row.value);
         }
       });
+      // Build board arrays from per-lead rows (new format — overrides board blobs)
+      const perLeadBoards = {};
+      data.forEach(row => {
+        if (!row.key.startsWith('gew_ld_')) return;
+        try {
+          const lead = JSON.parse(row.value);
+          if (!lead || !lead.id || !lead._boardId) return;
+          if (deletedLeadIds.has(lead.id)) return;
+          if (!perLeadBoards[lead._boardId]) perLeadBoards[lead._boardId] = [];
+          perLeadBoards[lead._boardId].push(lead);
+        } catch(_) {}
+      });
+      if (Object.keys(perLeadBoards).length > 0) {
+        Object.entries(perLeadBoards).forEach(([boardId, remoteLeads]) => {
+          const lkey = 'gew_leads_' + boardId;
+          const local = JSON.parse(localStorage.getItem(lkey) || '[]');
+          const localMap  = new Map(local.map(l => [l.id, l]));
+          const remoteMap = new Map(remoteLeads.map(l => [l.id, l]));
+          const allIds    = new Set([...localMap.keys(), ...remoteMap.keys()]);
+          const merged = [];
+          for (const id of allIds) {
+            if (deletedLeadIds.has(id)) continue;
+            const loc = localMap.get(id);
+            const rem = remoteMap.get(id);
+            if (!loc) { merged.push(rem); continue; }
+            if (!rem) { merged.push(loc); continue; }
+            merged.push((loc._updatedAt || '') >= (rem._updatedAt || '') ? loc : rem);
+          }
+          localStorage.setItem(lkey, JSON.stringify(merged));
+        });
+      }
+
       // Re-render sidebar after Supabase data lands so agents see their boards
       if (typeof renderSidebar === 'function') renderSidebar();
     }

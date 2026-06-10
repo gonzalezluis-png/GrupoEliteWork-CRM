@@ -6,7 +6,7 @@
 
   try {
     syncMsg.textContent = 'Sincronizando datos…';
-    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
     await Promise.race([loadFromSupabase(), timeout]);
     syncMsg.textContent = 'Listo';
   } catch(e) {
