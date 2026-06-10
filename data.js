@@ -230,14 +230,28 @@ async function patchLead(boardId, lead, opts = {}) {
   return true;
 }
 
+const _diffBaseline = new Map(); // boardId → snapshot before debounce window started
+
 function _syncLeadsDiff(boardId, prev, current) {
   const timerKey = 'diff_' + boardId;
+
+  // Only capture baseline on the FIRST call of a debounce window
+  if (!_saveDebounceTimers.has(timerKey)) {
+    _diffBaseline.set(boardId, prev);
+  }
+
   if (_saveDebounceTimers.has(timerKey)) clearTimeout(_saveDebounceTimers.get(timerKey));
   _saveDebounceTimers.set(timerKey, setTimeout(async () => {
     _saveDebounceTimers.delete(timerKey);
 
-    const prevMap = new Map((prev || []).map(l => [l.id, l]));
-    const currMap = new Map((current || []).map(l => [l.id, l]));
+    // Use the baseline from the start of the window and the CURRENT localStorage
+    // so all intermediate saves are captured, not just the last diff
+    const baseline = _diffBaseline.get(boardId) || [];
+    _diffBaseline.delete(boardId);
+    const finalLeads = JSON.parse(localStorage.getItem('gew_leads_' + boardId) || '[]');
+
+    const prevMap = new Map(baseline.map(l => [l.id, l]));
+    const currMap = new Map(finalLeads.map(l => [l.id, l]));
 
     // Leads changed or new in current
     const toWrite = [];

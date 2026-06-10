@@ -273,6 +273,10 @@ async function loadFromSupabase() {
 
       // Re-render sidebar after Supabase data lands so agents see their boards
       if (typeof renderSidebar === 'function') renderSidebar();
+      // Re-render table so agents see their leads after localStorage is populated
+      if (typeof currentBoardId !== 'undefined' && currentBoardId && typeof renderTableKeepSelection === 'function') {
+        renderTableKeepSelection();
+      }
     }
   } catch(e) {
     console.error('Supabase unreachable:', e);
