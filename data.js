@@ -582,6 +582,7 @@ function toggleBoardsCollapse() {
 function selectBoard(id) {
   showBoardView();
   currentBoardId = id;
+  if (typeof _currentPage !== 'undefined') _currentPage = 1;
   if (typeof selectedIds !== 'undefined') selectedIds.clear(); // prevent cross-board ghost selections
   clearNewLeads(id); // dismiss new-leads indicator
   document.querySelectorAll('.board-item').forEach(el => {

@@ -73,6 +73,49 @@ function toggleSort(col) {
   renderTable();
 }
 
+let _pageSize = 50;
+let _currentPage = 1;
+
+function setPageSize(n) {
+  _pageSize = n;
+  _currentPage = 1;
+  applyFilters();
+}
+function goToPage(n) {
+  _currentPage = n;
+  applyFilters();
+}
+
+function renderPagination(total) {
+  let wrap = document.getElementById('pagination-bar');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'pagination-bar';
+    document.getElementById('table-wrap').after(wrap);
+  }
+  if (total === 0) { wrap.innerHTML = ''; return; }
+
+  const totalPages = Math.ceil(total / _pageSize);
+  if (_currentPage > totalPages) _currentPage = totalPages;
+
+  const sizes = [30, 50, 100];
+  const sizeButtons = sizes.map(s =>
+    `<button class="pg-size${_pageSize === s ? ' active' : ''}" onclick="setPageSize(${s})">${s}</button>`
+  ).join('');
+
+  const start = (_currentPage - 1) * _pageSize + 1;
+  const end   = Math.min(_currentPage * _pageSize, total);
+
+  wrap.innerHTML = `
+    <div class="pg-sizes">${sizeButtons} <span class="pg-label">por página</span></div>
+    <div class="pg-nav">
+      <button class="pg-btn" onclick="goToPage(${_currentPage - 1})" ${_currentPage <= 1 ? 'disabled' : ''}>‹</button>
+      <span class="pg-info">${start}–${end} de ${total}</span>
+      <button class="pg-btn" onclick="goToPage(${_currentPage + 1})" ${_currentPage >= totalPages ? 'disabled' : ''}>›</button>
+    </div>
+  `;
+}
+
 function applyFilters() {
   if (typeof updateMobFilterDot === 'function') updateMobFilterDot();
   if (!currentBoardId) return;
@@ -97,6 +140,16 @@ function applyFilters() {
 
   selectedIds.clear();
   updateBulkBar();
+  const _prevFilterSig = [
+    document.getElementById('search-input').value,
+    document.getElementById('f-asignado').value,
+    document.getElementById('f-lead').value,
+    document.getElementById('f-resultado').value,
+    document.getElementById('f-fecha-desde').value,
+    document.getElementById('f-fecha-hasta').value,
+  ].join('|');
+  if (applyFilters._lastSig !== undefined && applyFilters._lastSig !== _prevFilterSig) _currentPage = 1;
+  applyFilters._lastSig = _prevFilterSig;
   filteredLeads = leads.filter(l => {
     if (lineNames) {
       const byId = l.asignadoId && lineIds ? lineIds.has(l.asignadoId) : false;
@@ -122,9 +175,13 @@ function applyFilters() {
     });
   }
 
-  renderRows(board, filteredLeads);
+  const _totalFiltered = filteredLeads.length;
+  const _start = (_currentPage - 1) * _pageSize;
+  const _pageLeads = filteredLeads.slice(_start, _start + _pageSize);
+  renderRows(board, _pageLeads);
+  renderPagination(_totalFiltered);
   document.getElementById('toolbar-count').textContent =
-    `${filteredLeads.length} de ${leads.length} lead${leads.length !== 1 ? 's' : ''}`;
+    `${_totalFiltered} de ${leads.length} lead${leads.length !== 1 ? 's' : ''}`;
   updateTabCounts();
 }
 
