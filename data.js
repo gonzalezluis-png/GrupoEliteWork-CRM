@@ -277,7 +277,11 @@ function _syncLeadsDiff(boardId, prev, current) {
       if (!ok) { allOk = false; failCount++; }
     }
     for (const id of toDelete) {
-      const ok = await supaDelete('gew_ld_' + id);
+      // Write a tombstone instead of hard-delete so stale realtime messages
+      // can't resurrect the lead after the row is gone
+      const ldKey = 'gew_ld_' + id;
+      _ownWrites.set(ldKey, Date.now());
+      const ok = await supaSync(ldKey, JSON.stringify({ id, _deleted: true, _deletedAt: new Date().toISOString() }));
       if (!ok) allOk = false;
     }
 

@@ -41,9 +41,12 @@ function initRealtimeSync() {
       const key = payload.new?.key || payload.old?.key;
       const val = payload.new?.value;
       if (!key || !key.startsWith('gew_')) return;
-      // Skip changes this client wrote within the last 4 s
+      // Skip changes this client wrote within the last 4 s (30 s for tombstones)
       const own = _ownWrites.get(key);
-      if (own && Date.now() - own < 4000) return;
+      if (own) {
+        const ttl = (val && JSON.parse(val)?._deleted) ? 30000 : 4000;
+        if (Date.now() - own < ttl) return;
+      }
 
       // Per-lead row change (new format)
       if (key.startsWith('gew_ld_')) {
@@ -74,7 +77,7 @@ function initRealtimeSync() {
             }
           } else if (val) {
             const lead = JSON.parse(val);
-            if (lead && lead.id && lead._boardId && !deletedIds.has(lead.id)) {
+            if (lead && lead.id && lead._boardId && !lead._deleted && !deletedIds.has(lead.id)) {
               const bkey = 'gew_leads_' + lead._boardId;
               const arr = JSON.parse(localStorage.getItem(bkey) || '[]');
               const idx = arr.findIndex(l => l.id === lead.id);
@@ -210,6 +213,10 @@ async function loadFromSupabase() {
         const trashLocal = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]');
         trashLocal.forEach(l => { if (l.id) deletedLeadIds.add(l.id); });
       } catch(_) {}
+      // Pre-populate global _deletedLeadIds so realtime handler is protected immediately
+      if (typeof _deletedLeadIds !== 'undefined') {
+        deletedLeadIds.forEach(id => _deletedLeadIds.add(id));
+      }
 
       data.forEach(row => {
         if (row.key === USERS_KEY) {
@@ -246,7 +253,7 @@ async function loadFromSupabase() {
         try {
           const lead = JSON.parse(row.value);
           if (!lead || !lead.id || !lead._boardId) return;
-          if (deletedLeadIds.has(lead.id)) return;
+          if (lead._deleted || deletedLeadIds.has(lead.id)) return;
           if (!perLeadBoards[lead._boardId]) perLeadBoards[lead._boardId] = [];
           perLeadBoards[lead._boardId].push(lead);
         } catch(_) {}
