@@ -151,6 +151,12 @@ function applyFilters() {
   if (applyFilters._lastSig !== undefined && applyFilters._lastSig !== _prevFilterSig) _currentPage = 1;
   applyFilters._lastSig = _prevFilterSig;
   filteredLeads = leads.filter(l => {
+    // Hard scope: agents only ever see their own leads regardless of dropdown state
+    if (session && session.role === 'agent') {
+      const byId   = session.id && l.asignadoId && l.asignadoId === session.id;
+      const byName = session.name && (l.asignado||'').trim().toLowerCase() === session.name.trim().toLowerCase();
+      if (!byId && !byName) return false;
+    }
     if (lineNames) {
       const byId = l.asignadoId && lineIds ? lineIds.has(l.asignadoId) : false;
       if (!byId && !lineNames.has(l.asignado)) return false;

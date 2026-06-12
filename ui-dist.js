@@ -392,8 +392,10 @@ function populateAgentFilter() {
   const isFullOrg = !session || session.role === 'master' || session.role === 'admin';
   const _lineViewRoles = ['manager','master_manager','supervisor_agent','caller'];
   const isLineView = session && _lineViewRoles.includes(session.role);
+  const isAgent = session && session.role === 'agent';
 
-  sel.innerHTML = isLineView ? '' : '<option value="">Agente: Todos</option>';
+  // Agents and line-view roles never see "Todos" — they're scoped to their own leads
+  sel.innerHTML = (isLineView || isAgent) ? '' : '<option value="">Agente: Todos</option>';
 
   const names = isFullOrg
     ? loadUsers().filter(u => !u.inactive).map(u => u.name)
@@ -404,10 +406,10 @@ function populateAgentFilter() {
     sel.appendChild(o);
   });
 
-  // For line-view roles, ensure their own name is selected by default
-  if (isLineView && session.name) {
+  // Auto-select own name for agents and line-view roles
+  if ((isLineView || isAgent) && session.name) {
     sel.value = session.name;
-    if (!sel.value) sel.selectedIndex = 0; // fallback to first if name not in list
+    if (!sel.value) sel.selectedIndex = 0;
   }
 }
 
