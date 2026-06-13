@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-13T12-26-40Z",
+  "timestamp": "2026-06-13T15-01-34Z",
   "records": 1000,
   "data": [
     {
@@ -3111,10 +3111,6 @@
       "value": "{\"id\": \"mo9fw29ofz13par3ms9\", \"creacion\": \"2026-04-22\", \"nombre\": \"Claudia espinozq\", \"lead\": \"GUIA DE INF\", \"hijos\": \"1\", \"email\": \"claudiateayudausa@gmail.com\", \"telefono\": \"17862889953\", \"direccion\": \"2145 ne 164 st apt 442\", \"ubicacion\": \"Florida-Miami\", \"asignado\": \"GREYLA\", \"asignadoId\": \"3r25pzz90aaauka4nvcz\", \"_updatedAt\": \"2026-04-26T22:45:18.356Z\", \"tipo\": \"Presencial\", \"_boardId\": \"florida\"}"
     },
     {
-      "key": "gew_ld_mo9fw29ogz1pxs68rid",
-      "value": "{\"id\": \"mo9fw29ogz1pxs68rid\", \"creacion\": \"2026-04-22\", \"nombre\": \"Nicole duarte\", \"lead\": \"GUIA DE INF\", \"hijos\": \"1\", \"email\": \"duartenicolle340@gmail.com\", \"telefono\": \"17728017516\", \"direccion\": \"Se cortez st stuart 34994\", \"ubicacion\": \"Florida-Miami\", \"asignado\": \"Yubraska Zuniga\", \"_updatedAt\": \"2026-06-08T16:52:50.578Z\", \"tipo\": \"Presencial\", \"fechaAsignado\": \"2026-05-12T17:54:49.575Z\", \"asignadoId\": \"moc0rnctjox5gp62pjm\", \"resultado\": \"SIN RESULTADO\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado: BUZ\\u00d3N DE VOZ\\\",\\\"author\\\":\\\"Alexander Jimenez\\\",\\\"date\\\":\\\"2026-05-15T13:14:34.914Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"Buzon. GG\\\",\\\"author\\\":\\\"Alexander Jimenez\\\",\\\"date\\\":\\\"2026-05-15T13:14:34.914Z\\\"},{\\\"text\\\":\\\"Resultado: SIN RESULTADO\\\",\\\"author\\\":\\\"Yubraska Zuniga\\\",\\\"date\\\":\\\"2026-06-08T16:52:50.572Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"suena mal, buzon//tere\\\",\\\"author\\\":\\\"Yubraska Zuniga\\\",\\\"date\\\":\\\"2026-06-08T16:52:50.572Z\\\"}]\", \"_boardId\": \"florida\"}"
-    },
-    {
       "key": "gew_ld_mo9fw29ove6t5wp5m7k",
       "value": "{\"id\": \"mo9fw29ove6t5wp5m7k\", \"creacion\": \"2026-04-22\", \"nombre\": \"Valeria Ortega\", \"lead\": \"GUIA DE INF\", \"hijos\": \"1\", \"email\": \"ortegafvaleria@outlook.com\", \"telefono\": \"19543713491\", \"direccion\": \"204 NW 135th Way, Plantation, FL 33325\", \"ubicacion\": \"Florida-Miami\", \"asignado\": \"GREYLA\", \"asignadoId\": \"3r25pzz90aaauka4nvcz\", \"_updatedAt\": \"2026-04-26T22:45:18.356Z\", \"tipo\": \"Presencial\", \"_boardId\": \"florida\"}"
     },
@@ -3123,12 +3119,12 @@
       "value": "{\"id\": \"mo9fw29omq8v6vtik3\", \"creacion\": \"2026-04-22\", \"nombre\": \"Maria Gracia Rodriguez MoRa\", \"lead\": \"GUIA DE INF\", \"hijos\": \"1\", \"email\": \"mariagracia_rm@hotmail.com\", \"telefono\": \"13056150857\", \"direccion\": \"11601 NW 89th St, Doral, FL 33178\", \"ubicacion\": \"Florida-Miami\", \"asignado\": \"GREYLA\", \"asignadoId\": \"3r25pzz90aaauka4nvcz\", \"_updatedAt\": \"2026-04-26T22:45:18.356Z\", \"tipo\": \"Presencial\", \"_boardId\": \"florida\"}"
     },
     {
-      "key": "gew_ld_mo9fw29oh00zc9s3lqn",
-      "value": "{\"id\": \"mo9fw29oh00zc9s3lqn\", \"creacion\": \"2026-04-22\", \"nombre\": \"Qu\\u00e9 Es Lo Que Somos\", \"lead\": \"GUIA DE INF\", \"hijos\": \"2\", \"email\": \"queesloquesomos@hotmail.com\", \"telefono\": \"13053366824\", \"direccion\": \"4\", \"ubicacion\": \"Florida-Miami\", \"asignado\": \"Yubraska Zuniga\", \"_updatedAt\": \"2026-05-15T13:16:39.534Z\", \"tipo\": \"Presencial\", \"fechaAsignado\": \"2026-05-12T17:54:49.583Z\", \"asignadoId\": \"moc0rnctjox5gp62pjm\", \"resultado\": \"NO CONTESTA\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"Alexander Jimenez\\\",\\\"date\\\":\\\"2026-05-15T13:16:39.534Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"No contesto. GG\\\",\\\"author\\\":\\\"Alexander Jimenez\\\",\\\"date\\\":\\\"2026-05-15T13:16:39.534Z\\\"}]\", \"_boardId\": \"florida\"}"
-    },
-    {
       "key": "gew_ld_mo9icnf6gtumfstdzy9",
       "value": "{\"id\": \"mo9icnf6gtumfstdzy9\", \"creacion\": \"2026-04-22\", \"nombre\": \"Fiorella Gonz\\u00e1lez\", \"lead\": \"GUIA DE INF\", \"hijos\": \"2\", \"email\": \"Gonzalezfiorela770@gmail.com\", \"telefono\": \"12146421111\", \"direccion\": \"75211\", \"ubicacion\": \"Metroplex DFW\", \"asignado\": \"Yarlys\", \"notas\": \"\", \"asignadoId\": \"mo9cedbwcbyn217vh4d\", \"_updatedAt\": \"2026-05-07T23:39:39.966Z\", \"tipo\": \"Presencial\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado \\u2192 BUZ\\u00d3N DE VOZ \\u2014 BUZON/TERE\\\",\\\"author\\\":\\\"JESUS CHACON\\\",\\\"date\\\":\\\"2026-05-07T23:39:39.955Z\\\",\\\"system\\\":true}]\", \"resultado\": \"BUZ\\u00d3N DE VOZ\", \"_boardId\": \"dallas\"}"
+    },
+    {
+      "key": "gew_ld_mo9fw29oh00zc9s3lqn",
+      "value": "{\"id\":\"mo9fw29oh00zc9s3lqn\",\"creacion\":\"2026-04-22\",\"nombre\":\"Qué Es Lo Que Somos\",\"lead\":\"GUIA DE INF\",\"hijos\":\"2\",\"email\":\"queesloquesomos@hotmail.com\",\"telefono\":\"13053366824\",\"direccion\":\"4\",\"ubicacion\":\"Florida-Miami\",\"asignado\":\"Yubraska Zuniga\",\"_updatedAt\":\"2026-06-13T14:11:22.173Z\",\"tipo\":\"Presencial\",\"fechaAsignado\":\"2026-05-12T17:54:49.583Z\",\"asignadoId\":\"moc0rnctjox5gp62pjm\",\"resultado\":\"NO CONTESTA\",\"_notes\":\"[{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"Alexander Jimenez\\\",\\\"date\\\":\\\"2026-05-15T13:16:39.534Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"No contesto. GG\\\",\\\"author\\\":\\\"Alexander Jimenez\\\",\\\"date\\\":\\\"2026-05-15T13:16:39.534Z\\\"},{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"JESUS CHACON\\\",\\\"date\\\":\\\"2026-06-13T14:11:22.167Z\\\",\\\"system\\\":true}]\",\"_boardId\":\"florida\"}"
     },
     {
       "key": "gew_ld_mo9fw29of2pp3s0npn",
@@ -3165,14 +3161,6 @@
     {
       "key": "gew_ld_mo9fw29o44amsw0egf4",
       "value": "{\"id\": \"mo9fw29o44amsw0egf4\", \"creacion\": \"2026-04-22\", \"nombre\": \"Judith riveros\", \"lead\": \"GUIA DE INF\", \"hijos\": \"2\", \"email\": \"Rivercagroup@gmail.com\", \"telefono\": \"19546675213\", \"direccion\": \"15800 pines blvd. Fl 33027\", \"ubicacion\": \"Florida-Miami\", \"asignado\": \"Greyla Rojas\", \"fechaAsignado\": \"2026-04-24T19:45:33.936Z\", \"asignadoId\": \"mobq2usmflc2hgo99yi\", \"_updatedAt\": \"2026-05-06T14:21:00.223Z\", \"tipo\": \"Presencial\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado \\u2192 BUZ\\u00d3N DE VOZ \\u2014 BUZON // JC\\\",\\\"author\\\":\\\"JESUS CHACON\\\",\\\"date\\\":\\\"2026-05-06T14:21:00.212Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"Resultado: BUZ\\u00d3N DE VOZ\\\",\\\"author\\\":\\\"JESUS  CALL CENTER MANAGER\\\",\\\"date\\\":\\\"2026-05-07T18:29:56.625Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"BUZON // JC\\\",\\\"author\\\":\\\"JESUS  CALL CENTER MANAGER\\\",\\\"date\\\":\\\"2026-05-07T18:29:56.625Z\\\"}]\", \"resultado\": \"BUZ\\u00d3N DE VOZ\", \"_boardId\": \"florida\"}"
-    },
-    {
-      "key": "gew_ld_mogcwdwsya6f5xmu6",
-      "value": "{\"id\": \"mogcwdwsya6f5xmu6\", \"creacion\": \"2026-04-26\", \"nombre\": \"Argueta Elisa\", \"hijos\": \"1\", \"telefono\": \"p:+18135325594\", \"email\": \"eliargueta93@gmail.com\", \"direccion\": \"Tampa, FL 33617\", \"ubicacion\": \"FL 33617\", \"lead\": \"GU\\u00cdA DE INFORMACI\\u00d3N\", \"_updatedAt\": \"2026-06-08T16:40:49.833Z\", \"asignado\": \"Yubraska Zuniga\", \"tipo\": \"Presencial\", \"fechaAsignado\": \"2026-05-12T17:54:49.597Z\", \"asignadoId\": \"moc0rnctjox5gp62pjm\", \"resultado\": \"BUZ\\u00d3N DE VOZ\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"Alexander Jimenez\\\",\\\"date\\\":\\\"2026-05-15T13:06:49.667Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"No contesto. GG.\\\",\\\"author\\\":\\\"Alexander Jimenez\\\",\\\"date\\\":\\\"2026-05-15T13:06:49.667Z\\\"},{\\\"text\\\":\\\"Resultado: BUZ\\u00d3N DE VOZ\\\",\\\"author\\\":\\\"Yubraska Zuniga\\\",\\\"date\\\":\\\"2026-06-08T16:40:49.819Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"buzon//tere\\\",\\\"author\\\":\\\"Yubraska Zuniga\\\",\\\"date\\\":\\\"2026-06-08T16:40:49.819Z\\\"}]\", \"_boardId\": \"florida\"}"
-    },
-    {
-      "key": "gew_ld_mogcwdwsnu686hr84be",
-      "value": "{\"id\": \"mogcwdwsnu686hr84be\", \"creacion\": \"2026-04-26\", \"nombre\": \"Matias L Folla\", \"hijos\": \"2\", \"telefono\": \"p:4707690908\", \"email\": \"matiasfolla01@gmail.com\", \"direccion\": \"30338\", \"ubicacion\": \"Florida - Tampa\", \"lead\": \"GU\\u00cdA DE INFORMACI\\u00d3N\", \"_updatedAt\": \"2026-06-08T16:45:36.412Z\", \"asignado\": \"Yubraska Zuniga\", \"tipo\": \"Presencial\", \"fechaAsignado\": \"2026-05-12T17:54:49.610Z\", \"asignadoId\": \"moc0rnctjox5gp62pjm\", \"_notes\": \"[{\\\"text\\\":\\\"Buz\\u00f3n. GG\\\",\\\"author\\\":\\\"Alexander Jimenez\\\",\\\"date\\\":\\\"2026-05-15T13:11:01.299Z\\\"},{\\\"text\\\":\\\"Resultado: BUZ\\u00d3N DE VOZ\\\",\\\"author\\\":\\\"Yubraska Zuniga\\\",\\\"date\\\":\\\"2026-06-08T16:41:32.347Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"Resultado: PENDIENTE\\\",\\\"author\\\":\\\"Yubraska Zuniga\\\",\\\"date\\\":\\\"2026-06-08T16:45:36.403Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"Llaar en la tarde, no se le escuchaba bie y no escuchaba bien.\\\",\\\"author\\\":\\\"Yubraska Zuniga\\\",\\\"date\\\":\\\"2026-06-08T16:45:36.403Z\\\"}]\", \"resultado\": \"PENDIENTE\", \"_boardId\": \"florida\"}"
     },
     {
       "key": "gew_ld_mom0q3t3krtxf1pnlhi",
@@ -4001,6 +3989,18 @@
     {
       "key": "gew_ld_mox9p1dg0w5hilsgedn",
       "value": "{\"id\": \"mox9p1dg0w5hilsgedn\", \"creacion\": \"2026-05-08\", \"entrada\": \"Solicitud\", \"nombre\": \"Johana H Monroy Garrido\", \"hijos\": \"2\", \"telefono\": \"p:+12034244792\", \"email\": \"heidymonroy24@gmail.com\", \"direccion\": \"10 Warren St, Stamford, CT 06902\", \"ubicacion\": \"Connecticut\", \"lead\": \"GU\\u00cdA DE INFORMACI\\u00d3N\", \"_updatedAt\": \"2026-05-11T21:51:44.882Z\", \"asignado\": \"JESUS CHACON\", \"tipo\": \"Presencial\", \"fechaAsignado\": \"2026-05-08T23:46:42.366Z\", \"asignadoId\": \"mobs6s2yms7hubljomf\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado \\u2192 CITA AGENDADA \\u2014 CUSTODIA // PRESENCIAL //  SABADO MAYO 9, 5 PM // JOHANA MONROY // 2034244792 // 10 WARREN ST STAMFORD APT 2K CT 06902 // SOLTERA  (LEGALMENTE, COMPARTE CUSTODIA CON EL PAPA DE LOS NI\\u00d1OS, PERO EST\\u00c1N SEPARADOS) // LEAD DE AGENCIA CALLER JESUS J843 // JC\\\",\\\"author\\\":\\\"JESUS  CALL CENTER MANAGER\\\",\\\"date\\\":\\\"2026-05-09T00:18:57.242Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"Resultado: BUZ\\u00d3N DE VOZ\\\",\\\"author\\\":\\\"JESUS  CALL CENTER MANAGER\\\",\\\"date\\\":\\\"2026-05-11T21:51:44.882Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"BUZON // JC\\\",\\\"author\\\":\\\"JESUS  CALL CENTER MANAGER\\\",\\\"date\\\":\\\"2026-05-11T21:51:44.882Z\\\"},{\\\"text\\\":\\\"Resultado: BUZ\\u00d3N DE VOZ\\\",\\\"author\\\":\\\"JESUS  CALL CENTER MANAGER\\\",\\\"date\\\":\\\"2026-05-13T23:03:21.325Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"BUZON // JC\\\",\\\"author\\\":\\\"JESUS  CALL CENTER MANAGER\\\",\\\"date\\\":\\\"2026-05-13T23:03:21.325Z\\\"}]\", \"resultado\": \"BUZ\\u00d3N DE VOZ\", \"_boardId\": \"connecticut\"}"
+    },
+    {
+      "key": "gew_ld_mo9fzzcudskm6lu963t",
+      "value": "{\"id\": \"mo9fzzcudskm6lu963t\", \"creacion\": \"2026-04-22\", \"nombre\": \"Jhoandry Villalobos\", \"lead\": \"GUIA DE INF\", \"hijos\": \"2\", \"email\": \"jhoandryvill@gmail.com\", \"telefono\": \"14077898724\", \"direccion\": \"31419\", \"ubicacion\": \"Georgia\", \"asignado\": \"David Palma\", \"fechaAsignado\": \"2026-04-24T19:26:23.642Z\", \"asignadoId\": \"moboyizrb2dagqdbrqe\", \"tipo\": \"Presencial\", \"_updatedAt\": \"2026-04-29T20:37:06.820Z\", \"resultado\": \"NO CONTESTA\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-04-29T20:37:06.820Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"ME MANDA DE UNA VEZ AL CORREO DE VOZ (NO CONTESTA) \\\\nLLAMADAS: 12:00pm/1:30pm y 4:00pm/6:pm\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-04-29T20:37:06.820Z\\\"}]\", \"_boardId\": \"georgia\"}"
+    },
+    {
+      "key": "gew_ld_mo9fzzcubalmyb3utmt",
+      "value": "{\"id\": \"mo9fzzcubalmyb3utmt\", \"creacion\": \"2026-04-22\", \"nombre\": \"Katherin Rodriguez\", \"lead\": \"GUIA DE INF\", \"hijos\": \"1\", \"email\": \"estherdiazrodriguez.020119@gmail.com\", \"telefono\": \"627020051\", \"direccion\": \"28018\", \"ubicacion\": \"Georgia\", \"asignado\": \"David Palma\", \"fechaAsignado\": \"2026-04-24T19:26:23.645Z\", \"asignadoId\": \"moboyizrb2dagqdbrqe\", \"tipo\": \"Presencial\", \"_updatedAt\": \"2026-05-01T21:14:25.507Z\", \"resultado\": \"N\\u00daMERO EQUIVOCADO\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado: N\\u00daMERO EQUIVOCADO\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-05-01T21:14:25.507Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"no sirve el numero\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-05-01T21:14:25.507Z\\\"}]\", \"_boardId\": \"georgia\"}"
+    },
+    {
+      "key": "gew_ld_mo9fzzcu2wryr9w9pt2",
+      "value": "{\"id\": \"mo9fzzcu2wryr9w9pt2\", \"creacion\": \"2026-04-22\", \"nombre\": \"Jose Gonzalez\", \"lead\": \"GUIA DE INF\", \"hijos\": \"2\", \"email\": \"Josegiadalupegonzalez25@gmail.com\", \"telefono\": \"19129467183\", \"direccion\": \"2118 Massachusetts ave\", \"ubicacion\": \"Georgia\", \"asignado\": \"David Palma\", \"fechaAsignado\": \"2026-04-24T19:26:23.647Z\", \"asignadoId\": \"moboyizrb2dagqdbrqe\", \"tipo\": \"Presencial\", \"_updatedAt\": \"2026-04-28T16:16:52.946Z\", \"_boardId\": \"georgia\"}"
     }
   ]
 }
