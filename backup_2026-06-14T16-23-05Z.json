@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-14T14-06-13Z",
+  "timestamp": "2026-06-14T16-23-05Z",
   "records": 1000,
   "data": [
     {
@@ -3356,7 +3356,7 @@
     },
     {
       "key": "gew_ld_mpvu7sakqehwcbsdfx",
-      "value": "{\"id\":\"mpvu7sakqehwcbsdfx\",\"creacion\":\"2026-06-01\",\"entrada\":\"Solicitud\",\"nombre\":\"Iris Rodríguez\",\"hijos\":\"3\",\"telefono\":\"p:+19045203946\",\"email\":\"irisgriselr@gmail.com\",\"direccion\":\"10960 Beach Blvd, Jacksonville, FL 32246\",\"ubicacion\":\"Jacksonville\",\"lead\":\"GUÍA DE INFORMACIÓN\",\"_updatedAt\":\"2026-06-12T17:40:29.083Z\",\"asignado\":\"David Palma\",\"tipo\":\"Presencial\",\"fechaAsignado\":\"2026-06-02T00:36:40.182Z\",\"asignadoId\":\"moboyizrb2dagqdbrqe\",\"resultado\":\"NO CONTESTA\",\"_notes\":\"[{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-06-02T23:02:58.087Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"SE LE LLAMO Y NO CONTESTA\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-06-02T23:02:58.087Z\\\"},{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"JESUS CHACON\\\",\\\"date\\\":\\\"2026-06-11T19:34:51.632Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"JESUS CHACON\\\",\\\"date\\\":\\\"2026-06-12T17:40:29.080Z\\\",\\\"system\\\":true}]\",\"_boardId\":\"florida\"}"
+      "value": "{\"id\":\"mpvu7sakqehwcbsdfx\",\"creacion\":\"2026-06-01\",\"entrada\":\"Solicitud\",\"nombre\":\"Iris Rodríguez\",\"hijos\":\"3\",\"telefono\":\"p:+19045203946\",\"email\":\"irisgriselr@gmail.com\",\"direccion\":\"10960 Beach Blvd, Jacksonville, FL 32246\",\"ubicacion\":\"Jacksonville\",\"lead\":\"GUÍA DE INFORMACIÓN\",\"_updatedAt\":\"2026-06-14T14:52:07.623Z\",\"asignado\":\"David Palma\",\"tipo\":\"Presencial\",\"fechaAsignado\":\"2026-06-02T00:36:40.182Z\",\"asignadoId\":\"moboyizrb2dagqdbrqe\",\"resultado\":\"NO CONTESTA\",\"_notes\":\"[{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-06-02T23:02:58.087Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"SE LE LLAMO Y NO CONTESTA\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-06-02T23:02:58.087Z\\\"},{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"JESUS CHACON\\\",\\\"date\\\":\\\"2026-06-11T19:34:51.632Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"JESUS CHACON\\\",\\\"date\\\":\\\"2026-06-12T17:40:29.080Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-06-14T14:52:07.621Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"se le llamo y no contesta\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-06-14T14:52:07.621Z\\\"}]\",\"_boardId\":\"florida\"}"
     },
     {
       "key": "gew_ld_mpvu7sakd0ob6vhsirs",
