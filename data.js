@@ -557,13 +557,16 @@ function renderSidebar() {
   const _sessNameNorm = (session?.name || '').trim().toLowerCase();
   const _sessId = session?.id || null;
   const visibleBoards = isAgent
-    ? BOARDS.filter(b => loadLeads(b.id).some(l =>
-        (_sessId && l.asignadoId) ? l.asignadoId === _sessId : (l.asignado || '').trim().toLowerCase() === _sessNameNorm
-      ))
+    ? BOARDS.filter(b => loadLeads(b.id).some(l => {
+        const byId   = _sessId && l.asignadoId && l.asignadoId === _sessId;
+        const byName = _sessNameNorm && (l.asignado || '').trim().toLowerCase() === _sessNameNorm;
+        return byId || byName;
+      }))
     : sideLineNames
-      ? BOARDS.filter(b => loadLeads(b.id).some(l =>
-          (l.asignadoId && sideLineIds) ? sideLineIds.has(l.asignadoId) : sideLineNames.has(l.asignado)
-        ))
+      ? BOARDS.filter(b => loadLeads(b.id).some(l => {
+          const byId = l.asignadoId && sideLineIds && sideLineIds.has(l.asignadoId);
+          return byId || sideLineNames.has(l.asignado);
+        }))
       : BOARDS;
 
   list.innerHTML = visibleBoards.map(b => {
