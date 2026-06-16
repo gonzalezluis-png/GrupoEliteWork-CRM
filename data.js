@@ -564,8 +564,11 @@ function renderSidebar() {
       }))
     : sideLineNames
       ? BOARDS.filter(b => loadLeads(b.id).some(l => {
-          const byId = l.asignadoId && sideLineIds && sideLineIds.has(l.asignadoId);
-          return byId || sideLineNames.has(l.asignado);
+          const byId   = l.asignadoId && sideLineIds && sideLineIds.has(l.asignadoId);
+          const byName = sideLineNames.has(l.asignado);
+          const selfId   = _sessId && l.asignadoId && l.asignadoId === _sessId;
+          const selfName = _sessNameNorm && (l.asignado || '').trim().toLowerCase() === _sessNameNorm;
+          return byId || byName || selfId || selfName;
         }))
       : BOARDS;
 

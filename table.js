@@ -158,8 +158,11 @@ function applyFilters() {
       if (!byId && !byName) return false;
     }
     if (lineNames) {
-      const byId = l.asignadoId && lineIds ? lineIds.has(l.asignadoId) : false;
-      if (!byId && !lineNames.has(l.asignado)) return false;
+      const byId     = l.asignadoId && lineIds ? lineIds.has(l.asignadoId) : false;
+      const byName   = lineNames.has(l.asignado);
+      const selfId   = session?.id && l.asignadoId && l.asignadoId === session.id;
+      const selfName = session?.name && (l.asignado||'').trim().toLowerCase() === session.name.trim().toLowerCase();
+      if (!byId && !byName && !selfId && !selfName) return false;
     }
     if (q && ![ l.nombre, l.email, l.telefono, l.asignado ].some(v => (v||'').toLowerCase().includes(q))) return false;
     if (fAsig && (l.asignado||'').trim() !== fAsig) return false;
