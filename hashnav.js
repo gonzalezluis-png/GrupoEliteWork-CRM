@@ -22,7 +22,6 @@ function _restoreHash() {
     if (section === 'papelera')    { showTrashPage();         return; }
     if (section === 'scripts')     { showScriptsPage();       return; }
     if (section === 'mensajes')    { showConversationsPage(); return; }
-    if (section === 'creditos')    { showCreditsPage();       return; }
     if (section === 'actividad')   { showActivityPage();      return; }
     if (section === 'calendario')  { showCalendarPage();      return; }
     if (section === 'estadisticas'){ showStatsPage();         return; }
@@ -48,7 +47,6 @@ function _restoreHash() {
   wrap('showTrashPage',        ()  => 'papelera');
   wrap('showScriptsPage',      ()  => 'scripts');
   wrap('showConversationsPage',()  => 'mensajes');
-  wrap('showCreditsPage',      ()  => 'creditos');
   wrap('showActivityPage',     ()  => 'actividad');
   wrap('showCalendarPage',     ()  => 'calendario');
   wrap('showStatsPage',        ()  => 'estadisticas');

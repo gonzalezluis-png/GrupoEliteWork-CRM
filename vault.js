@@ -112,24 +112,3 @@ async function vaultRestore(leadId) {
   showToast(`Lead restaurado en ${board ? board.name : destId} ✓`, 'success');
 }
 
-// Show vault trigger in settings for master
-document.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('payment') === 'success') {
-    setTimeout(() => showToast('✅ Recarga exitosa. Los créditos se agregarán en breve.', 'success'), 800);
-    history.replaceState({}, '', window.location.pathname);
-  } else if (params.get('payment') === 'cancel') {
-    setTimeout(() => showToast('Recarga cancelada.', 'error'), 800);
-    history.replaceState({}, '', window.location.pathname);
-  } else if (params.get('setup') === 'success') {
-    setTimeout(() => {
-      showToast('✅ Tarjeta guardada. Ya puedes activar la auto-recarga.', 'success');
-      showCreditsPage();
-      switchBillingTab('autocharge', document.getElementById('btab-autocharge'));
-    }, 800);
-    history.replaceState({}, '', window.location.pathname);
-  } else if (params.get('setup') === 'cancel') {
-    setTimeout(() => showToast('Configuración de tarjeta cancelada.', 'error'), 800);
-    history.replaceState({}, '', window.location.pathname);
-  }
-});

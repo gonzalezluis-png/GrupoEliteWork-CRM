@@ -108,7 +108,6 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-calendar" onclick="showCalendarPage()">📅 <span>Calendario</span></div>
       <div class="sidebar-item" id="nav-activity" onclick="showActivityPage()">📊 <span>Actividad</span></div>
       <div class="sidebar-item" id="nav-referidos-admin" onclick="showReferidosPage()">🗂️ <span>Digitalización de Referidos</span></div>
-      <div class="sidebar-item" id="nav-credits" onclick="showCreditsPage()" style="display:none">🧾 <span>Facturación</span></div>
       <div class="sidebar-item" id="nav-settings" onclick="showSettingsPage()">⚙️ <span>Configuración</span><span id="sidebar-pending-badge" style="display:none;margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px"></span></div>
     </div>
     <div id="sidebar-master" style="display:none">
@@ -118,7 +117,6 @@ setTimeout(function(){
       <div class="sidebar-item" id="nav-referidos" onclick="showReferidosPage()" style="display:none">🗂️ <span>Digitalización de Referidos</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-connections" onclick="showConnectionsPage()" style="display:none">🔌 <span>Conexiones</span><span class="emblem-dev">🙈 Solo yo</span></div>
       <div class="sidebar-item" id="nav-dev-users" onclick="showSettingsPage();switchSettingsTab('team')" style="display:none">👥 <span>Usuarios</span><span class="emblem-dev">🙈 Solo yo</span></div>
-      <div class="sidebar-item" id="nav-dev-messaging" onclick="showSettingsPage();switchSettingsTab('messaging')" style="display:none">💬 <span>Panel de mensajería</span><span class="emblem-dev">🙈 Solo yo</span></div>
 
       <!-- Connection status widget (master only) -->
       <div id="conn-status-widget" style="display:none;margin:12px 10px 4px;padding:10px 12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.07);border-radius:10px">
@@ -353,12 +351,6 @@ setTimeout(function(){
             <div class="snp-card" id="snp-card"></div>
           </div>
 
-          <div class="settings-nav-group" id="snav-sec-messaging" style="display:none">
-            <span class="settings-nav-group-label">Mensajería</span>
-            <button class="settings-nav-item" data-tab="messaging" id="snav-messaging" onclick="switchSettingsTab('messaging')" style="display:flex;align-items:center;gap:0">
-              <span class="sni-icon-wrap">💬</span><span style="flex:1">Panel de mensajes</span><span class="emblem-dev">🙈 Solo yo</span>
-            </button>
-          </div>
 
           <!-- Vault trigger — developer only, very discreet -->
           <div id="vault-trigger" style="display:none;padding:0 8px 10px;text-align:right">
@@ -1336,85 +1328,6 @@ setTimeout(function(){
             </div>
           </div>
 
-          <!-- TAB: Mensajería (developer only) -->
-          <div class="settings-tab" id="stab-messaging">
-            <div class="st-header">
-              <div>
-                <div class="st-title">💬 Panel de Mensajería</div>
-                <div class="st-subtitle">Resumen de créditos, recargas y mensajes enviados por board.</div>
-              </div>
-              <button class="btn btn-primary" onclick="loadMessagingDashboard()" style="flex-shrink:0">↺ Actualizar</button>
-            </div>
-
-            <!-- Pricing config (developer only) -->
-            <div class="settings-section" style="margin-bottom:24px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.05);border-radius:12px;padding:18px 20px">
-              <h3 style="margin-top:0;display:flex;align-items:center;gap:8px">💰 Precios de venta por mensaje <span class="emblem-dev">🙈 Solo yo</span></h3>
-              <p>Define cuánto cobras al administrador por cada mensaje enviado. Afecta los paquetes de recarga y el saldo mostrado en Facturación.</p>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
-                <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">📱 Precio de venta SMS (USD)</label>
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="color:var(--text2);font-size:13px">$</span>
-                    <input type="number" id="msg-price-sms" step="0.001" min="0.001" placeholder="0.016"
-                      style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
-                  </div>
-                </div>
-                <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:600">💬 Precio de venta WhatsApp (USD)</label>
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="color:var(--text2);font-size:13px">$</span>
-                    <input type="number" id="msg-price-wa" step="0.001" min="0.001" placeholder="0.016"
-                      style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
-                  </div>
-                </div>
-                <div>
-                  <label style="font-size:12px;color:#e2445c;display:block;margin-bottom:6px;font-weight:600">📱 Mi costo SMS — Twilio (USD)</label>
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="color:var(--text2);font-size:13px">$</span>
-                    <input type="number" id="msg-cost-sms" step="0.0001" min="0.0001" placeholder="0.0075"
-                      style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
-                  </div>
-                </div>
-                <div>
-                  <label style="font-size:12px;color:#e2445c;display:block;margin-bottom:6px;font-weight:600">💬 Mi costo WhatsApp — Twilio (USD)</label>
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="color:var(--text2);font-size:13px">$</span>
-                    <input type="number" id="msg-cost-wa" step="0.0001" min="0.0001" placeholder="0.005"
-                      style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:13px"/>
-                  </div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap">
-                <button onclick="saveMsgPrices()" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer">Guardar precios</button>
-                <span id="msg-price-status" style="font-size:11px;color:var(--text2)"></span>
-                <span id="msg-price-current" style="font-size:11px;color:var(--text2);margin-left:auto"></span>
-              </div>
-            </div>
-
-            <!-- Summary cards -->
-            <div id="msg-dash-summary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px"></div>
-
-            <!-- Credits per board -->
-            <div class="settings-section" style="margin-bottom:20px">
-              <h3>💳 Créditos por board</h3>
-              <p>Saldo actual de mensajes disponibles en cada board.</p>
-              <div id="msg-dash-credits" style="display:flex;flex-direction:column;gap:8px"></div>
-            </div>
-
-            <!-- Transaction log -->
-            <div class="settings-section" style="margin-bottom:20px">
-              <h3>🧾 Historial de recargas</h3>
-              <p>Pagos completados a través de Stripe.</p>
-              <div id="msg-dash-transactions" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto"></div>
-            </div>
-
-            <!-- Messages sent -->
-            <div class="settings-section">
-              <h3>📤 Mensajes enviados por board</h3>
-              <p>Total de mensajes SMS y WhatsApp enviados.</p>
-              <div id="msg-dash-sent" style="display:flex;flex-direction:column;gap:8px"></div>
-            </div>
-          </div>
 
           <!-- TAB: Lead Vendidos -->
           <div class="settings-tab" id="stab-cleanup">
@@ -1447,142 +1360,6 @@ setTimeout(function(){
       </div><!-- /.settings-layout -->
     </div><!-- /#settings-page -->
 
-    <!-- CREDITS PAGE (Facturación) -->
-    <div id="credits-page" style="display:none;flex:1;overflow-y:auto;background:var(--bg)">
-      <div style="max-width:1020px;margin:0 auto;padding:36px 32px 60px">
-
-        <h1 style="font-size:26px;font-weight:700;color:var(--text);margin:0 0 26px;letter-spacing:-.3px">Tablero de facturación</h1>
-
-        <!-- Main tabs -->
-        <div style="border-bottom:1px solid var(--border);margin-bottom:28px;display:flex">
-          <button class="billing-tab active" id="btab-wallet"  onclick="switchBillingTab('wallet',this)">Monedero y transacciones</button>
-          <button class="billing-tab"        id="btab-usage"   onclick="switchBillingTab('usage',this)">Desglose de uso</button>
-          <button class="billing-tab"        id="btab-history" onclick="switchBillingTab('history',this)">Historial de recargas</button>
-        </div>
-
-        <!-- ── PANE: Monedero ── -->
-        <div id="billing-pane-wallet">
-          <!-- Balance card -->
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px 28px 22px;margin-bottom:28px">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
-              <div>
-                <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:10px">Saldo de su monedero</div>
-                <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
-                  <span id="cp-dollar-balance" style="font-size:40px;font-weight:700;color:var(--text);letter-spacing:-1.5px">$0.00</span>
-                  <span id="cp-credits-detail" style="font-size:13px;color:var(--accent);font-weight:600">0 créditos</span>
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;margin-top:4px">
-                <button onclick="loadCreditsPage()" title="Actualizar" style="width:36px;height:36px;border-radius:50%;background:var(--card2);border:1px solid var(--border);color:var(--accent);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">↺</button>
-                <button onclick="openBuyCreditsModal()" style="display:flex;align-items:center;gap:6px;padding:10px 20px;background:#0073ea;color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">+ Añadir saldo</button>
-              </div>
-            </div>
-            <div id="cp-wallet-stats" style="display:flex;gap:28px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);flex-wrap:wrap"></div>
-          </div>
-
-          <!-- Transactions section -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-            <span style="font-size:16px;font-weight:700;color:var(--text)">Transacciones de monedero</span>
-            <button onclick="loadCreditsPage()" style="background:none;border:none;color:var(--accent);font-size:18px;cursor:pointer;padding:4px;line-height:1">↺</button>
-          </div>
-          <!-- Date filter -->
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-            <span style="font-size:12px;color:var(--text2);font-weight:500">Período:</span>
-            <input type="date" id="cp-desde" onchange="loadCreditsPage()" style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 10px;font-family:var(--font);font-size:12px"/>
-            <span style="color:var(--text2);font-size:12px">—</span>
-            <input type="date" id="cp-hasta" onchange="loadCreditsPage()" style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 10px;font-family:var(--font);font-size:12px"/>
-            <button onclick="document.getElementById('cp-desde').value='';document.getElementById('cp-hasta').value='';loadCreditsPage()" style="padding:5px 10px;background:none;color:var(--text2);border:1px solid var(--border);border-radius:6px;font-family:var(--font);font-size:11px;cursor:pointer">✕ Limpiar</button>
-          </div>
-          <!-- Sub-tabs -->
-          <div style="border-bottom:1px solid var(--border);margin-bottom:20px;display:flex">
-            <button class="billing-subtab active" id="bstab-summary"  onclick="switchBillingSubtab('summary',this)">Resumen</button>
-            <button class="billing-subtab"        id="bstab-detailed" onclick="switchBillingSubtab('detailed',this)">Transacciones detalladas</button>
-          </div>
-          <div id="cp-wallet-summary">
-            <div id="cp-transactions" style="display:flex;flex-direction:column;gap:6px"></div>
-          </div>
-          <div id="cp-wallet-detailed" style="display:none">
-            <div id="cp-msg-detail" style="display:flex;flex-direction:column;gap:6px"></div>
-          </div>
-
-          <!-- ── Auto-recarga ── -->
-          <div style="margin-top:32px;padding-top:28px;border-top:1px solid var(--border)">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-              <span style="font-size:16px;font-weight:700;color:var(--text)">⚡ Auto-recarga automática</span>
-              <span style="background:linear-gradient(135deg,rgba(0,200,117,.2),rgba(0,200,117,.1));border:1px solid rgba(0,200,117,.4);color:#00c875;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">SIEMPRE ACTIVA</span>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
-              <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
-                <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Configuración</div>
-                <div style="display:flex;flex-direction:column;gap:10px">
-                  <div>
-                    <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-weight:600">Umbral mínimo (créditos)</label>
-                    <input type="number" id="ar-threshold" min="1" placeholder="50"
-                      style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-family:var(--font);font-size:12px;box-sizing:border-box"/>
-                    <div style="font-size:10px;color:var(--text2);margin-top:3px">Recargar cuando queden menos de X créditos</div>
-                  </div>
-                  <div>
-                    <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-weight:600">Paquete de recarga</label>
-                    <select id="ar-package" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-family:var(--font);font-size:12px;box-sizing:border-box">
-                      <option value="pkg_100">100 créditos</option>
-                      <option value="pkg_500" selected>500 créditos</option>
-                      <option value="pkg_1000">1,000 créditos</option>
-                      <option value="pkg_5000">5,000 créditos</option>
-                    </select>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:10px;margin-top:2px">
-                    <button onclick="saveAutoRechargeSettings()" style="padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">Guardar</button>
-                    <span id="ar-save-status" style="font-size:11px;color:var(--text2)"></span>
-                  </div>
-                </div>
-              </div>
-              <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
-                <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Método de pago</div>
-                <div id="ar-card-info" style="margin-bottom:14px"><div style="font-size:12px;color:var(--text2)">Cargando…</div></div>
-                <button onclick="setupPaymentMethod()" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:7px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">🔒 Agregar / cambiar tarjeta</button>
-                <div style="font-size:10px;color:var(--text2);margin-top:6px">Redirigido a Stripe. Datos de tarjeta nunca tocan nuestros servidores.</div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- ── PANE: Desglose de uso ── -->
-        <div id="billing-pane-usage" style="display:none">
-          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:16px">Mensajes enviados por agente en el período seleccionado.</div>
-          <div id="cp-agents" style="display:flex;flex-direction:column;gap:8px"></div>
-          <div style="margin-top:28px">
-            <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:14px">Uso por board</div>
-            <div id="cp-boards" style="display:flex;flex-direction:column;gap:8px"></div>
-          </div>
-        </div>
-
-        <!-- ── PANE: Historial ── -->
-        <div id="billing-pane-history" style="display:none">
-          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:16px">Todas las recargas realizadas al monedero del equipo.</div>
-          <div id="cp-recharge-history" style="display:flex;flex-direction:column;gap:6px"></div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- BUY CREDITS MODAL -->
-    <div class="overlay" id="buy-credits-overlay" onclick="if(event.target===this)closeBuyCreditsModal()">
-      <div class="modal" style="max-width:480px">
-        <div class="modal-header">
-          <h2>+ Añadir saldo</h2>
-          <button class="modal-close" onclick="closeBuyCreditsModal()">✕</button>
-        </div>
-        <div class="modal-body" style="padding:20px 24px 24px">
-          <p style="font-size:12px;color:var(--text2);margin:0 0 18px;line-height:1.6">Los créditos se acreditan al monedero global del equipo. Todos los agentes podrán usarlos al enviar SMS y WhatsApp.</p>
-          <div style="margin-bottom:22px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Selecciona un paquete</label>
-            <div id="buy-pkg-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
-          </div>
-          <button id="buy-confirm-btn" onclick="confirmBuyCredits()" style="width:100%;padding:13px;background:#0073ea;color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">Ir a pagar →</button>
-        </div>
-      </div>
-    </div>
 
     <!-- CONVERSATIONS PAGE -->
     <div id="conversations-page" style="display:none;flex:1;overflow:hidden;height:100%">
@@ -2607,8 +2384,6 @@ setTimeout(function(){
 
     <!-- Mensajes tab -->
     <div id="np-pane-messages" style="display:none;flex-direction:column;flex:1;overflow:hidden">
-      <!-- Credits bar hidden — internal use only -->
-      <span id="msg-credits-val" style="display:none">—</span>
       <div id="msg-journal" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;min-height:120px"></div>
       <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
         <div style="display:flex;gap:8px;margin-bottom:10px">
@@ -2648,25 +2423,6 @@ setTimeout(function(){
   </div>
 </div>
 
-<!-- RECHARGE MODAL -->
-<div class="overlay" id="recharge-modal-overlay" onclick="if(event.target===this)closeRechargeModal()">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-header">
-      <h2>💳 Recargar créditos</h2>
-      <button class="modal-close" onclick="closeRechargeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:12px;color:var(--text2);margin:0 0 16px">Selecciona un paquete. Serás redirigido a Stripe para completar el pago de forma segura.</p>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <button onclick="startCheckout('pkg_100')"  class="pkg-btn">📱 <strong>100 mensajes</strong> <span style="margin-left:auto;color:var(--accent);font-weight:700">$1.60</span></button>
-        <button onclick="startCheckout('pkg_500')"  class="pkg-btn">📱 <strong>500 mensajes</strong> <span style="margin-left:auto;color:var(--accent);font-weight:700">$8.00</span></button>
-        <button onclick="startCheckout('pkg_1000')" class="pkg-btn">📱 <strong>1,000 mensajes</strong> <span style="margin-left:auto;color:var(--accent);font-weight:700">$16.00</span></button>
-        <button onclick="startCheckout('pkg_5000')" class="pkg-btn">📱 <strong>5,000 mensajes</strong> <span style="margin-left:auto;color:var(--accent);font-weight:700">$80.00</span></button>
-      </div>
-      <div id="recharge-status" style="font-size:12px;color:var(--text2);margin-top:12px;text-align:center"></div>
-    </div>
-  </div>
-</div>
 
 <!-- BOARD MODAL -->
 <div class="overlay" id="board-modal-overlay" onclick="if(event.target===this)closeBoardModal()">
@@ -3262,7 +3018,6 @@ setTimeout(function(){
 <script defer src="terms.js"></script>
 <script defer src="notes-chat.js"></script>
 <script defer src="conversations.js"></script>
-<script defer src="credits.js"></script>
 <script defer src="backup.js"></script>
 <script defer src="supabase.js"></script>
 <script defer src="init.js"></script>

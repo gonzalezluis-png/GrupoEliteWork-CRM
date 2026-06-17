@@ -144,10 +144,8 @@ function openNotesPanel(leadId, navList) {
   const _s = getSession();
   document.getElementById('np-tab-messages').style.display = (_s && _s.role === 'master') ? '' : 'none';
   document.getElementById('np-tab-calls').style.display = '';
-  loadMsgCredits(boardId);
   switchNotesPanelTab('notes');
   document.getElementById('notes-panel-overlay').classList.add('open');
-  _startMsgPolling();
 }
 
 
@@ -484,13 +482,6 @@ async function sendLeadMessage() {
     status.textContent = '✓ Mensaje enviado';
     status.style.color = '#00c875';
     document.getElementById('msg-body-inp').value = '';
-    if (data.creditsLeft !== undefined) {
-      const cv = document.getElementById('msg-credits-val');
-      if (cv) { cv.textContent = data.creditsLeft; cv.style.color = data.creditsLeft < 10 ? '#e2445c' : 'var(--accent)'; }
-      if (_autochargeEnabled && data.creditsLeft <= _autochargeThreshold) {
-        triggerAutoRecharge();
-      }
-    }
   } catch(e) {
     status.textContent = '⚠️ ' + e.message;
     status.style.color = '#e2445c';

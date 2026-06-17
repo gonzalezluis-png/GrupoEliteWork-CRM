@@ -136,7 +136,6 @@ function switchSettingsTab(tab) {
   if (tabEl) tabEl.classList.add('active');
   const navEl = document.querySelector(`.settings-nav-item[data-tab="${tab}"]`);
   if (navEl) navEl.classList.add('active');
-  if (tab === 'messaging') { loadMessagingDashboard(); loadMsgPrices(); }
   if (tab === 'org' || tab === 'team') {
     loadFromSupabase().then(() => renderUsersGrid()).catch(() => {});
   }

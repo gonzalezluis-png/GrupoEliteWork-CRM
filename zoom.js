@@ -450,8 +450,6 @@ function initApp(user) {
   applyToolbarGap();
   initToolbarGapHandle();
   initRealtimeSync();
-  // Pre-load auto-recharge settings so trigger works in send
-  loadAutoRechargeSettings().catch(() => {});
   // Assign GEW-XXX codes to users that don't have one yet
   if (user.role === 'master') assignUserCodes().catch(() => {});
   // Backfill asignadoId on existing leads that only have asignado (name)

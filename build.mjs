@@ -1,14 +1,16 @@
 import { build } from 'esbuild';
-import { readFileSync, writeFileSync, unlinkSync, cpSync, rmSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync, cpSync, rmSync, readdirSync, existsSync } from 'fs';
 import { mkdirSync } from 'fs';
 import { createHash } from 'crypto';
+
+const IS_VPS = process.argv.includes('--vps');
 
 // JS files in execution order (init.js last — it calls everything)
 const JS_FILES = [
   'data.js', 'table.js', 'calendar.js', 'stats.js', 'scripts.js',
   'import.js', 'referidos.js', 'ui-table-parts.js', 'ui-agents.js',
   'ui-modals.js', 'ui-dist.js', 'board.js', 'auth.js', 'zoom.js',
-  'terms.js', 'notes-chat.js', 'conversations.js', 'credits.js',
+  'terms.js', 'notes-chat.js', 'conversations.js',
   'backup.js', 'supabase.js',
   'tos.js', 'roles.js', 'tour.js', 'hashnav.js', 'vault.js', 'diagnostic.js',
   'feedback.js',
@@ -18,7 +20,12 @@ const JS_FILES = [
 mkdirSync('dist', { recursive: true });
 
 // Bundle JS
-const combined = JS_FILES.map(f => readFileSync(f, 'utf8')).join('\n;\n');
+const combined = JS_FILES.map(f => {
+  if (IS_VPS && f === 'supabase.js' && existsSync('supabase.vps.js')) {
+    return readFileSync('supabase.vps.js', 'utf8');
+  }
+  return readFileSync(f, 'utf8');
+}).join('\n;\n');
 writeFileSync('dist/_temp.js', combined);
 
 await build({

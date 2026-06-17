@@ -1,3 +1,6 @@
 .vercel
 dist/
 node_modules/
+crm-api-config.php
+supabase.js.bak
+test-save.js
