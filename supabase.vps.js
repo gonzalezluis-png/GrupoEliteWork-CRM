@@ -36,25 +36,22 @@ async function _upsertLeadRemote(lead) {
     });
     const json = await r.json();
     if (r.status === 409 && json.conflict && json.current) {
+      CRMLog.conflict409(lead, json.current);
       const serverLead = _rowToLead(json.current);
-      const bkey = 'gew_leads_' + serverLead._boardId;
-      try {
-        const arr = JSON.parse(localStorage.getItem(bkey) || '[]');
-        const idx = arr.findIndex(l => l.id === serverLead.id);
-        if (idx >= 0) arr[idx] = serverLead; else arr.push(serverLead);
-        localStorage.setItem(bkey, JSON.stringify(arr));
-        _applyRealtimeKey(bkey);
-      } catch(_) {}
+      storePatchLead(serverLead);
+      _applyRealtimeKey('gew_leads_' + serverLead._boardId);
       return false;
     }
     if (json.ok && json.version) {
-      const bkey = 'gew_leads_' + (lead._boardId || '');
-      try {
-        const arr = JSON.parse(localStorage.getItem(bkey) || '[]');
-        const idx = arr.findIndex(l => l.id === lead.id);
-        if (idx >= 0) arr[idx]._version = json.version;
-        localStorage.setItem(bkey, JSON.stringify(arr));
-      } catch(_) {}
+      // Stamp server-assigned version onto the stored lead
+      const curr = storeGetLeads(lead._boardId || '');
+      const idx  = curr.findIndex(l => l.id === lead.id);
+      if (idx >= 0) {
+        const updated = curr.slice();
+        updated[idx] = { ...updated[idx], _version: json.version };
+        storeSetLeads(lead._boardId || '', updated);
+      }
+      CRMLog.leadUpdate(lead, 'upsert_lead:ok');
     }
     return json.ok;
   } catch(e) {
@@ -137,35 +134,21 @@ function initRealtimeSync() {
         if (typeof _deletedLeadIds !== 'undefined') _deletedLeadIds.forEach(id => deletedIds.add(id));
 
         if (payload.eventType === 'DELETE' || (payload.new && payload.new.deleted)) {
+          storeRemoveLead(leadId);
+          _boardCountCache.clear();
           const allBoards = (typeof BOARDS !== 'undefined' ? BOARDS : []).concat(
             typeof VENDIDOS_BOARD !== 'undefined' ? [VENDIDOS_BOARD] : []
           );
-          allBoards.forEach(b => {
-            const bkey = 'gew_leads_' + b.id;
-            try {
-              const arr  = JSON.parse(localStorage.getItem(bkey) || '[]');
-              const next = arr.filter(l => l.id !== leadId);
-              if (next.length !== arr.length) {
-                localStorage.setItem(bkey, JSON.stringify(next));
-                _boardCountCache.delete(b.id);
-                _applyRealtimeKey(bkey);
-              }
-            } catch(_) {}
-          });
+          allBoards.forEach(b => _applyRealtimeKey('gew_leads_' + b.id));
         } else if (payload.new) {
           const lead = _rowToLead(payload.new);
           if (!lead._boardId || deletedIds.has(lead.id)) return;
-          const bkey = 'gew_leads_' + lead._boardId;
-          const arr  = JSON.parse(localStorage.getItem(bkey) || '[]');
-          const idx  = arr.findIndex(l => l.id === lead.id);
-          if (idx >= 0) {
-            if ((lead._updatedAt || '') >= (arr[idx]._updatedAt || '')) arr[idx] = lead;
-          } else {
-            arr.push(lead);
+          CRMLog.realtimeEvent(payload.eventType, leadId, lead._boardId);
+          const patched = storePatchLead(lead);
+          if (patched) {
+            _boardCountCache.delete(lead._boardId);
+            _applyRealtimeKey('gew_leads_' + lead._boardId);
           }
-          localStorage.setItem(bkey, JSON.stringify(arr));
-          _boardCountCache.delete(lead._boardId);
-          _applyRealtimeKey(bkey);
         }
       } catch(e) { console.error('leads realtime error:', e); }
     })
@@ -222,6 +205,10 @@ function _applyRealtimeKey(key) {
 }
 
 async function loadFromSupabase() {
+  // Warm the in-memory store from localStorage so boards render instantly while
+  // Supabase responds. This data is stale and will be replaced below.
+  storeWarmFromLocalStorage();
+
   try {
     // 1. Load kv_store (non-lead keys only)
     const [p0, p1] = await Promise.all([
@@ -276,7 +263,7 @@ async function loadFromSupabase() {
       }
     });
 
-    // 2. Load leads from leads table
+    // 2. Load leads from leads table → populate in-memory store (authoritative)
     const { data: leadsRows, error: leadsError } = await supa
       .from('leads')
       .select('*')
@@ -292,12 +279,13 @@ async function loadFromSupabase() {
         if (!boardMap[lead._boardId]) boardMap[lead._boardId] = [];
         boardMap[lead._boardId].push(lead);
       });
+
       Object.entries(boardMap).forEach(([boardId, remoteLeads]) => {
-        const lkey = 'gew_leads_' + boardId;
-        const local = JSON.parse(localStorage.getItem(lkey) || '[]');
-        const localMap   = new Map(local.map(l => [l.id, l]));
-        const remoteMapB = new Map(remoteLeads.map(l => [l.id, l]));
-        const allIds     = new Set([...localMap.keys(), ...remoteMapB.keys()]);
+        // Merge with warm-cache from store (local edits made before Supabase returned)
+        const localLeads  = storeGetLeads(boardId);
+        const localMap    = new Map(localLeads.map(l => [l.id, l]));
+        const remoteMapB  = new Map(remoteLeads.map(l => [l.id, l]));
+        const allIds      = new Set([...localMap.keys(), ...remoteMapB.keys()]);
         const merged = [];
         for (const id of allIds) {
           if (deletedLeadIds.has(id)) continue;
@@ -305,11 +293,24 @@ async function loadFromSupabase() {
           const rem = remoteMapB.get(id);
           if (!loc) { merged.push(rem); continue; }
           if (!rem) { merged.push(loc); continue; }
+          // Keep whichever is newer; if local is newer it'll be re-synced by pending debounce
           merged.push((loc._updatedAt || '') >= (rem._updatedAt || '') ? loc : rem);
         }
-        localStorage.setItem(lkey, JSON.stringify(merged));
+        storeSetLeads(boardId, merged);
+        _boardCountCache.delete(boardId);
       });
+
+      // Clear boards present in warm-cache but absent from server (they're empty)
+      for (const [boardId] of _leadStore) {
+        if (!boardMap[boardId]) storeSetLeads(boardId, []);
+      }
+    } else {
+      // No leads from server — clear all warm-cache boards
+      for (const [boardId] of _leadStore) storeSetLeads(boardId, []);
     }
+
+    storeMarkReady();
+    console.log(`[CRM:store] ready — ${leadsRows?.length ?? 0} leads loaded`);
 
     if (typeof renderSidebar === 'function') renderSidebar();
     if (typeof currentBoardId !== 'undefined' && currentBoardId && typeof renderTableKeepSelection === 'function') {

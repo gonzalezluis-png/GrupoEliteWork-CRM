@@ -7,7 +7,7 @@ const IS_VPS = process.argv.includes('--vps');
 
 // JS files in execution order (init.js last — it calls everything)
 const JS_FILES = [
-  'data.js', 'table.js', 'calendar.js', 'stats.js', 'scripts.js',
+  'store.js', 'data.js', 'table.js', 'calendar.js', 'stats.js', 'scripts.js',
   'import.js', 'referidos.js', 'ui-table-parts.js', 'ui-agents.js',
   'ui-modals.js', 'ui-dist.js', 'board.js', 'auth.js', 'zoom.js',
   'terms.js', 'notes-chat.js', 'conversations.js',

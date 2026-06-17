@@ -125,14 +125,12 @@ function normalizeAsignado(val) {
   return val.trim().toLowerCase() === 'no asignado' ? '' : val;
 }
 function loadLeads(boardId) {
-  try {
-    const leads = JSON.parse(localStorage.getItem('gew_leads_' + boardId)) || [];
-    leads.forEach(l => {
-      l.asignado = normalizeAsignado(l.asignado);
-      if (!l.tipo) l.tipo = 'Presencial'; // default for existing & new leads
-    });
-    return leads;
-  } catch { return []; }
+  const leads = storeGetLeads(boardId);
+  leads.forEach(l => {
+    l.asignado = normalizeAsignado(l.asignado);
+    if (!l.tipo) l.tipo = 'Presencial';
+  });
+  return leads;
 }
 function setSyncStatus(state) {
   const dot = document.getElementById('sync-dot');
@@ -203,8 +201,7 @@ const _SAVE_DEBOUNCE_MS = 500;
 // Fast path for single-lead field updates (resultado, notas, _messages, etc.)
 // 200ms per-lead debounce — no board diff, no full-array serialization overhead.
 async function patchLead(boardId, lead, opts = {}) {
-  const key  = 'gew_leads_' + boardId;
-  const prev = JSON.parse(localStorage.getItem(key) || '[]');
+  const prev = storeGetLeads(boardId);
   const idx  = prev.findIndex(l => l.id === lead.id);
   if (idx < 0) return false;
 
@@ -214,7 +211,9 @@ async function patchLead(boardId, lead, opts = {}) {
 
   if (!opts.isNote) _pushHistory(boardId, prev, next);
 
-  localStorage.setItem(key, JSON.stringify(next));
+  storeSetLeads(boardId, next);
+  _boardCountCache.set(boardId, next.length);
+  CRMLog.leadUpdate(lead, 'patchLead');
   setSyncStatus('saving');
 
   const timerKey = 'patch_' + lead.id;
@@ -244,11 +243,11 @@ function _syncLeadsDiff(boardId, prev, current) {
   _saveDebounceTimers.set(timerKey, setTimeout(async () => {
     _saveDebounceTimers.delete(timerKey);
 
-    // Use the baseline from the start of the window and the CURRENT localStorage
+    // Use the baseline from the start of the window and the CURRENT store state
     // so all intermediate saves are captured, not just the last diff
     const baseline = _diffBaseline.get(boardId) || [];
     _diffBaseline.delete(boardId);
-    const finalLeads = JSON.parse(localStorage.getItem('gew_leads_' + boardId) || '[]');
+    const finalLeads = storeGetLeads(boardId);
 
     const prevMap = new Map(baseline.map(l => [l.id, l]));
     const currMap = new Map(finalLeads.map(l => [l.id, l]));
@@ -286,6 +285,7 @@ function _syncLeadsDiff(boardId, prev, current) {
     }
 
     setSyncStatus(allOk ? 'saved' : 'error');
+    CRMLog.syncSent(boardId, toWrite.length, toDelete.length);
 
     // Confirmation toast for batch assignments (≥2 leads changed)
     if (toWrite.length >= 2 && typeof showToast === 'function') {
@@ -321,8 +321,8 @@ async function saveLeads(boardId, leads, opts = {}) {
   }
 
   // Stamp changed/new leads with _updatedAt before anything else
-  const prevRaw = localStorage.getItem(key);
-  const prev = prevRaw ? JSON.parse(prevRaw) : [];
+  // .slice() gives a stable snapshot so _diffBaseline isn't corrupted by later mutations
+  const prev    = storeGetLeads(boardId).slice();
   const prevMap = new Map(prev.map(l => [l.id, l]));
   const now = new Date().toISOString();
   leads.forEach(l => {
@@ -357,9 +357,10 @@ async function saveLeads(boardId, leads, opts = {}) {
     } catch(_) {}
   }
 
-  // Update local state immediately so UI is responsive
-  localStorage.setItem(key, JSON.stringify(leads));
-  _boardCountCache.set(boardId, leads.length); // #4
+  // Update in-memory store immediately so UI is responsive
+  storeSetLeads(boardId, leads);
+  _boardCountCache.set(boardId, leads.length);
+  CRMLog.leadUpdate({ id: '(batch)', _boardId: boardId, _version: null }, `saveLeads:${leads.length}`);
   updateSidebarCount(boardId);
   renderSidebar();
   setSyncStatus('saving');
