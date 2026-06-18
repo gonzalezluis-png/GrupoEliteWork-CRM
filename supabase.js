@@ -178,6 +178,10 @@ function _applyRealtimeKey(key) {
 }
 
 async function loadFromSupabase() {
+  // Warm the in-memory store from localStorage so boards render instantly while
+  // Supabase responds. Stale data — overwritten below.
+  storeWarmFromLocalStorage();
+
   try {
     const [p0, p1, p2] = await Promise.all([
       supa.from('kv_store').select('key, value').order('key').range(0,    999),
@@ -238,6 +242,7 @@ async function loadFromSupabase() {
             const leads    = JSON.parse(row.value) || [];
             const filtered = leads.filter(l => !deletedLeadIds.has(l.id));
             localStorage.setItem(row.key, JSON.stringify(filtered));
+            storeSetLeads(row.key.slice('gew_leads_'.length), filtered);
             if (filtered.length !== leads.length) {
               supaSync(row.key, JSON.stringify(filtered));
             }
@@ -275,8 +280,12 @@ async function loadFromSupabase() {
             merged.push((loc._updatedAt || '') >= (rem._updatedAt || '') ? loc : rem);
           }
           localStorage.setItem(lkey, JSON.stringify(merged));
+          storeSetLeads(boardId, merged);
+          _boardCountCache.delete(boardId);
         });
       }
+
+      storeMarkReady();
 
       // Re-render sidebar after Supabase data lands so agents see their boards
       if (typeof renderSidebar === 'function') renderSidebar();

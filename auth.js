@@ -16,6 +16,7 @@ function loadUsers() {
   try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; } catch { return []; }
 }
 async function saveUsers(users) {
+  if (typeof SYSTEM_FROZEN !== 'undefined' && SYSTEM_FROZEN) { _showMigrationNotice(); return; }
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
   const ok = await supaSync(USERS_KEY, JSON.stringify(users));
   if (!ok) showToast('Advertencia: no se pudo sincronizar con la nube', 'error');

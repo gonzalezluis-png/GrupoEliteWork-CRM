@@ -645,6 +645,7 @@ async function assignOrphanUser(userId) {
 }
 
 function _renderDeletedUsersHistory(grid, session) {
+  return; // hidden from product
   const allDel = loadDeletedUsers();
   const visible = session.role === 'master'
     ? allDel

@@ -455,6 +455,7 @@ function initApp(user) {
   // Backfill asignadoId on existing leads that only have asignado (name)
   if (user.role === 'master' || user.role === 'admin') _backfillAsignadoId().catch(() => {});
   _backfillTipo().catch(() => {});
+  if (typeof _initFreezeUI === 'function') _initFreezeUI();
 }
 
 function showAgentView() {
