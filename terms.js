@@ -191,15 +191,9 @@ function showBoardView() {
   document.getElementById('settings-page').classList.remove('visible');
   document.getElementById('trash-page').classList.remove('visible');
   document.getElementById('scripts-page').classList.remove('visible');
-  document.getElementById('conversations-page').style.display = 'none';
-  document.getElementById('credits-page').style.display   = 'none';
-  document.getElementById('activity-page').style.display  = 'none';
-  document.getElementById('calendar-page').style.display  = 'none';
-  document.getElementById('stats-page').style.display     = 'none';
-  document.getElementById('reconcile-page').style.display = 'none';
-  document.getElementById('weekly-report-page').style.display = 'none';
-  document.getElementById('connections-page').style.display = 'none';
-  document.getElementById('referidos-page').style.display = 'none';
+  ['conversations-page','credits-page','activity-page','calendar-page',
+   'stats-page','reconcile-page','weekly-report-page','connections-page','referidos-page'
+  ].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
   const navWR = document.getElementById('nav-weekly-report');
   if (navWR) navWR.classList.remove('active');
   const navConn = document.getElementById('nav-connections');

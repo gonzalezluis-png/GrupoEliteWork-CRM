@@ -50,21 +50,6 @@
   })();
 </script>
 
-<!-- MIGRATION NOTICE BANNER — always visible on production -->
-<div id="migration-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99998;background:linear-gradient(90deg,#7c3aed,#4f46e5);color:#fff;font-size:13px;font-weight:600;text-align:center;padding:10px 16px;align-items:center;justify-content:center;gap:12px">
-  <span>⚠️ Este sistema está en solo lectura. Para gestionar leads visita <a href="https://crm.m2base.com/" target="_blank" rel="noopener" style="color:#c4b5fd;text-decoration:underline">crm.m2base.com</a></span>
-</div>
-<script>
-(function(){
-  var host = window.location.hostname;
-  if (host === 'lead.grupoelitework.com') {
-    var b = document.getElementById('migration-banner');
-    if (b) b.style.display = 'flex';
-    document.body.style.paddingBottom = '44px';
-  }
-})();
-</script>
-
 <div id="sync-overlay">
   <div class="sync-spinner"></div>
   <div class="sync-msg" id="sync-msg">Conectando con la base de datos…</div>
