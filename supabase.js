@@ -223,6 +223,8 @@ async function loadFromSupabase() {
       }
 
       data.forEach(row => {
+        // Skip per-lead rows here — processed separately into board aggregates below
+        if (row.key.startsWith('gew_ld_')) return;
         if (row.key === USERS_KEY) {
           try {
             const remote = JSON.parse(row.value) || [];
@@ -235,7 +237,7 @@ async function loadFromSupabase() {
               }
             });
             localStorage.setItem(row.key, JSON.stringify(merged));
-          } catch { localStorage.setItem(row.key, row.value); }
+          } catch { try { localStorage.setItem(row.key, row.value); } catch(_) {} }
         } else if (row.key.startsWith('gew_leads_')) {
           // Filter only trashed leads — vendidos remain visible in their source board
           try {
@@ -246,9 +248,9 @@ async function loadFromSupabase() {
             if (filtered.length !== leads.length) {
               supaSync(row.key, JSON.stringify(filtered));
             }
-          } catch { localStorage.setItem(row.key, row.value); }
+          } catch { try { localStorage.setItem(row.key, row.value); } catch(_) {} }
         } else {
-          localStorage.setItem(row.key, row.value);
+          try { localStorage.setItem(row.key, row.value); } catch(_) {}
         }
       });
       // Build board arrays from per-lead rows (new format — overrides board blobs)
