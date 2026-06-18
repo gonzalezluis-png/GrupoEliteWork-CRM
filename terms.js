@@ -209,7 +209,7 @@ function showBoardView() {
   document.getElementById('table-wrap').style.display   = '';
   document.getElementById('toolbar').style.display      = '';
   document.getElementById('btn-new-lead').style.display = '';
-  document.getElementById('btn-export').style.display   = 'none';
+  document.getElementById('btn-export').style.display   = '';
   const navSet = document.getElementById('nav-settings');
   if (navSet) navSet.classList.remove('active');
   const navImp = document.getElementById('nav-import');

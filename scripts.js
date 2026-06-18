@@ -232,26 +232,44 @@ function selectSspScript(id) {
 // ════════════════════════════════════════════
 function exportCSV() {
   if (!currentBoardId) return;
-  const board   = getBoard(currentBoardId);
-  const allLeads = loadLeads(currentBoardId);
+  const board     = getBoard(currentBoardId);
+  const allLeads  = loadLeads(currentBoardId);
   const hasSelection = selectedIds.size > 0;
-  const leads   = hasSelection ? allLeads.filter(l => selectedIds.has(l.id)) : filteredLeads.length > 0 ? filteredLeads : allLeads;
+  const leads     = hasSelection
+    ? allLeads.filter(l => selectedIds.has(l.id))
+    : filteredLeads.length > 0 ? filteredLeads : allLeads;
   if (leads.length === 0) { showToast('No hay leads para exportar','error'); return; }
 
   const cols = getColumns(board).filter(c => c.key !== '_actions' && c.key !== '_check');
-  const header = cols.map(c => `"${c.label}"`).join(',');
-  const rows = leads.map(l =>
-    cols.map(c => `"${(l[c.key]||'').toString().replace(/"/g,'""')}"`).join(',')
+
+  // Include all lead fields not in columns too (notas completas, etc.)
+  const extraKeys = ['_notes','creacion','entrada','tipo'];
+  const allCols = [
+    ...cols,
+    ...extraKeys.filter(k => !cols.find(c => c.key === k)).map(k => ({ key: k, label: k.toUpperCase() }))
+  ];
+
+  const header = allCols.map(c => `"${c.label}"`).join(',');
+  const rows   = leads.map(l =>
+    allCols.map(c => {
+      const v = l[c.key];
+      if (Array.isArray(v)) return `"${v.join('; ').replace(/"/g,'""')}"`;
+      return `"${(v||'').toString().replace(/"/g,'""')}"`;
+    }).join(',')
   );
-  const csv = [header, ...rows].join('\n');
+  const csv  = [header, ...rows].join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `${board.id}_leads${hasSelection ? `_seleccion_${leads.length}` : ''}_${today()}.csv`;
+  const filterTag = hasSelection ? `_seleccion${leads.length}`
+    : assignFilter === 'unassigned' ? '_sin_asignar'
+    : assignFilter === 'assigned'   ? '_asignados'
+    : '';
+  a.download = `${board.id}${filterTag}_${today()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast(`CSV exportado — ${leads.length} lead${leads.length !== 1 ? 's' : ''}${hasSelection ? ' seleccionados' : ''} ✓`, 'success');
+  showToast(`Exportado — ${leads.length} lead${leads.length !== 1?'s':''} ✓`, 'success');
 }
 
 // ════════════════════════════════════════════
