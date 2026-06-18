@@ -1,100 +1,21 @@
 // ════════════════════════════════════════════
 //  MIGRATION LOCK
 // ════════════════════════════════════════════
-const SYSTEM_FROZEN   = true;
-const _MIGRATION_URL  = 'https://crm.m2base.com/';
-const _MIGRATION_MSG  =
-  'Este sistema ha sido migrado. Para más información, contacta con tu manager.';
+const SYSTEM_FROZEN  = true;
+const _MIGRATION_URL = 'https://crm.m2base.com/';
 
 function _showMigrationNotice() {
-  let el = document.getElementById('crm-migration-notice');
-  if (el) { el.style.display = 'flex'; return; }
-  el = document.createElement('div');
-  el.id = 'crm-migration-notice';
-  el.style.cssText = [
-    'position:fixed','inset:0','background:rgba(0,0,0,.72)','z-index:99999',
-    'display:flex','align-items:center','justify-content:center',
-  ].join(';');
-  el.innerHTML = `
-    <div style="background:#0f172a;border:1px solid rgba(255,255,255,.12);border-radius:16px;
-                padding:36px 28px;width:min(460px,92vw);text-align:center;
-                box-shadow:0 24px 64px rgba(0,0,0,.65);font-family:'Segoe UI',system-ui,sans-serif">
-      <div style="font-size:44px;margin-bottom:14px">🔒</div>
-      <h2 style="margin:0 0 10px;font-size:19px;font-weight:700;color:#fff">Sistema Migrado</h2>
-      <p style="margin:0 0 8px;font-size:13.5px;color:#94a3b8;line-height:1.75">
-        Este sistema ha sido migrado a una nueva plataforma.<br>
-        Para continuar trabajando, accede a:
-      </p>
-      <a href="${_MIGRATION_URL}" target="_blank"
-         style="display:inline-block;margin:4px 0 18px;font-size:14px;font-weight:700;color:#a78bfa">
-        ${_MIGRATION_URL}
-      </a>
-      <p style="margin:0 0 26px;font-size:12px;color:#64748b">
-        Para más información, contacta con tu manager.
-      </p>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <a href="${_MIGRATION_URL}" target="_blank"
-           style="background:#7c3aed;color:#fff;border-radius:8px;padding:10px 22px;
-                  font-size:13px;font-weight:600;text-decoration:none">
-          Ir al nuevo sistema →
-        </a>
-        <button onclick="document.getElementById('crm-migration-notice').style.display='none'"
-                style="background:rgba(255,255,255,.07);color:#94a3b8;border:1px solid rgba(255,255,255,.1);
-                       border-radius:8px;padding:10px 22px;font-size:13px;cursor:pointer">
-          Cerrar
-        </button>
-      </div>
-    </div>`;
-  el.addEventListener('click', e => { if (e.target === el) el.style.display = 'none'; });
-  document.body.appendChild(el);
+  alert('Este sistema ha sido migrado a ' + _MIGRATION_URL + '\nPara más información contacta con tu manager.');
 }
 
 function _initFreezeUI() {
   if (!SYSTEM_FROZEN) return;
-
-  // Hide write-action buttons
-  ['btn-new-lead', 'btn-import'].forEach(id => {
-    const el = document.getElementById(id);
+  try {
+    const el = document.getElementById('btn-new-lead');
     if (el) el.style.display = 'none';
-  });
-
-  // Hide assign strip (bulk assign panel)
-  const strip = document.getElementById('assign-strip');
-  if (strip) strip.classList.add('hidden');
-
-  // Show frozen banner under topbar
-  const banner = document.createElement('div');
-  banner.style.cssText = [
-    'position:fixed','top:0','left:0','right:0','z-index:8000',
-    'background:#7c3aed','color:#fff','text-align:center',
-    'font-size:12px','font-weight:600','padding:6px 12px',
-    'letter-spacing:.3px',
-  ].join(';');
-  banner.innerHTML =
-    `🔒 Sistema en modo solo lectura — Migrado a <a href="${_MIGRATION_URL}" target="_blank"
-      style="color:#e9d5ff;font-weight:700">${_MIGRATION_URL}</a>`;
-  document.body.prepend(banner);
-  document.body.style.paddingTop = (parseInt(document.body.style.paddingTop || '0', 10) + 30) + 'px';
-
-  // Intercept openModal: block new leads; open existing in read-only
-  const _origOpenModal = window.openModal;
-  if (_origOpenModal) {
-    window.openModal = function(leadId) {
-      if (!leadId) { _showMigrationNotice(); return; }
-      _origOpenModal(leadId);
-      setTimeout(() => {
-        // Make all form fields read-only
-        const grid = document.getElementById('form-grid');
-        if (grid) grid.querySelectorAll('input,select,textarea').forEach(f => { f.disabled = true; });
-        // Hide footer actions (save/delete)
-        const footer = document.querySelector('#modal .modal-footer');
-        if (footer) footer.style.display = 'none';
-        // Update title
-        const title = document.getElementById('modal-title');
-        if (title) title.textContent = title.textContent + ' (Solo lectura)';
-      }, 30);
-    };
-  }
+    const strip = document.getElementById('assign-strip');
+    if (strip) strip.classList.add('hidden');
+  } catch(_) {}
 }
 
 // ════════════════════════════════════════════
