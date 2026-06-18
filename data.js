@@ -4,8 +4,15 @@
 const SYSTEM_FROZEN  = true;
 const _MIGRATION_URL = 'https://crm.m2base.com/';
 
+let _migrationToastShown = false;
 function _showMigrationNotice() {
-  alert('Este sistema ha sido migrado a ' + _MIGRATION_URL + '\nPara más información contacta con tu manager.');
+  if (typeof showToast === 'function') {
+    showToast('Sistema migrado a crm.m2base.com — contacta a tu manager para más info.', 'error');
+  } else if (!_migrationToastShown) {
+    _migrationToastShown = true;
+    alert('Este sistema ha sido migrado a ' + _MIGRATION_URL + '\nPara más información contacta con tu manager.');
+    _migrationToastShown = false;
+  }
 }
 
 function _initFreezeUI() {
