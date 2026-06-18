@@ -451,10 +451,11 @@ function initApp(user) {
   initToolbarGapHandle();
   initRealtimeSync();
   // Assign GEW-XXX codes to users that don't have one yet
-  if (user.role === 'master') assignUserCodes().catch(() => {});
-  // Backfill asignadoId on existing leads that only have asignado (name)
-  if (user.role === 'master' || user.role === 'admin') _backfillAsignadoId().catch(() => {});
-  _backfillTipo().catch(() => {});
+  if (!SYSTEM_FROZEN) {
+    if (user.role === 'master') assignUserCodes().catch(() => {});
+    if (user.role === 'master' || user.role === 'admin') _backfillAsignadoId().catch(() => {});
+    _backfillTipo().catch(() => {});
+  }
   if (typeof _initFreezeUI === 'function') _initFreezeUI();
 }
 

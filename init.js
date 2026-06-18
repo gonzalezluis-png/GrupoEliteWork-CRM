@@ -21,7 +21,7 @@
 
   await seedDefaultAdmin();
   refreshBoards();
-  seedTestLeads();
+  if (!SYSTEM_FROZEN) seedTestLeads();
   // show org name on login screen
   const _loginOrgEl = document.getElementById('login-org-name');
   if (_loginOrgEl) _loginOrgEl.textContent = loadAppName();
