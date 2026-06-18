@@ -40,7 +40,13 @@ const _leadStore  = new Map(); // boardId → lead[]
 let   _storeReady = false;
 
 function storeGetLeads(boardId) {
-  return _leadStore.get(boardId) || [];
+  if (_leadStore.has(boardId)) return _leadStore.get(boardId);
+  // Fallback: read from localStorage if store not yet populated
+  try {
+    const ls = JSON.parse(localStorage.getItem('gew_leads_' + boardId) || '[]');
+    if (ls.length > 0) { _leadStore.set(boardId, ls); return ls; }
+  } catch(_) {}
+  return [];
 }
 
 function storeSetLeads(boardId, leads) {
