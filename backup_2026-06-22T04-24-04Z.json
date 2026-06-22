@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-21T23-15-01Z",
+  "timestamp": "2026-06-22T04-24-04Z",
   "records": 1000,
   "data": [
     {
@@ -3320,7 +3320,7 @@
     },
     {
       "key": "gew_week_overrides",
-      "value": "{\"2026-04-20\":{\"discounts\":[],\"invoiceNumber\":188,\"boardPrices\":{\"LEAD FLORIDA\":12.36,\"LEAD DALLAS\":12.48,\"LEAD CONNECTICUT\":11.36}},\"2026-04-27\":{\"discounts\":[{\"id\":\"mos3caiz\",\"leads\":2,\"price\":-12,\"desc\":\"\"}],\"invoiceNumber\":192,\"boardPrices\":{\"LEAD DALLAS\":12.83,\"LEAD FLORIDA\":10.76}},\"2026-05-04\":{\"discounts\":[],\"invoiceNumber\":195,\"boardPrices\":{\"LEAD DALLAS\":12.87,\"LEAD CONNECTICUT\":12.21}},\"2026-05-11\":{\"discounts\":[],\"invoiceNumber\":198,\"boardPrices\":{\"LEAD DALLAS\":12.69,\"EL PASO - TEXAS\":21.32}},\"2026-05-18\":{\"discounts\":[],\"invoiceNumber\":202,\"boardPrices\":{\"LEAD FLORIDA\":10.47,\"LEAD DALLAS\":12.28}},\"2026-05-25\":{\"discounts\":[],\"invoiceNumber\":204},\"2026-06-01\":{\"discounts\":[],\"invoiceNumber\":206,\"boardPrices\":{\"HOUSTON\":7.47,\"LEAD FLORIDA\":11.29,\"OHIO\":14.86,\"LEAD DALLAS\":12.16}},\"2026-06-08\":{\"discounts\":[],\"invoiceNumber\":210,\"boardPrices\":{\"LEAD DALLAS\":11.92,\"HOUSTON\":6.96,\"OHIO\":14.14,\"LEAD FLORIDA\":10.82,\"JACKSONVILLE CITY\":11.79,\"LEAD JACKSONVILLE\":9.71}},\"2026-06-15\":{\"discounts\":[],\"invoiceNumber\":214,\"boardPrices\":{\"LEAD DALLAS\":12.17,\"LEAD JACKSONVILLE\":12.28,\"HOUSTON\":8.91,\"OHIO\":17.19,\"FLORIDA - MIAMI\":9.81}}}"
+      "value": "{\"2026-04-20\":{\"discounts\":[],\"invoiceNumber\":188,\"boardPrices\":{\"LEAD FLORIDA\":12.36,\"LEAD DALLAS\":12.48,\"LEAD CONNECTICUT\":11.36}},\"2026-04-27\":{\"discounts\":[{\"id\":\"mos3caiz\",\"leads\":2,\"price\":-12,\"desc\":\"\"}],\"invoiceNumber\":192,\"boardPrices\":{\"LEAD DALLAS\":12.83,\"LEAD FLORIDA\":10.76}},\"2026-05-04\":{\"discounts\":[],\"invoiceNumber\":195,\"boardPrices\":{\"LEAD DALLAS\":12.87,\"LEAD CONNECTICUT\":12.21}},\"2026-05-11\":{\"discounts\":[],\"invoiceNumber\":198,\"boardPrices\":{\"LEAD DALLAS\":12.69,\"EL PASO - TEXAS\":21.32}},\"2026-05-18\":{\"discounts\":[],\"invoiceNumber\":202,\"boardPrices\":{\"LEAD FLORIDA\":10.47,\"LEAD DALLAS\":12.28}},\"2026-05-25\":{\"discounts\":[],\"invoiceNumber\":204},\"2026-06-01\":{\"discounts\":[],\"invoiceNumber\":206,\"boardPrices\":{\"HOUSTON\":7.47,\"LEAD FLORIDA\":11.29,\"OHIO\":14.86,\"LEAD DALLAS\":12.16}},\"2026-06-08\":{\"discounts\":[],\"invoiceNumber\":210,\"boardPrices\":{\"LEAD DALLAS\":11.92,\"HOUSTON\":6.96,\"OHIO\":14.14,\"LEAD FLORIDA\":10.82,\"JACKSONVILLE CITY\":11.79,\"LEAD JACKSONVILLE\":9.71}},\"2026-06-15\":{\"discounts\":[],\"invoiceNumber\":214,\"boardPrices\":{\"LEAD DALLAS\":12.56,\"LEAD JACKSONVILLE\":12.53,\"HOUSTON\":8.91,\"OHIO\":18.2,\"FLORIDA - MIAMI\":9.81}}}"
     },
     {
       "key": "gew_ld_mplvpan9kkymq36wp0h",
