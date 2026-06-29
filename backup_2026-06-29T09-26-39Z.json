@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-29T04-04-43Z",
+  "timestamp": "2026-06-29T09-26-39Z",
   "records": 1000,
   "data": [
     {
@@ -3571,10 +3571,6 @@
       "value": "{\"id\":\"mq195sizexsu4uceg8o\",\"_deleted\":true,\"_deletedAt\":\"2026-06-11T19:37:28.376Z\"}"
     },
     {
-      "key": "gew_week_overrides",
-      "value": "{\"2026-04-20\":{\"discounts\":[],\"invoiceNumber\":188,\"boardPrices\":{\"LEAD FLORIDA\":12.36,\"LEAD DALLAS\":12.48,\"LEAD CONNECTICUT\":11.36}},\"2026-04-27\":{\"discounts\":[{\"id\":\"mos3caiz\",\"leads\":2,\"price\":-12,\"desc\":\"\"}],\"invoiceNumber\":192,\"boardPrices\":{\"LEAD DALLAS\":12.83,\"LEAD FLORIDA\":10.76}},\"2026-05-04\":{\"discounts\":[],\"invoiceNumber\":195,\"boardPrices\":{\"LEAD DALLAS\":12.87,\"LEAD CONNECTICUT\":12.21}},\"2026-05-11\":{\"discounts\":[],\"invoiceNumber\":198,\"boardPrices\":{\"LEAD DALLAS\":12.69,\"EL PASO - TEXAS\":21.32}},\"2026-05-18\":{\"discounts\":[],\"invoiceNumber\":202,\"boardPrices\":{\"LEAD FLORIDA\":10.47,\"LEAD DALLAS\":12.28}},\"2026-05-25\":{\"discounts\":[],\"invoiceNumber\":204},\"2026-06-01\":{\"discounts\":[],\"invoiceNumber\":206,\"boardPrices\":{\"HOUSTON\":7.47,\"LEAD FLORIDA\":11.29,\"OHIO\":14.86,\"LEAD DALLAS\":12.16}},\"2026-06-08\":{\"discounts\":[],\"invoiceNumber\":210,\"boardPrices\":{\"LEAD DALLAS\":11.92,\"HOUSTON\":6.96,\"OHIO\":14.14,\"LEAD FLORIDA\":10.82,\"JACKSONVILLE CITY\":11.79,\"LEAD JACKSONVILLE\":9.71}},\"2026-06-15\":{\"discounts\":[],\"invoiceNumber\":214,\"boardPrices\":{\"LEAD DALLAS\":12.56,\"LEAD JACKSONVILLE\":12.53,\"HOUSTON\":8.91,\"OHIO\":18.2,\"FLORIDA - MIAMI\":9.81}},\"2026-06-22\":{\"discounts\":[],\"invoiceNumber\":217,\"boardPrices\":{\"LEAD DALLAS\":11.97,\"HOUSTON\":8.36,\"FLORIDA - MIAMI\":8.55,\"CONNECTICUS\":14.85,\"OHIO\":14.61}}}"
-    },
-    {
       "key": "gew_ld_mpyiih2p7ayv3yrndu",
       "value": "{\"nombre\":\"GENESIS\",\"lead\":\"CSKID\",\"email\":\"\",\"telefono\":\"430 215 8619\",\"hijos\":\"\",\"direccion\":\"\",\"ubicacion\":\"Texas\",\"entrada\":\"Referido\",\"asignado\":\"Dabiany Palma\",\"asignadoId\":\"mobrnws9ipwavx76zul\",\"resultado\":\"BUZÓN DE VOZ\",\"notas\":\"4:21PM NO REPICO\",\"id\":\"mpyiih2p7ayv3yrndu\",\"creacion\":\"2026-06-03\",\"_updatedAt\":\"2026-06-12T13:35:32.314Z\",\"tipo\":\"Presencial\",\"_notes\":\"[{\\\"text\\\":\\\"4:21PM NO REPICO\\\",\\\"author\\\":\\\"Sistema\\\",\\\"date\\\":\\\"2026-06-03T00:00:00Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"Resultado: SIN RESULTADO\\\",\\\"author\\\":\\\"Dabiany Palma\\\",\\\"date\\\":\\\"2026-06-09T21:46:26.425Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"no repica//tere\\\",\\\"author\\\":\\\"Dabiany Palma\\\",\\\"date\\\":\\\"2026-06-09T21:46:26.425Z\\\"},{\\\"text\\\":\\\"Resultado: BUZÓN DE VOZ\\\",\\\"author\\\":\\\"JESUS CHACON\\\",\\\"date\\\":\\\"2026-06-12T13:35:32.307Z\\\",\\\"system\\\":true}]\",\"_boardId\":\"austin\"}"
     },
@@ -4001,6 +3997,10 @@
     {
       "key": "gew_ld_mo9fzzcudskm6lu963t",
       "value": "{\"id\": \"mo9fzzcudskm6lu963t\", \"creacion\": \"2026-04-22\", \"nombre\": \"Jhoandry Villalobos\", \"lead\": \"GUIA DE INF\", \"hijos\": \"2\", \"email\": \"jhoandryvill@gmail.com\", \"telefono\": \"14077898724\", \"direccion\": \"31419\", \"ubicacion\": \"Georgia\", \"asignado\": \"David Palma\", \"fechaAsignado\": \"2026-04-24T19:26:23.642Z\", \"asignadoId\": \"moboyizrb2dagqdbrqe\", \"tipo\": \"Presencial\", \"_updatedAt\": \"2026-04-29T20:37:06.820Z\", \"resultado\": \"NO CONTESTA\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado: NO CONTESTA\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-04-29T20:37:06.820Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"ME MANDA DE UNA VEZ AL CORREO DE VOZ (NO CONTESTA) \\\\nLLAMADAS: 12:00pm/1:30pm y 4:00pm/6:pm\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-04-29T20:37:06.820Z\\\"}]\", \"_boardId\": \"georgia\"}"
+    },
+    {
+      "key": "gew_ld_mo9fzzcubalmyb3utmt",
+      "value": "{\"id\": \"mo9fzzcubalmyb3utmt\", \"creacion\": \"2026-04-22\", \"nombre\": \"Katherin Rodriguez\", \"lead\": \"GUIA DE INF\", \"hijos\": \"1\", \"email\": \"estherdiazrodriguez.020119@gmail.com\", \"telefono\": \"627020051\", \"direccion\": \"28018\", \"ubicacion\": \"Georgia\", \"asignado\": \"David Palma\", \"fechaAsignado\": \"2026-04-24T19:26:23.645Z\", \"asignadoId\": \"moboyizrb2dagqdbrqe\", \"tipo\": \"Presencial\", \"_updatedAt\": \"2026-05-01T21:14:25.507Z\", \"resultado\": \"N\\u00daMERO EQUIVOCADO\", \"_notes\": \"[{\\\"text\\\":\\\"Resultado: N\\u00daMERO EQUIVOCADO\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-05-01T21:14:25.507Z\\\",\\\"system\\\":true},{\\\"text\\\":\\\"no sirve el numero\\\",\\\"author\\\":\\\"David Palma\\\",\\\"date\\\":\\\"2026-05-01T21:14:25.507Z\\\"}]\", \"_boardId\": \"georgia\"}"
     }
   ]
 }
